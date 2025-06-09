@@ -72,8 +72,8 @@ passport.use(new LocalStrategy(async (username, password, done) => {
   }
 }));
 passport.use(new GoogleStrategy({
-    clientID: "62938005509-qv41gfsbavsa59he0pfjtb21mc0djh97.apps.googleusercontent.com",         // from Google Cloud
-    clientSecret: "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",  // from Google Cloud
+    clientID: "587834679125-34p3obvnjoa9o8qsa4asgrgubneh5atg.apps.googleusercontent.com",         // from Google Cloud
+    clientSecret: "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",  // from Google Cloud
     callbackURL: "https://virtuallocker.onrender.com/auth/google/callback"
   },
   async (accessToken, refreshToken, profile, done) => {
