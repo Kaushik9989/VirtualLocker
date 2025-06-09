@@ -74,7 +74,7 @@ passport.use(new LocalStrategy(async (username, password, done) => {
 passport.use(new GoogleStrategy({
     clientID: "62938005509-qv41gfsbavsa59he0pfjtb21mc0djh97.apps.googleusercontent.com",         // from Google Cloud
     clientSecret: "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",  // from Google Cloud
-    callbackURL: "/auth/google/callback"
+    callbackURL: "https://virtuallocker.onrender.com/auth/google/callback"
   },
   async (accessToken, refreshToken, profile, done) => {
     // Find or create user in DB
@@ -96,12 +96,6 @@ app.get("/auth/google",
   passport.authenticate("google", { scope: ["profile", "email"] })
 );
 
-app.get("/auth/google/callback",
-  passport.authenticate("google", { failureRedirect: "/login" }),
-  (req, res) => {
-    res.redirect("/dashboard"); // or your success route
-  }
-);
 
 // Handle callback
 app.get("/auth/google/callback", 
