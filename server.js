@@ -551,7 +551,15 @@ app.post("/locker/cancel", isAuthenticated, async (req, res) => {
     res.status(500).send("Server error");
   }
 });
+app.use((req, res, next) => {
+  res.status(404).render('errorpage', { errorMessage: 'Page Not Found (404)' });
+});
 
+// Error-handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack); // Log the error details (optional)
+  res.status(500).render('errorpage', { errorMessage: err.message || 'Internal Server Error' });
+});
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
