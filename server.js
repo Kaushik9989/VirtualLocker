@@ -289,12 +289,21 @@ app.get("/admin/add-locker",isAdmin,(req,res)=>{
 app.get("/dashboard", isAuthenticated, async (req, res) => {
   try {
     const user = req.user;
-    const lockers = await Locker.find({});
+    const lockersRaw = await Locker.find({});
+    
+    const lockers = lockersRaw.map(locker => ({
+      lockerId: locker.lockerId,
+      compartments: locker.compartments,
+      location: locker.location || { lat: null, lng: null, address: "" }
+    }));
+
     res.render("dashboard", { user, lockers });
   } catch (err) {
-    res.status(500).send("Error loading dashboard");
-  } 
+    console.error("Error loading dashboard:", err);
+    res.status(500).send("Internal Server Error");
+  }
 });
+
 // ADMIN
 // Admin Login Page
 app.get("/admin/login", (req, res) => {
