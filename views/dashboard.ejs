@@ -1,14 +1,32 @@
 <% layout("/layouts/boilerplate") %>
 
 <!-- Sidebar for Desktop -->
-<div class="d-none d-lg-block bg-white text-dark position-fixed top-0 end-0 h-100 p-4" style="width: 250px; z-index: 1030;">
+<div
+  class="d-none d-lg-block bg-white text-dark position-fixed top-0 end-0 h-100 p-4"
+  style="width: 250px; z-index: 1030"
+>
   <h5 class="mb-4">Drop Point</h5>
   <ul class="nav flex-column">
-    <li class="nav-item mb-2"><i class="fa-solid fa-image me-2"></i><a href="#" class="text-dark text-decoration-none">Home</a></li>
-    <li class="nav-item mb-2"><i class="fa-solid fa-arrow-up-right-from-square me-2"></i><a href="#" class="text-dark text-decoration-none">My Bookings</a></li>
-    <li class="nav-item mb-2"><i class="fa-solid fa-calendar-days me-2"></i><a href="#" class="text-dark text-decoration-none">Events</a></li>
-    <li class="nav-item mb-2"><i class="fa-solid fa-phone me-2"></i><a href="#" class="text-dark text-decoration-none">Contact</a></li>
-    <li class="nav-item mb-2"><i class="fa-solid fa-gear me-2"></i><a href="#" class="text-dark text-decoration-none">Settings</a></li>
+    <li class="nav-item mb-2">
+      <i class="fa-solid fa-image me-2"></i
+      ><a href="#" class="text-dark text-decoration-none">Home</a>
+    </li>
+    <li class="nav-item mb-2">
+      <i class="fa-solid fa-arrow-up-right-from-square me-2"></i
+      ><a href="#" class="text-dark text-decoration-none">My Bookings</a>
+    </li>
+    <li class="nav-item mb-2">
+      <i class="fa-solid fa-calendar-days me-2"></i
+      ><a href="#" class="text-dark text-decoration-none">Events</a>
+    </li>
+    <li class="nav-item mb-2">
+      <i class="fa-solid fa-phone me-2"></i
+      ><a href="#" class="text-dark text-decoration-none">Contact</a>
+    </li>
+    <li class="nav-item mb-2">
+      <i class="fa-solid fa-gear me-2"></i
+      ><a href="#" class="text-dark text-decoration-none">Settings</a>
+    </li>
   </ul>
   <hr />
   <h6>Follow Us</h6>
@@ -48,11 +66,26 @@
   </div>
   <div class="offcanvas-body">
     <ul class="nav flex-column">
-      <li class="nav-item mb-2"><i class="fa-solid fa-image me-2"></i><a href="#" class="text-white text-decoration-none">Home</a></li>
-      <li class="nav-item mb-2"><i class="fa-solid fa-arrow-up-right-from-square me-2"></i><a href="#" class="text-white text-decoration-none">My Bookings</a></li>
-      <li class="nav-item mb-2"><i class="fa-solid fa-calendar-days me-2"></i><a href="#" class="text-white text-decoration-none">Events</a></li>
-      <li class="nav-item mb-2"><i class="fa-solid fa-phone me-2"></i><a href="#" class="text-white text-decoration-none">Contact</a></li>
-      <li class="nav-item mb-2"><i class="fa-solid fa-gear me-2"></i><a href="#" class="text-white text-decoration-none">Settings</a></li>
+      <li class="nav-item mb-2">
+        <i class="fa-solid fa-image me-2"></i
+        ><a href="#" class="text-white text-decoration-none">Home</a>
+      </li>
+      <li class="nav-item mb-2">
+        <i class="fa-solid fa-arrow-up-right-from-square me-2"></i
+        ><a href="#" class="text-white text-decoration-none">My Bookings</a>
+      </li>
+      <li class="nav-item mb-2">
+        <i class="fa-solid fa-calendar-days me-2"></i
+        ><a href="#" class="text-white text-decoration-none">Events</a>
+      </li>
+      <li class="nav-item mb-2">
+        <i class="fa-solid fa-phone me-2"></i
+        ><a href="#" class="text-white text-decoration-none">Contact</a>
+      </li>
+      <li class="nav-item mb-2">
+        <i class="fa-solid fa-gear me-2"></i
+        ><a href="#" class="text-white text-decoration-none">Settings</a>
+      </li>
     </ul>
     <hr />
     <h6>Follow Us</h6>
@@ -69,75 +102,133 @@
 <body class="bg-light min-vh-100">
   <div class="container-fluid">
     <div class="row">
-      <div class="col-lg-9 offset-lg-0 col-12" style="margin-right: 0; padding-right: 0;">
-        <div class="container py-5" style="max-width: 100%;">
+      <div
+        class="col-lg-9 offset-lg-0 col-12"
+        style="margin-right: 0; padding-right: 0"
+      >
+        <div class="container py-5" style="max-width: 100%">
           <div class="row justify-content-center">
+            <h2 class="mt-5">Nearest Lockers</h2>
+            <div
+              id="locker-map"
+              class="w-full max-w-5xl h-96 rounded-lg shadow-md mb-5 mt-5"
+            ></div>
             <div class="col-md-12">
               <div class="card shadow-sm border-0">
                 <div class="card-body p-4">
-                  <div class="d-flex justify-content-between align-items-center mb-4">
+                  <div
+                    class="d-flex justify-content-between align-items-center mb-4"
+                  >
                     <h2 class="card-title mb-0">Available Lockers</h2>
-                    <a href="/auth/logout" class="btn btn-outline-danger">Logout</a>
+                    <a href="/auth/logout" class="btn btn-outline-danger"
+                      >Logout</a
+                    >
                   </div>
 
                   <% if (lockers.length === 0) { %>
-                    <div class="alert alert-info" role="alert">
-                      No lockers available.
-                    </div>
+                  <div class="alert alert-info" role="alert">
+                    No lockers available.
+                  </div>
                   <% } else { %>
-                    <div class="row">
-                      <% lockers.forEach(locker => { %>
-                        <div class="col-md-6 mb-4">
-                          <div class="card h-100">
-                            <div class="card-header bg-primary text-white">
-                              <h4 class="mb-0">Locker ID: <%= locker.lockerId %></h4>
-                            </div>
-                            <div class="card-body">
-                              <table class="table table-bordered table-hover">
-                                <thead>
-                                  <tr>
-                                    <th>Compartment</th>
-                                    <th>Status</th>
-                                    <th>Action</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  <% locker.compartments.forEach(comp => { %>
-                                    <tr>
-                                      <td><strong>Compartment <%= comp.compartmentId %></strong></td>
-                                      <td>
-                                        <%= comp.isBooked ? "Booked" : "Available" %> | 
-                                        <%= comp.isLocked ? "Locked" : "Unlocked" %>
-                                      </td>
-                                      <td>
-                                        <% if (comp.isBooked) { %>
-                                          <button type="submit" class="btn btn-sm btn-warning">Booked</button>
-                                        <% } %>
-                                        <% if (!comp.isBooked) { %>
-                                          <form action="/locker/book" method="POST" class="d-inline">
-                                            <input type="hidden" name="lockerId" value="<%= locker.lockerId %>">
-                                            <input type="hidden" name="compartmentId" value="<%= comp.compartmentId %>">
-                                            <button type="submit" class="btn btn-sm btn-success">Book</button>
-                                          </form>
-                                        <% } else if (comp.bookingInfo.userId && user._id.toString() === comp.bookingInfo.userId.toString()) { %>
-                                          <form action="/locker/cancel" method="POST" class="d-inline">
-                                            <input type="hidden" name="lockerId" value="<%= locker.lockerId %>">
-                                            <input type="hidden" name="compartmentId" value="<%= comp.compartmentId %>">
-                                            <button type="submit" class="btn btn-sm btn-danger">Cancel</button>
-                                          </form>
-                                        <% } %>
-                                      </td>
-                                    </tr>
-                                  <% }) %>
-                                </tbody>
-                              </table>
-                            </div>
-                          </div>
+                  <div class="row">
+                    <% lockers.forEach(locker => { %>
+                    <div class="col-md-6 mb-4">
+                      <div class="card h-100">
+                        <div class="card-header bg-primary text-white">
+                          <h4 class="mb-0">
+                            Locker ID: <%= locker.lockerId %>
+                          </h4>
                         </div>
-                      <% }) %>
+                        <div class="card-body">
+                          <table class="table table-bordered table-hover">
+                            <thead>
+                              <tr>
+                                <th>Compartment</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <% locker.compartments.forEach(comp => { %>
+                              <tr>
+                                <td>
+                                  <strong
+                                    >Compartment <%= comp.compartmentId
+                                    %></strong
+                                  >
+                                </td>
+                                <td>
+                                  <%= comp.isBooked ? "Booked" : "Available" %>
+                                  | <%= comp.isLocked ? "Locked" : "Unlocked" %>
+                                </td>
+                                <td>
+                                  <% if (comp.isBooked) { %>
+                                  <button
+                                    type="submit"
+                                    class="btn btn-sm btn-warning"
+                                  >
+                                    Booked
+                                  </button>
+                                  <% } %> <% if (!comp.isBooked) { %>
+                                  <form
+                                    action="/locker/book"
+                                    method="POST"
+                                    class="d-inline"
+                                  >
+                                    <input
+                                      type="hidden"
+                                      name="lockerId"
+                                      value="<%= locker.lockerId %>"
+                                    />
+                                    <input
+                                      type="hidden"
+                                      name="compartmentId"
+                                      value="<%= comp.compartmentId %>"
+                                    />
+                                    <button
+                                      type="submit"
+                                      class="btn btn-sm btn-success"
+                                    >
+                                      Book
+                                    </button>
+                                  </form>
+                                  <% } else if (comp.bookingInfo.userId &&
+                                  user._id.toString() ===
+                                  comp.bookingInfo.userId.toString()) { %>
+                                  <form
+                                    action="/locker/cancel"
+                                    method="POST"
+                                    class="d-inline"
+                                  >
+                                    <input
+                                      type="hidden"
+                                      name="lockerId"
+                                      value="<%= locker.lockerId %>"
+                                    />
+                                    <input
+                                      type="hidden"
+                                      name="compartmentId"
+                                      value="<%= comp.compartmentId %>"
+                                    />
+                                    <button
+                                      type="submit"
+                                      class="btn btn-sm btn-danger"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </form>
+                                  <% } %>
+                                </td>
+                              </tr>
+                              <% }) %>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
                     </div>
+                    <% }) %>
+                  </div>
                   <% } %>
-
                 </div>
               </div>
             </div>
@@ -148,7 +239,99 @@
   </div>
 
   <!-- Bootstrap JS -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    crossorigin="anonymous"
+  ></script>
   <!-- Font Awesome -->
-  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+  <script
+    src="https://kit.fontawesome.com/a076d05399.js"
+    crossorigin="anonymous"
+  ></script>
+  <!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+  const lockers = <%- JSON.stringify(lockers) %>;
+
+  const map = L.map('locker-map').setView([20.5937, 78.9629], 5); // Default center (India)
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18,
+  }).addTo(map);
+
+  // Get user location
+  navigator.geolocation.getCurrentPosition(success, error);
+
+  function success(position) {
+    const userLat = position.coords.latitude;
+    const userLng = position.coords.longitude;
+
+    // Show user location on map
+    L.marker([userLat, userLng])
+      .addTo(map)
+      .bindPopup("📍 Your Location")
+      .openPopup();
+
+    map.setView([userLat, userLng], 14); // Zoom into user
+
+    // Show nearest lockers
+    showNearestLockers(userLat, userLng);
+  }
+
+  function error(err) {
+    console.error("Geolocation error:", err.message);
+    alert("Could not get your location.");
+    map.setView([20.5937, 78.9629], 5); // Fallback
+  }
+
+  function showNearestLockers(userLat, userLng) {
+    const radiusInKm = 80;
+
+    lockers.forEach(locker => {
+      if (locker.location.lat && locker.location.lng) {
+        const lat = locker.location.lat;
+        const lng = locker.location.lng;
+
+        const distance = getDistanceFromLatLonInKm(userLat, userLng, lat, lng);
+
+        if (distance <= radiusInKm) {
+          const popupContent = `
+            <strong>Locker ID:</strong> ${locker.lockerId}<br>
+            <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" 
+               target="_blank" 
+               class="btn btn-sm btn-sucess mt-2">
+               Get Directions
+            </a>
+          `;
+          L.marker([lat, lng])
+            .addTo(map)
+            .bindPopup(popupContent);
+        }
+      }
+    });
+  }
+
+  function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+    const R = 6371; // km
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  function deg2rad(deg) {
+    return deg * (Math.PI / 180);
+  }
+</script>
+
+
 </body>
