@@ -7,7 +7,7 @@ const userSchema = new mongoose.Schema({
   googleId: { type: String, unique: true, sparse: true },
   phone: { type: String, unique: true, sparse: true }, // for phone OTP users
   isPhoneVerified: { type: Boolean, default: false }, // flag for phone verification
-  role: { type: String, enum: ['user', 'admin'], default: 'user' }
+  role: { type: String, enum: ['user', 'admin','technician'], default: 'user' }
 });
 
 // Hash password only if it's being set/modified

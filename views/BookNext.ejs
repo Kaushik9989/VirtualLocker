@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Select Unlock Method</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+</head>
+<body class="bg-light min-vh-100">
+  <div class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-md-6">
+        <div class="card shadow-sm border-0">
+          <div class="card-body p-4 text-center">
+            <h2 class="card-title mb-4">Select Unlock Method</h2>
+            <p>Choose how you want to unlock Locker <span id="lockerId"><%=lockerId%></span>, <%=compartmentId%> <span id="compartmentId">1</span>.</p>
+            <div class="d-flex justify-content-center gap-3">
+              <button class="btn btn-primary" id="generateQrBtn">Generate QR Code</button>
+              <button class="btn btn-success" id="generateOtpBtn">Generate OTP</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QR Code Modal -->
+  <div class="modal fade" id="qrModal" tabindex="-1" aria-labelledby="qrModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="qrModalLabel">QR Code to Unlock Locker</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-center">
+          <div id="qrCode"></div>
+          <p class="mt-3">Scan this QR code to unlock Locker <span id="qrLockerId"></span>, Compartment <span id="qrCompartmentId"></span>.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OTP Modal -->
+  <div class="modal fade" id="otpModal" tabindex="-1" aria-labelledby="otpModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="otpModalLabel">OTP to Unlock Locker</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-center">
+          <h4 id="otpCode"></h4>
+          <p>Use this OTP to unlock Locker <span id="otpLockerId"></span>, Compartment <span id="otpCompartmentId"></span>.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script>
+    // Get lockerId and compartmentId from URL query params or set defaults
+    const urlParams = new URLSearchParams(window.location.search);
+    const lockerId = urlParams.get('lockerId') || 'TEST1';
+    const compartmentId = urlParams.get('compartmentId') || '1';
+    document.getElementById('lockerId').textContent = lockerId;
+    document.getElementById('compartmentId').textContent = compartmentId;
+
+    // Book locker and handle QR/OTP generation
+    async function bookAndGenerate(action) {
+      console.log(`Attempting to book locker ${lockerId}, compartment ${compartmentId}, action: ${action}`);
+      try {
+        // Step 1: Book the locker
+        const bookResponse = await fetch('/locker/book', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lockerId, compartmentId })
+        });
+        if (!bookResponse.ok) {
+          alert('Failed to book the locker.');
+          console.error('Book request failed:', bookResponse.status);
+          return;
+        }
+
+        // Step 2: Generate QR or OTP
+        if (action === 'qr') {
+          const qrResponse = await fetch('/locker/generate-qr', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lockerId, compartmentId })
+          });
+          const qrData = await qrResponse.json();
+          if (qrData.qrUrl) {
+            document.getElementById('qrLockerId').textContent = lockerId;
+            document.getElementById('qrCompartmentId').textContent = compartmentId;
+            document.getElementById('qrCode').innerHTML = '';
+            QRCode.toCanvas(qrData.qrUrl, { errorCorrectionLevel: 'H' }, (err, canvas) => {
+              if (err) {
+                console.error('QR code generation failed:', err);
+                alert('Failed to generate QR code.');
+                return;
+              }
+              document.getElementById('qrCode').appendChild(canvas);
+              const qrModal = new bootstrap.Modal(document.getElementById('qrModal'));
+              qrModal.show();
+            });
+          } else {
+            alert('Failed to generate QR code.');
+            console.error('QR response:', qrData);
+          }
+        } else if (action === 'otp') {
+          const otpResponse = await fetch('/locker/generate-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lockerId, compartmentId })
+          });
+          const otpData = await otpResponse.json();
+          if (otpData.otp) {
+            document.getElementById('otpLockerId').textContent = lockerId;
+            document.getElementById('otpCompartmentId').textContent = compartmentId;
+            document.getElementById('otpCode').textContent = otpData.otp;
+            const otpModal = new bootstrap.Modal(document.getElementById('otpModal'));
+            otpModal.show();
+          } else {
+            alert('Failed to generate OTP.');
+            console.error('OTP response:', otpData);
+          }
+        }
+      } catch (error) {
+        console.error('Error during booking/generation:', error);
+        alert('An error occurred. Please try again.');
+      }
+    }
+
+    // Event listeners for buttons
+    document.getElementById('generateQrBtn').addEventListener('click', () => {
+      console.log('QR button clicked');
+      bookAndGenerate('qr');
+    });
+
+    document.getElementById('generateOtpBtn').addEventListener('click', () => {
+      console.log('OTP button clicked');
+      bookAndGenerate('otp');
+    });
+  </script>
+</body>
+</html>
