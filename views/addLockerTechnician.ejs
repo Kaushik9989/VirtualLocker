@@ -1,0 +1,122 @@
+<% layout('/layouts/boilerplate') %>
+
+<div class="container mt-5 pt-4">
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+      <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+          <h4 class="mb-0">
+            <i class="fas fa-toolbox me-2"></i>Install New Locker
+          </h4>
+        </div>
+        <div class="card-body">
+        
+    
+  </div>
+
+          <form action="/technician/add-locker" method="POST">
+            <div class="mb-3">
+              <label for="lockerId" class="form-label"
+                ><i class="fas fa-id-badge me-1"></i>Locker ID</label
+              >
+              <input
+                type="text"
+                name="lockerId"
+                id="lockerId"
+                class="form-control"
+                required
+              />
+            </div>
+
+            <div class="mb-3">
+              <label for="totalCompartments" class="form-label"
+                ><i class="fas fa-boxes me-1"></i>Total Compartments</label
+              >
+              <input
+                type="number"
+                name="totalCompartments"
+                id="totalCompartments"
+                class="form-control"
+                required
+              />
+            </div>
+
+            <div class="mb-3 position-relative">
+              <label for="locationSearch" class="form-label"
+                ><i class="fas fa-map-marker-alt me-1"></i>Location</label
+              >
+              <input
+                type="text"
+                id="locationSearch"
+                class="form-control"
+                placeholder="Search location..."
+                autocomplete="off"
+                required
+              />
+              <!-- Suggestions List -->
+              <ul
+                id="suggestions"
+                class="list-group position-absolute w-100"
+                style="z-index: 1000"
+              ></ul>
+            </div>
+
+            <!-- Hidden fields to be submitted -->
+            <input type="hidden" id="addressField" name="address" />
+            <input type="hidden" id="latField" name="lat" />
+            <input type="hidden" id="lngField" name="lng" />
+
+            <div class="d-grid">
+              <button type="submit" class="btn btn-success">
+                <i class="fas fa-plus-circle me-1"></i>Add Locker
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FontAwesome -->
+<script
+  src="https://kit.fontawesome.com/a076d05399.js"
+  crossorigin="anonymous"
+></script>
+
+<!-- OpenStreetMap Autocomplete -->
+<script>
+  const searchInput = document.getElementById("locationSearch");
+  const suggestions = document.getElementById("suggestions");
+
+  searchInput.addEventListener("input", async () => {
+    const query = searchInput.value.trim();
+    if (!query) {
+      suggestions.innerHTML = "";
+      return;
+    }
+
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+        query
+      )}`
+    );
+    const data = await res.json();
+
+    suggestions.innerHTML = "";
+    data.slice(0, 5).forEach((place) => {
+      const li = document.createElement("li");
+      li.className = "list-group-item list-group-item-action";
+      li.textContent = place.display_name;
+      li.addEventListener("click", () => {
+        searchInput.value = place.display_name;
+        document.getElementById("addressField").value = place.display_name;
+        document.getElementById("latField").value = place.lat;
+        document.getElementById("lngField").value = place.lon;
+        suggestions.innerHTML = "";
+      });
+      suggestions.appendChild(li);
+    });
+  });
+  
+</script>
