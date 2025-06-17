@@ -1,0 +1,26 @@
+<% layout('/layouts/boilerplate') %>
+<body>
+  <h2 class="mt-4">Your Booked Compartments</h2>
+
+  <!-- 🔍 Locker ID Filter -->
+  <form method="GET" action="/user/pickup/self" class="mb-4">
+    <label for="filterLockerId"><strong>Filter by Locker ID:</strong></label>
+    <select name="lockerId" id="filterLockerId" onchange="this.form.submit()">
+      <option value="">All Lockers</option>
+      <% lockerIds.forEach(id => { %>
+        <option value="<%= id %>" <%= id === selectedLockerId ? "selected" : "" %>><%= id %></option>
+      <% }) %>
+    </select>
+  </form>
+
+  <!-- 📦 Compartment Cards -->
+  <div class="d-flex flex-wrap justify-content-start">
+    <% compartments.forEach(c => { %>
+      <div class="card mx-3 my-3 p-3" style="width: 18rem; text-align: center;">
+        <p><strong>Locker ID:</strong> <%= c.lockerId %></p>
+        <p><strong>Compartment ID:</strong> <%= c.compartmentId %></p>
+        <img class="mx-5" src="<%= c.qrCode %>" alt="QR Code for <%= c.compartmentId %>" style="height: 150px; width: 150px;" />
+      </div>
+    <% }) %>
+  </div>
+</body>
