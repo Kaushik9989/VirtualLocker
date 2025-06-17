@@ -77,14 +77,14 @@
         popupAnchor: [0, -30],
       });
 
-      const userMarker = L.marker([userLat, userLng], { icon: userIcon })
-        .addTo(map)
-        .bindPopup("📍 You are here, click to view profile")
-        .openPopup();
+        const userMarker = L.marker([userLat, userLng], { icon: userIcon })
+          .addTo(map)
+          .bindPopup(`<b>📍 You are here</b> &nbsp;<a href="/profile" target="_blank">View Profile</a>`)
+          .openPopup();
 
-      userMarker.on("click", () => {
-        window.location.href = "/profile";
-      });
+        userMarker.on("click", () => {
+          window.location.href = "/profile";
+        });
 
       map.setView([userLat, userLng], 14);
       showNearestLockers(userLat, userLng);
