@@ -1,0 +1,31 @@
+<%- layout("layouts/boilerplate") %>
+
+<h2 class="mt-5">Drop Off Package</h2>
+
+<% if (messages.success && messages.success.length > 0) { %>
+  <div class="alert alert-success"><%= messages.success[0] %></div>
+<% } %>
+
+<% if (messages.error && messages.error.length > 0) { %>
+  <div class="alert alert-danger"><%= messages.error[0] %></div>
+<% } %>
+
+<form action="/user/dropoff" method="POST" style="width: 500px;" class="mt-5">
+  <div class="mb-3">
+    <label>Select Your Booked Compartment:</label>
+    <select name="lockerCompartment" class="form-control" required>
+      <% compartments.forEach(c => { %>
+        <option value="<%= c.lockerId %>|<%= c.compartmentId %>">
+          Locker: <%= c.lockerId %> - Compartment: <%= c.compartmentId %>
+        </option>
+      <% }) %>
+    </select>
+  </div>
+
+  <div class="mb-3">
+    <label>Enter OTP:</label>
+    <input type="text" name="otp" class="form-control" placeholder="Enter your 6-digit OTP" required>
+  </div>
+
+  <button class="btn btn-primary">Unlock Compartment</button>
+</form>

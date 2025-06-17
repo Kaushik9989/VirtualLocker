@@ -1,337 +1,161 @@
 <% layout("/layouts/boilerplate") %>
 
-<!-- Sidebar for Desktop -->
-<div
-  class="d-none d-lg-block bg-white text-dark position-fixed top-0 end-0 h-100 p-4"
-  style="width: 250px; z-index: 1030"
->
-  <h5 class="mb-4">Drop Point</h5>
-  <ul class="nav flex-column">
-    <li class="nav-item mb-2">
-      <i class="fa-solid fa-image me-2"></i
-      ><a href="#" class="text-dark text-decoration-none">Home</a>
-    </li>
-    <li class="nav-item mb-2">
-      <i class="fa-solid fa-arrow-up-right-from-square me-2"></i
-      ><a href="#" class="text-dark text-decoration-none">My Bookings</a>
-    </li>
-    <li class="nav-item mb-2">
-      <i class="fa-solid fa-calendar-days me-2"></i
-      ><a href="#" class="text-dark text-decoration-none">Events</a>
-    </li>
-    <li class="nav-item mb-2">
-      <i class="fa-solid fa-phone me-2"></i
-      ><a href="#" class="text-dark text-decoration-none">Contact</a>
-    </li>
-    <li class="nav-item mb-2">
-      <i class="fa-solid fa-gear me-2"></i
-      ><a href="#" class="text-dark text-decoration-none">Settings</a>
-    </li>
-  </ul>
-  <hr />
-  <h6>Follow Us</h6>
-  <div class="d-flex gap-3">
-    <a href="#"><i class="fa-brands fa-facebook text-dark"></i></a>
-    <a href="#"><i class="fa-brands fa-twitter text-dark"></i></a>
-    <a href="#"><i class="fa-brands fa-instagram text-dark"></i></a>
-    <a href="#"><i class="fa-brands fa-youtube text-dark"></i></a>
-  </div>
-</div>
-
-<!-- Toggle Button for Mobile -->
-<button
-  class="btn btn-dark position-fixed top-0 end-0 m-3 z-3 mt-5 d-lg-none"
-  data-bs-toggle="offcanvas"
-  data-bs-target="#rightSidebar"
-  aria-controls="rightSidebar"
->
-  <i class="fa-solid fa-bars"></i>
-</button>
-
-<!-- Offcanvas Sidebar for Mobile -->
-<div
-  class="offcanvas offcanvas-end text-bg-dark d-lg-none"
-  tabindex="-1"
-  id="rightSidebar"
-  aria-labelledby="rightSidebarLabel"
->
-  <div class="offcanvas-header">
-    <h5 class="offcanvas-title" id="rightSidebarLabel">Drop Point</h5>
-    <button
-      type="button"
-      class="btn-close btn-close-white"
-      data-bs-dismiss="offcanvas"
-      aria-label="Close"
-    ></button>
-  </div>
-  <div class="offcanvas-body">
-    <ul class="nav flex-column">
-      <li class="nav-item mb-2">
-        <i class="fa-solid fa-image me-2"></i
-        ><a href="#" class="text-white text-decoration-none">Home</a>
-      </li>
-      <li class="nav-item mb-2">
-        <i class="fa-solid fa-arrow-up-right-from-square me-2"></i
-        ><a href="#" class="text-white text-decoration-none">My Bookings</a>
-      </li>
-      <li class="nav-item mb-2">
-        <i class="fa-solid fa-calendar-days me-2"></i
-        ><a href="#" class="text-white text-decoration-none">Events</a>
-      </li>
-      <li class="nav-item mb-2">
-        <i class="fa-solid fa-phone me-2"></i
-        ><a href="#" class="text-white text-decoration-none">Contact</a>
-      </li>
-      <li class="nav-item mb-2">
-        <i class="fa-solid fa-gear me-2"></i
-        ><a href="#" class="text-white text-decoration-none">Settings</a>
-      </li>
-    </ul>
-    <hr />
-    <h6>Follow Us</h6>
-    <div class="d-flex gap-3">
-      <a href="#"><i class="fa-brands fa-facebook text-white"></i></a>
-      <a href="#"><i class="fa-brands fa-twitter text-white"></i></a>
-      <a href="#"><i class="fa-brands fa-instagram text-white"></i></a>
-      <a href="#"><i class="fa-brands fa-youtube text-white"></i></a>
-    </div>
-  </div>
-</div>
-
-<!-- Main Content -->
 <body class="bg-light min-vh-100">
-  <div class="container-fluid">
-    <div class="row">
-      <div
-        class="col-lg-9 offset-lg-0 col-12"
-        style="margin-right: 0; padding-right: 0"
-      >
-        <div class="container py-5" style="max-width: 100%">
-          <div class="row justify-content-center">
-            <h2 class="mt-5">Nearest Lockers</h2>
-            <div
-              id="locker-map"
-              class="w-full max-w-5xl h-96 rounded-lg shadow-md mb-5 mt-5"
-            ></div>
-            <div class="col-md-12">
-              <div class="card shadow-sm border-0">
-                <div class="card-body p-4">
-                  <div
-                    class="d-flex justify-content-between align-items-center mb-4"
-                  >
-                    <h2 class="card-title mb-0">Available Lockers</h2>
-                    <a href="/auth/logout" class="btn btn-outline-danger"
-                      >Logout</a
-                    >
-                  </div>
-
-                  <% if (lockers.length === 0) { %>
-                  <div class="alert alert-info" role="alert">
-                    No lockers available.
-                  </div>
-                  <% } else { %>
-                  <div class="row">
-                    <% lockers.forEach(locker => { %>
-                    <div class="col-md-6 mb-4">
-                      <div class="card h-100">
-                        <div class="card-header bg-primary text-white">
-                          <h4 class="mb-0">
-                            Locker ID: <%= locker.lockerId %>
-                          </h4>
-                        </div>
-                        <div class="card-body">
-                          <table class="table table-bordered table-hover">
-                            <thead>
-                              <tr>
-                                <th>Compartment</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              <% locker.compartments.forEach(comp => { %>
-                              <tr>
-                                <td>
-                                  <strong
-                                    >Compartment <%= comp.compartmentId
-                                    %></strong
-                                  >
-                                </td>
-                                <td>
-                                  <%= comp.isBooked ? "Booked" : "Available" %>
-                                  | <%= comp.isLocked ? "Locked" : "Unlocked" %>
-                                </td>
-                                <td>
-                                  <% if (comp.isBooked) { %>
-                                  <button
-                                    type="submit"
-                                    class="btn btn-sm btn-warning"
-                                  >
-                                    Booked
-                                  </button>
-                                  <% } %> <% if (!comp.isBooked) { %>
-                                  <form
-                                    action="/locker/book"
-                                    method="POST"
-                                    class="d-inline"
-                                  >
-                                    <input
-                                      type="hidden"
-                                      name="lockerId"
-                                      value="<%= locker.lockerId %>"
-                                    />
-                                    <input
-                                      type="hidden"
-                                      name="compartmentId"
-                                      value="<%= comp.compartmentId %>"
-                                    />
-                                    <button
-                                      type="submit"
-                                      class="btn btn-sm btn-success"
-                                    >
-                                      Book
-                                    </button>
-                                  </form>
-                                  <% } else if (comp.bookingInfo.userId &&
-                                  user._id.toString() ===
-                                  comp.bookingInfo.userId.toString()) { %>
-                                  <form
-                                    action="/locker/cancel"
-                                    method="POST"
-                                    class="d-inline"
-                                  >
-                                    <input
-                                      type="hidden"
-                                      name="lockerId"
-                                      value="<%= locker.lockerId %>"
-                                    />
-                                    <input
-                                      type="hidden"
-                                      name="compartmentId"
-                                      value="<%= comp.compartmentId %>"
-                                    />
-                                    <button
-                                      type="submit"
-                                      class="btn btn-sm btn-danger"
-                                    >
-                                      Cancel
-                                    </button>
-                                  </form>
-                                  <% } %>
-                                </td>
-                              </tr>
-                              <% }) %>
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    </div>
-                    <% }) %>
-                  </div>
-                  <% } %>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+  <!-- Main Map Section -->
+  <div class="container-fluid py-5">
+    <div class="row justify-content-center">
+      <div class="col-lg-10">
+        <h2 class="fw-bold text-center mb-4">📍 Nearest Lockers</h2>
+        <div id="locker-map" class="rounded shadow" style="height: 450px;"></div>
       </div>
     </div>
   </div>
 
-  <!-- Bootstrap JS -->
-  <script
-    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-    crossorigin="anonymous"
-  ></script>
-  <!-- Font Awesome -->
-  <script
-    src="https://kit.fontawesome.com/a076d05399.js"
-    crossorigin="anonymous"
-  ></script>
-  <!-- Leaflet JS -->
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <!-- Slide-In Locker Info Drawer -->
+  <div id="locker-info-drawer" class="position-fixed top-0 end-0 bg-white shadow-lg p-4"
+    style="width: 320px; height: 100%; z-index: 1050; transform: translateX(100%); transition: transform 0.3s ease-in-out;">
+    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+      <h5 class="mb-0 fw-semibold">Locker Details</h5>
+      <button class="btn btn-sm btn-outline-secondary" onclick="closeLockerInfo()">✖</button>
+    </div>
+    <div id="locker-info-content" class="text-start small"></div>
+  </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
-<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <!-- Action Cards Section -->
+  <div class="container mt-5 pt-4">
+    <h2 class="fw-bold text-center mb-3">🚀 Welcome to DropPoint</h2>
+    <p class="text-center lead text-muted mb-4">Choose your action to get started</p>
 
-<script>
-  const lockers = <%- JSON.stringify(lockers) %>;
+    <div class="row justify-content-center">
+      <div class="col-md-3 mb-4">
+        <a href="/user/pickup" class="text-decoration-none">
+          <div class="card h-100 shadow-sm border-0 text-center hover-scale">
+            <div class="card-body py-4">
+              <i class="fas fa-box-open fa-3x text-primary mb-3"></i>
+              <h5 class="card-title fw-semibold">Pickup</h5>
+            </div>
+          </div>
+        </a>
+      </div>
+      <div class="col-md-3 mb-4">
+        <a href="/user/dropoff" class="text-decoration-none">
+          <div class="card h-100 shadow-sm border-0 text-center hover-scale">
+            <div class="card-body py-4">
+              <i class="fas fa-box fa-3x text-success mb-3"></i>
+              <h5 class="card-title fw-semibold">Drop-off</h5>
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
 
-  const map = L.map('locker-map').setView([20.5937, 78.9629], 5); // Default center (India)
+  <!-- Bootstrap + Font Awesome -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 18,
-  }).addTo(map);
+  <!-- Leaflet -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-  // Get user location
-  navigator.geolocation.getCurrentPosition(success, error);
+  <!-- Locker Map Script -->
+  <script>
+    const lockers = <%- JSON.stringify(lockers) %>;
+    const map = L.map('locker-map').setView([20.5937, 78.9629], 5);
 
-  function success(position) {
-    const userLat = position.coords.latitude;
-    const userLng = position.coords.longitude;
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
 
-    // Show user location on map
-    L.marker([userLat, userLng])
-      .addTo(map)
-      .bindPopup("📍 Your Location")
-      .openPopup();
+    navigator.geolocation.getCurrentPosition(success, error);
 
-    map.setView([userLat, userLng], 14); // Zoom into user
+    function success(position) {
+      const userLat = position.coords.latitude;
+      const userLng = position.coords.longitude;
 
-    // Show nearest lockers
-    showNearestLockers(userLat, userLng);
-  }
+      const userIcon = L.icon({
+        iconUrl: "https://cdn-icons-png.flaticon.com/512/1946/1946429.png",
+        iconSize: [35, 35],
+        iconAnchor: [17, 34],
+        popupAnchor: [0, -30],
+      });
 
-  function error(err) {
-    console.error("Geolocation error:", err.message);
-    alert("Could not get your location.");
-    map.setView([20.5937, 78.9629], 5); // Fallback
-  }
+      const userMarker = L.marker([userLat, userLng], { icon: userIcon })
+        .addTo(map)
+        .bindPopup("📍 You are here, click to view profile")
+        .openPopup();
 
-  function showNearestLockers(userLat, userLng) {
-    const radiusInKm = 80;
+      userMarker.on("click", () => {
+        window.location.href = "/profile";
+      });
 
-    lockers.forEach(locker => {
-      if (locker.location.lat && locker.location.lng) {
-        const lat = locker.location.lat;
-        const lng = locker.location.lng;
+      map.setView([userLat, userLng], 14);
+      showNearestLockers(userLat, userLng);
+    }
 
-        const distance = getDistanceFromLatLonInKm(userLat, userLng, lat, lng);
+    function error(err) {
+      console.error("Geolocation error:", err.message);
+      alert("Could not get your location.");
+      map.setView([20.5937, 78.9629], 5);
+    }
 
-        if (distance <= radiusInKm) {
-          const popupContent = `
-            <strong>Locker ID:</strong> ${locker.lockerId}<br>
-            <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" 
-               target="_blank" 
-               class="btn btn-sm btn-sucess mt-2">
-               Get Directions
-            </a>
-          `;
-          L.marker([lat, lng])
-            .addTo(map)
-            .bindPopup(popupContent);
+    function showNearestLockers(userLat, userLng) {
+      const radiusInKm = 80;
+
+      lockers.forEach(locker => {
+        if (locker.location.lat && locker.location.lng) {
+          const lat = locker.location.lat;
+          const lng = locker.location.lng;
+          const distance = getDistanceFromLatLonInKm(userLat, userLng, lat, lng);
+
+          if (distance <= radiusInKm) {
+            const total = locker.compartments.length;
+            const available = locker.compartments.filter(c => !c.isBooked).length;
+
+            const marker = L.marker([lat, lng]).addTo(map);
+            marker.on("click", () => {
+              const content = `
+                <p><strong>Locker ID:</strong> ${locker.lockerId}</p>
+                <p><strong>Address:</strong> ${locker.location.address || "Not Available"}</p>
+                <p><strong>Total Compartments:</strong> ${total}</p>
+                <p><strong>Available:</strong> ${available}</p>
+                <a href="/locker/${locker.lockerId}" class="btn btn-sm btn-primary w-100 my-2">📦 Go to Locker</a>
+                <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" class="btn btn-sm btn-outline-success w-100">📍 Get Directions</a>
+              `;
+              document.getElementById("locker-info-content").innerHTML = content;
+              openLockerInfo();
+            });
+          }
         }
-      }
-    });
-  }
+      });
+    }
 
-  function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
-    const R = 6371; // km
-    const dLat = deg2rad(lat2 - lat1);
-    const dLon = deg2rad(lon2 - lon1);
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  }
+    function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = deg2rad(lat2 - lat1);
+      const dLon = deg2rad(lon2 - lon1);
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
 
-  function deg2rad(deg) {
-    return deg * (Math.PI / 180);
-  }
-</script>
+    function deg2rad(deg) {
+      return deg * (Math.PI / 180);
+    }
 
+    function openLockerInfo() {
+      document.getElementById("locker-info-drawer").style.transform = "translateX(0)";
+    }
 
+    function closeLockerInfo() {
+      document.getElementById("locker-info-drawer").style.transform = "translateX(100%)";
+    }
+  </script>
+
+  <!-- Optional hover scale effect -->
+  <style>
+    .hover-scale:hover {
+      transform: scale(1.05);
+      transition: 0.3s ease;
+    }
+  </style>
 </body>

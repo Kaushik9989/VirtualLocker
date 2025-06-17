@@ -1,0 +1,43 @@
+<% layout("/layouts/boilerplate") %>
+
+<div class="container py-5">
+  <h2 class="mb-4">👤 Profile Overview</h2>
+  <div class="card mb-4">
+    <div class="card-body">
+      <h4><%= user.username %></h4>
+      <p><strong>Email:</strong> <%= user.email %></p>
+      <p><strong>Phone:</strong> <%= user.phone || 'N/A' %></p>
+    </div>
+  </div>
+
+  <h3 class="mb-3">📦 Booking History</h3>
+  <% if (bookings.length === 0) { %>
+    <p>No bookings found.</p>
+  <% } else { %>
+    <table class="table table-bordered" >
+      <thead>
+        <tr>
+          <th>Locker ID</th>
+          <th>Compartment</th>
+          <th>Booking Time</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% bookings.forEach(b => { %>
+          <tr>
+            <td><%= b.lockerId %></td>
+            <td><%= b.compartmentId %></td>
+            <td><%= new Date(b.bookingTime).toLocaleString() %></td>
+            <td>
+              <%= b.status %>
+              <% if (!b.isDelivered && b.status === "Booked") { %>
+                <span class="badge bg-warning">Pending Delivery</span>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>

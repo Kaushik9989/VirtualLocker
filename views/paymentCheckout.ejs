@@ -1,0 +1,41 @@
+<% layout('/layouts/boilerplate') %>
+<div class="container text-center mt-5">
+  <h2 class="mb-4">💳 Locker Booking Payment</h2>
+  <button id="rzp-button" class="btn btn-primary btn-lg">Pay ₹100</button>
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+document.getElementById("rzp-button").onclick = async function () {
+  const res = await fetch("/create-order", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ amount: 100 })
+  });
+
+  const order = await res.json();
+
+  const options = {
+    key: "<%= razorpayKeyId %>",
+    amount: order.amount,
+    currency: "INR",
+    name: "Virtual Locker",
+    description: "Locker Booking Payment",
+    order_id: order.id,
+    handler: async function (response) {
+      const verifyRes = await fetch("/verify-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(response),
+      });
+
+      const verifyText = await verifyRes.text();
+      alert(verifyText);
+    },
+    theme: { color: "#3399cc" },
+  };
+
+  const rzp = new Razorpay(options);
+  rzp.open();
+};
+</script>

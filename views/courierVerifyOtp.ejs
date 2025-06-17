@@ -1,0 +1,17 @@
+<%- layout("layouts/boilerplate") %>
+<h2>Verify OTP</h2>
+<form action="/courier/verify-otp" method="POST" style="max-width: 400px;">
+  <input type="hidden" name="phone" value="<%= phone %>" />
+  <div class="form-group">
+    <label>Enter OTP:</label>
+    <input type="text" name="otp" class="form-control" required />
+  </div>
+  <button class="btn btn-success mt-3">Verify</button>
+</form>
+<% if (messages.success && messages.success.length > 0) { %>
+  <div class="alert alert-success"><%= messages.success[0] %></div>
+<% } %>
+
+<% if (messages.error && messages.error.length > 0) { %>
+  <div class="alert alert-danger"><%= messages.error[0] %></div>
+<% } %>
