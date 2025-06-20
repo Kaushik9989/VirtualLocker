@@ -66,10 +66,10 @@ app.use(
     secret: "heeeheheah", // replace with env var in prod
     resave: false,
     saveUninitialized: false,
-     store: MongoStore.create({
-    mongoUrl: MONGO_URI,
-    ttl: 60 * 60 * 24 * 7 // Session TTL in seconds (7 days)
-  }),
+    store: MongoStore.create({
+      mongoUrl: MONGO_URI,
+      ttl: 60 * 60 * 24 * 7, // Session TTL in seconds (7 days)
+    }),
     cookie: {
       maxAge: 30000 * 60 * 60 * 24, // 1 day
     },
@@ -171,7 +171,7 @@ app.get("/home", (req, res) => {
   if (req.isAuthenticated()) return res.render("LandingPage");
   res.redirect("/login");
 });
-app.get("/dashboard", isAuthenticated,async (req, res) => {
+app.get("/dashboard", isAuthenticated, async (req, res) => {
   try {
     const user = req.user;
     const lockersRaw = await Locker.find({});
@@ -381,85 +381,97 @@ app.post("/verify-login-otp", async (req, res, next) => {
 
 // =------------------------------------------------CREDIT WALLET SECTION--------------------------------------------------\\
 // GET: View wallet
-app.get('/:id/credits', async (req, res) => {
+app.get("/:id/credits", async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select('wallet username');
-    if (!user) return res.status(404).send('User not found');
-    res.render('wallet/view', { user });
+    const user = await User.findById(req.params.id).select("wallet username");
+    if (!user) return res.status(404).send("User not found");
+    res.render("wallet/view", { user });
   } catch (err) {
-    res.status(500).send('Server error');
+    res.status(500).send("Server error");
   }
 });
 
 // POST: Add credits
-app.post('/:id/credits/add', async (req, res) => {
+app.post("/:id/credits/add", async (req, res) => {
   try {
     const { amount } = req.body;
     const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).send('User not found');
+    if (!user) return res.status(404).send("User not found");
 
     const numericAmount = parseInt(amount);
     if (isNaN(numericAmount) || numericAmount <= 0) {
-      return res.status(400).send('Invalid amount');
+      return res.status(400).send("Invalid amount");
     }
 
     user.wallet.credits += numericAmount;
-   
+
     await user.save();
-    req.flash("success","Credits Added Successfully!!");
+    req.flash("success", "Credits Added Successfully!!");
     res.redirect(`/${user._id}/credits`);
   } catch (err) {
-    res.status(500).send('Server error');
+    res.status(500).send("Server error");
   }
 });
 
-
-app.get('/map', async (req, res) => {
+app.get("/map", async (req, res) => {
   try {
     const lockers = await Locker.find({});
-    res.render('LockerMap', { lockers });
+    res.render("LockerMap", { lockers });
   } catch (err) {
     res.status(500).send("Failed to load lockers.");
   }
 });
 
-
 //// NEW LOCKER ROUTES
 
-app.get("/send/step1",isAuthenticated, async (req, res) => {
-  const lockers = await Locker1.find({ status: 'available' }).populate('location_id');
+app.get("/send/step1", isAuthenticated, async (req, res) => {
+  const lockers = await Locker1.find({ status: "available" }).populate(
+    "location_id"
+  );
   res.render("parcel/step1", { lockers });
 });
 
-app.post("/send/step1", isAuthenticated,(req, res) => {
-  req.session.parcelDraft = {
-    description: req.body.description,
-    type: req.body.type,
-    size: req.body.size,
-    lockerId: req.body.lockerId,
-    location_id: req.body.location_id
-    
-  };
-  res.redirect("/send/step2");
+app.post("/send/step1", isAuthenticated, async (req, res) => {
+  try {
+    const locker = await Locker1.findById(req.body.lockerId);
+    if (!locker) return res.status(404).send("Locker not found");
+
+    req.session.parcelDraft = {
+      description: req.body.description,
+      type: req.body.type,
+      size: req.body.size,
+      lockerId: req.body.lockerId,
+      lockerBoxId : locker.lockerBoxId,  
+      location_id: req.body.location_id,
+      cost: locker.pricePerHour.toString(), // ✅ now defined
+    };
+
+    res.redirect("/send/step2");
+  } catch (err) {
+    console.error("Step 1 POST error:", err);
+    res.status(500).send("Server error");
+  }
 });
-app.get("/send/step2", isAuthenticated,(req, res) => {
+app.get("/send/step2", isAuthenticated, (req, res) => {
   res.render("parcel/step2");
 });
-app.post("/send/step2", isAuthenticated,(req, res) => {
+app.post("/send/step2", isAuthenticated, (req, res) => {
   req.session.parcelDraft.receiverName = req.body.receiverName;
   req.session.parcelDraft.receiverPhone = req.body.receiverPhone;
   res.redirect("/send/step3");
 });
 
-
-app.get("/send/step3", isAuthenticated,(req, res) => {
+app.get("/send/step3", isAuthenticated, (req, res) => {
+    if (!req.session.parcelDraft) return res.redirect("/send/step1");
   res.render("parcel/step3", { draft: req.session.parcelDraft });
 });
 
-app.post("/send/step3", isAuthenticated,async (req, res) => {
+app.post("/send/step3", isAuthenticated, async (req, res) => {
   const draft = req.session.parcelDraft;
   const accessCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
-  const unlockUrl = `${req.protocol}://${req.get('host')}/unlock/${draft.lockerId}/${accessCode}`;
+  const unlockUrl = `${req.protocol}://${req.get("host")}/unlock/${
+    draft.lockerId
+  }/${accessCode}`;
   const qrImage = await QRCode.toDataURL(unlockUrl);
 
   const parcel = new Parcel1({
@@ -468,46 +480,65 @@ app.post("/send/step3", isAuthenticated,async (req, res) => {
     senderName: req.user.username,
     accessCode,
     qrImage,
-    cost: req.body.cost,
+    cost: mongoose.Types.Decimal128.fromString(draft.cost.toString()),
     paymentOption: req.body.paymentOption,
     droppedAt: new Date(),
-    expiresAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000) // 2 days
+    expiresAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days
   });
 
   await parcel.save();
 
   // update locker status
   await Locker1.findByIdAndUpdate(draft.lockerId, {
-    status: 'occupied',
-    isLocked: true
+    status: "occupied",
+    isLocked: true,
   });
 
   delete req.session.parcelDraft;
   res.redirect(`/parcel/${parcel._id}/success`);
 });
-app.get("/parcel/:id/success", async (req, res) => {
-  const parcel = await Parcel1.findById(req.params.id);
-  res.render("parcel/success", { parcel });
+
+app.get("/parcel/:id/success", isAuthenticated, async (req, res) => {
+  try {
+    const parcel = await Parcel1.findById(req.params.id).populate(
+      "location_id"
+    ); // ✅ Only populate DropLocation
+
+    if (
+      !parcel ||
+      !parcel.location_id ||
+      !parcel.location_id.latitude ||
+      !parcel.location_id.longitude
+    ) {
+      return res.status(404).send("Parcel or drop location not found.");
+    }
+
+    // Inject coordinates into the parcel object
+    parcel.location = {
+      lat: parcel.location_id.latitude,
+      lng: parcel.location_id.longitude,
+    };
+
+    res.render("parcel/success", { parcel });
+  } catch (err) {
+    console.error("❌ Error loading parcel success:", err);
+    res.status(500).send("Server error");
+  }
 });
 
-
-
-app.get('/history', async (req, res) => {
+app.get("/history", async (req, res) => {
   try {
     const parcels = await Parcel1.find({ senderId: req.user._id })
       .sort({ createdAt: -1 })
-      .populate('location_id')
-      .populate('lockerId');
+      .populate("location_id")
+      .populate("lockerId");
 
-    res.render('parcel/history', { parcels });
+    res.render("parcel/history", { parcels });
   } catch (err) {
     console.error(err);
     res.status(500).send("Server error");
   }
 });
-
-
-
 
 // -------------------------------------------- USER FUNCTIONS ----------------------------------------------------
 app.get("/locker/directions/:lockerId/:compartmentId", async (req, res) => {
@@ -1144,13 +1175,13 @@ app.post("/user/dropoff", async (req, res) => {
     };
     await locker.save();
     const bookingData = {
-  lockerId,
-  compartmentId,
-  otp,
-};
+      lockerId,
+      compartmentId,
+      otp,
+    };
 
-const qrText = JSON.stringify(bookingData);
-const qrImage = await QRCode.toDataURL(qrText); 
+    const qrText = JSON.stringify(bookingData);
+    const qrImage = await QRCode.toDataURL(qrText);
     // Check if receiver is a user
     const newParcel = new Parcel({
       senderId: userId,
@@ -1172,14 +1203,16 @@ const qrImage = await QRCode.toDataURL(qrText);
     await receiverUser.save();
     //Send SMS to receiver
     const smsLink = `https://virtuallocker.onrender.com/qr/`;
-      const message = await client.messages.create({
-        body: `📦 Parcel dropped in Locker ${lockerId}, Compartment ${compartmentId} by ${user.username} \n OTP : ${otp}, Click Here to unlock via QR : ${smsLink}`,
-        from: process.env.TWILIO_PHONE_NUMBER,
-        to: process.env.TO_PHONE_NUMBER, // Or `receiverPhone` if you verified that number too
-      });
-      console.log(`📦 Parcel dropped in Locker ${lockerId}, Compartment ${compartmentId} by ${user.username} \n OTP : ${otp}, Click Here to unlock via QR : ${smsLink}`);
-      console.log("SMS sent:", message.sid);
-  
+    const message = await client.messages.create({
+      body: `📦 Parcel dropped in Locker ${lockerId}, Compartment ${compartmentId} by ${user.username} \n OTP : ${otp}, Click Here to unlock via QR : ${smsLink}`,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: process.env.TO_PHONE_NUMBER, // Or `receiverPhone` if you verified that number too
+    });
+    console.log(
+      `📦 Parcel dropped in Locker ${lockerId}, Compartment ${compartmentId} by ${user.username} \n OTP : ${otp}, Click Here to unlock via QR : ${smsLink}`
+    );
+    console.log("SMS sent:", message.sid);
+
     req.flash("success", "Compartment Unlocked, drop your parcel!!");
     res.redirect("/user/dropoff");
   } catch (err) {
