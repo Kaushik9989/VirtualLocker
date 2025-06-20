@@ -1,7 +1,6 @@
 <% layout("/layouts/boilerplate") %>
 
 <body class="bg-light min-vh-100">
-
   <!-- Header Bar -->
   <div class="bg-white shadow-sm px-4 py-3 d-flex justify-content-between align-items-center position-fixed top-0 start-0 w-100" style="z-index: 1060;">
     <div class="d-flex align-items-center gap-2">
@@ -14,8 +13,7 @@
   </div>
 
   <!-- Sidebar -->
-  <div id="locker-info-drawer"
-    class="position-fixed top-0 end-0 bg-white shadow-lg p-4"
+  <div id="locker-info-drawer" class="position-fixed top-0 end-0 bg-white shadow-lg p-4"
     style="width: 320px; height: 100%; z-index: 1050; transform: translateX(100%); transition: transform 0.3s ease-in-out; margin-top: 56px;">
     <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
       <h6 class="mb-0 fw-semibold">Locker Details</h6>
@@ -33,6 +31,23 @@
     </div>
   </div>
 
+  <!-- Custom Location Access Modal -->
+  <div class="modal fade" id="locationModal" tabindex="-1" aria-labelledby="locationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content shadow">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="locationModalLabel">📍 Location Access Needed</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-center">
+          <p>We need your location to show lockers near you.</p>
+          <i class="fas fa-map-marker-alt fa-3x text-danger mb-3"></i><br />
+          <button class="btn btn-success" onclick="triggerGeolocation()">Allow Location</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
@@ -46,9 +61,19 @@
       maxZoom: 18
     }).addTo(map);
 
-    navigator.geolocation.getCurrentPosition(success, error);
+    window.onload = () => {
+      const modal = new bootstrap.Modal(document.getElementById('locationModal'));
+      modal.show();
+    };
+
+    function triggerGeolocation() {
+      navigator.geolocation.getCurrentPosition(success, error);
+    }
 
     function success(position) {
+      const modalInstance = bootstrap.Modal.getInstance(document.getElementById('locationModal'));
+      if (modalInstance) modalInstance.hide();
+
       const userLat = position.coords.latitude;
       const userLng = position.coords.longitude;
 
@@ -61,60 +86,64 @@
 
       const userMarker = L.marker([userLat, userLng], { icon: userIcon })
         .addTo(map)
-        .bindPopup(`<b>📍 You are here</b> &nbsp;<a href="/profile" >View Profile</a>`)
+        .bindPopup(`<b>📍 You are here</b> &nbsp;<a href="/profile">View Profile</a>`)
         .openPopup();
-         userMarker.on("click", () => {
+
+      userMarker.on("click", () => {
         window.location.href = "/profile";
       });
-
 
       map.setView([userLat, userLng], 14);
       showNearbyLockers(userLat, userLng);
     }
 
-    function error() {
-      alert("Could not get your location.");
-      map.setView([20.5937, 78.9629], 5);
+   function error() {
+  alert("Could not get your location. Showing lockers in default area.");
+  const defaultLat = 20.5937;
+  const defaultLng = 78.9629;
+  map.setView([defaultLat, defaultLng], 5);
+  showNearbyLockers(defaultLat, defaultLng, true); // ✅ fixed typo
+}
+
+   function showNearbyLockers(userLat, userLng, showAll = false) {
+  const radiusInKm = 80;
+
+  lockers.forEach(locker => {
+    if (locker.location.lat && locker.location.lng) {
+      const lat = locker.location.lat;
+      const lng = locker.location.lng;
+      const distance = getDistanceFromLatLonInKm(userLat, userLng, lat, lng);
+
+      if (showAll || distance <= radiusInKm) {
+        const total = locker.compartments.length;
+        const available = locker.compartments.filter(c => !c.isBooked).length;
+
+        const marker = L.marker([lat, lng]).addTo(map);
+        marker.on("click", () => {
+          const content = `
+            <div class="mb-2">
+              <strong>Locker ID:</strong> ${locker.lockerId}
+            </div>
+            <div class="mb-2">
+              <strong>Address:</strong> ${locker.location.address || "Not Available"}
+            </div>
+            <div class="mb-2">
+              <strong>Total Compartments:</strong> ${total}
+            </div>
+            <div class="mb-2">
+              <strong>Available:</strong> ${available}
+            </div>
+            <a href="/locker/${locker.lockerId}" class="btn btn-sm btn-primary w-100 my-2">📦 Go to Locker</a>
+            <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" class="btn btn-sm btn-outline-success w-100">📍 Get Directions</a>
+          `;
+          document.getElementById("locker-info-content").innerHTML = content;
+          openLockerInfo();
+        });
+      }
     }
+  });
+}
 
-    function showNearbyLockers(userLat, userLng) {
-      const radiusInKm = 80;
-
-      lockers.forEach(locker => {
-        if (locker.location.lat && locker.location.lng) {
-          const lat = locker.location.lat;
-          const lng = locker.location.lng;
-          const distance = getDistanceFromLatLonInKm(userLat, userLng, lat, lng);
-
-          if (distance <= radiusInKm) {
-            const total = locker.compartments.length;
-            const available = locker.compartments.filter(c => !c.isBooked).length;
-
-            const marker = L.marker([lat, lng]).addTo(map);
-            marker.on("click", () => {
-              const content = `
-                <div class="mb-2">
-                  <strong>Locker ID:</strong> ${locker.lockerId}
-                </div>
-                <div class="mb-2">
-                  <strong>Address:</strong> ${locker.location.address || "Not Available"}
-                </div>
-                <div class="mb-2">
-                  <strong>Total Compartments:</strong> ${total}
-                </div>
-                <div class="mb-2">
-                  <strong>Available:</strong> ${available}
-                </div>
-                <a href="/locker/${locker.lockerId}" class="btn btn-sm btn-primary w-100 my-2">📦 Go to Locker</a>
-                <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" class="btn btn-sm btn-outline-success w-100">📍 Get Directions</a>
-              `;
-              document.getElementById("locker-info-content").innerHTML = content;
-              openLockerInfo();
-            });
-          }
-        }
-      });
-    }
 
     function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
       const R = 6371;
