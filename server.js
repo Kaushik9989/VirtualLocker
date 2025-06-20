@@ -11,8 +11,12 @@ const bodyParser = require("body-parser");
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 const Locker = require("./models/locker.js");
-const User = require("./models/User.js");
+const Locker1 = require("./models/Locker/LockerUpdated.js");
+const DropLocation = require("./models/Locker/DropLocation.js");
+const Parcel1 = require("./models/ParcelUpdated.js");
+const User = require("./models/User/UserUpdated.js");
 const Courier = require("./models/Courier.js");
+const Parcel = require("./models/Parcel");
 const app = express();
 const PORT = 8080;
 const Razorpay = require("razorpay");
@@ -25,73 +29,55 @@ const MONGO_URI =
 const QRCode = require("qrcode");
 require("dotenv").config();
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
+
+const locker = require("./models/locker.js");
+
+require("dotenv").config();
 const twilio = require("twilio");
 
-// const accountSid = 'AC8875e19ba67aa60f0bd32d479b58c0b7';
-// const authToken = 'c6953eaf1a5ad6c8334ec0c3b8669686';
-// const serviceSid = 'VAe161a54de8168b204210a3855c5f51e5'; // Replace with your own if different
-
-// const client = twilio(accountSid, authToken);
+const client = twilio(
+  process.env.TWILIO_ACCOUNT_SID,
+  process.env.TWILIO_AUTH_TOKEN
+);
 
 //const { client, serviceSid } = require("./twilio");
-
 
 // const razorpay = new Razorpay({
 //   key_id: process.env.RAZORPAY_KEY_ID,
 //   key_secret: process.env.RAZORPAY_KEY_SECRET,
 // });
 
-
-
-
-
-
-
-
-
-
-
-
 app.engine("ejs", ejsMate); // Set ejs-mate as the EJS engine
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.use(cors());
 app.use(express.json());
-app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.urlencoded({ extended: true }));
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
-
-
-
-
-
-
-
 
 mongoose
   .connect(MONGO_URI)
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-
-
-app.use(session({
-  secret: 'heeeheheah', // replace with env var in prod
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    maxAge: 1000 * 60 * 60 * 24, // 1 day
-  }
-}));
-
+app.use(
+  session({
+    secret: "heeeheheah", // replace with env var in prod
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      maxAge: 30000 * 60 * 60 * 24, // 1 day
+    },
+  })
+);
 
 app.use(flash());
 
 app.use((req, res, next) => {
   res.locals.messages = {
     success: req.flash("success"),
-    error: req.flash("error")
+    error: req.flash("error"),
   };
   next();
 });
@@ -100,12 +86,6 @@ app.use((req, res, next) => {
   res.locals.user = req.session.user || null;
   next();
 });
-
-
-
-
-
-
 
 app.use(passport.initialize());
 app.use(passport.session());
@@ -118,15 +98,12 @@ passport.deserializeUser(async (id, done) => {
   done(null, user);
 });
 
-
 // MIDDLEWARES
-
 
 function isAuthenticated(req, res, next) {
   if (req.session.userId) return next();
   res.redirect("/login");
 }
-
 
 function isAdmin(req, res, next) {
   if (req.session.adminId) return next();
@@ -138,14 +115,11 @@ function isTechnincian(req, res, next) {
   res.redirect("/technician/login");
 }
 
-
 const isCourierAuthenticated = (req, res, next) => {
   if (req.session.courierId) return next();
   req.flash("error", "Please log in as a courier.");
   res.redirect("/courier/login");
 };
-
-
 
 passport.use(
   new LocalStrategy(async (username, password, done) => {
@@ -185,17 +159,15 @@ passport.use(
   )
 );
 
-
 app.get("/", (req, res) => {
-  if (req.isAuthenticated()) return res.redirect("/dashboard");
-  res.redirect("/login");
+  res.redirect("/dashboard");
 });
 //-------------------------------------USER DASHBOARD ------------------------------------------
-app.get("/home",(req,res)=>{
-  if (req.isAuthenticated()) return res.render("LandingPage")
+app.get("/home", (req, res) => {
+  if (req.isAuthenticated()) return res.render("LandingPage");
   res.redirect("/login");
-})
-app.get("/dashboard", isAuthenticated, async (req, res) => {
+});
+app.get("/dashboard", isAuthenticated,async (req, res) => {
   try {
     const user = req.user;
     const lockersRaw = await Locker.find({});
@@ -215,7 +187,6 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
 
 // -------------------------------------------GOOGLE LOGIN ROUTES---------------------------------------------------
 
-
 app.get(
   "/auth/google",
   passport.authenticate("google", { scope: ["profile", "email"] })
@@ -232,10 +203,7 @@ app.get(
   }
 );
 
-
 // -------------------------------------------LOGIN ROUTES---------------------------------------------------
-
-
 
 app.get("/login", (req, res) => {
   const error = req.query.error || null;
@@ -249,7 +217,7 @@ app.post("/auth/login", (req, res, next) => {
     req.logIn(user, (err) => {
       if (err) return next(err);
       req.session.userId = user._id;
-  
+
       return res.redirect("/dashboard");
     });
   })(req, res, next);
@@ -280,15 +248,11 @@ app.post("/auth/register", async (req, res) => {
   }
 });
 
-
 // Logout
 app.get("/logout", (req, res) => {
   req.session.destroy();
   res.redirect("/");
 });
-
-
-
 
 // -------------------------------------------LOGIN VIA OTP ROUTES---------------------------------------------------
 // REGISTER VIA OTP
@@ -309,7 +273,7 @@ app.post("/register-send-otp", async (req, res) => {
   }
 });
 app.get("/verify-register-otp", (req, res) => {
-  res.render("verify-register-otp"); 
+  res.render("verify-register-otp");
 });
 
 app.post("/verify-register-otp", async (req, res) => {
@@ -347,7 +311,6 @@ app.post("/verify-register-otp", async (req, res) => {
     res.status(500).send("OTP verification failed");
   }
 });
-
 
 // LOGIN VIA OTP
 
@@ -411,13 +374,89 @@ app.post("/verify-login-otp", async (req, res, next) => {
     res.render("verify-login-otp", { phone, error: "Failed to verify OTP" });
   }
 });
+
+// =------------------------------------------------CREDIT WALLET SECTION--------------------------------------------------\\
+// GET: View wallet
+app.get('/:id/credits', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('wallet username');
+    if (!user) return res.status(404).send('User not found');
+    res.render('wallet/view', { user });
+  } catch (err) {
+    res.status(500).send('Server error');
+  }
+});
+
+// POST: Add credits
+app.post('/:id/credits/add', async (req, res) => {
+  try {
+    const { amount } = req.body;
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).send('User not found');
+
+    const numericAmount = parseInt(amount);
+    if (isNaN(numericAmount) || numericAmount <= 0) {
+      return res.status(400).send('Invalid amount');
+    }
+
+    user.wallet.credits += numericAmount;
+   
+    await user.save();
+    req.flash("success","Credits Added Successfully!!");
+    res.redirect(`/${user._id}/credits`);
+  } catch (err) {
+    res.status(500).send('Server error');
+  }
+});
+
+
+app.get('/map', async (req, res) => {
+  try {
+    const lockers = await Locker.find({});
+    res.render('LockerMap', { lockers });
+  } catch (err) {
+    res.status(500).send("Failed to load lockers.");
+  }
+});
+
+
+//// NEW LOCKER ROUTES
+
+app.get("/send/step1", async (req, res) => {
+  const lockers = await Locker1.find({ status: 'available' }).populate('location_id');
+  res.render("parcel/step1", { lockers });
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
 // -------------------------------------------- USER FUNCTIONS ----------------------------------------------------
+app.get("/locker/directions/:lockerId/:compartmentId", async (req, res) => {
+  const { lockerId, compartmentId } = req.params;
+  const locker = await Locker.findOne({ lockerId });
+
+  // For now just redirect to a dummy Google Maps link or custom UI
+  res.redirect(
+    `https://www.google.com/maps/dir/?api=1&destination=${locker.location.lat},${locker.location.lng}`
+  );
+});
 app.get("/profile", isAuthenticated, async (req, res) => {
   try {
     const userId = req.user._id;
 
-    const user = await User.findById(userId);
-    const allLockers = await Locker.find({ "compartments.bookingInfo.userId": userId });
+    const user = await User.findById(req.session.userId).populate("parcels");
+    const allLockers = await Locker.find({
+      "compartments.bookingInfo.userId": userId,
+    });
 
     const bookings = [];
 
@@ -429,7 +468,7 @@ app.get("/profile", isAuthenticated, async (req, res) => {
             compartmentId: comp.compartmentId,
             bookingTime: comp.bookingInfo.bookingTime,
             isDelivered: comp.isDelivered || false,
-            status: comp.isBooked ? "Booked" : "Completed"
+            status: comp.isBooked ? "Booked" : "Completed",
           });
         }
       }
@@ -444,7 +483,7 @@ app.get("/profile", isAuthenticated, async (req, res) => {
 
 app.get("/locker/qr", isAuthenticated, async (req, res) => {
   const { lockerId, compartmentId, otp } = req.query;
-console.log("🔍 Incoming QR unlock request", req.query); // Debug
+  console.log("🔍 Incoming QR unlock request", req.query); // Debug
 
   const bookingData = {
     lockerId,
@@ -465,13 +504,15 @@ console.log("🔍 Incoming QR unlock request", req.query); // Debug
 });
 
 app.get("/locker/:lockerId", async (req, res) => {
-  const locker = await Locker.findOne({ lockerId: req.params.lockerId }).populate("compartments");
+  const locker = await Locker.findOne({
+    lockerId: req.params.lockerId,
+  }).populate("compartments");
   if (!locker) return res.status(404).send("Locker not found");
 
   res.render("locker-details1", { locker, user: req.user });
 });
 
-app.post('/user/book', async (req, res) => {
+app.post("/user/book", async (req, res) => {
   const { lockerId, compartmentId } = req.body;
   const userId = req.session.userId; // Adjust to your auth logic
 
@@ -480,24 +521,23 @@ app.post('/user/book', async (req, res) => {
     if (!locker) return res.status(404).send("Locker not found");
 
     const comp = locker.compartments.id(compartmentId);
-    if (!comp || comp.isBooked) return res.status(400).send("Compartment unavailable");
+    if (!comp || comp.isBooked)
+      return res.status(400).send("Compartment unavailable");
 
     comp.isBooked = true;
     comp.bookingInfo = {
       userId,
       bookingTime: new Date(),
-      otp: Math.floor(1000 + Math.random() * 9000).toString()
+      otp: Math.floor(1000 + Math.random() * 9000).toString(),
     };
 
     await locker.save();
-    res.redirect('/user/dashboard');
+    res.redirect("/user/dashboard");
   } catch (err) {
     console.error(err);
     res.status(500).send("Booking failed");
   }
 });
-
-
 
 app.post("/locker/book", isAuthenticated, async (req, res) => {
   console.log("✅ /locker/book hit with:", req.body);
@@ -506,7 +546,9 @@ app.post("/locker/book", isAuthenticated, async (req, res) => {
     const locker = await Locker.findOne({ lockerId });
     if (!locker) return res.status(404).send("Locker not found");
 
-    const compartment = locker.compartments.find(c => c.compartmentId === compartmentId);
+    const compartment = locker.compartments.find(
+      (c) => c.compartmentId === compartmentId
+    );
     if (!compartment || compartment.isBooked) {
       return res.status(400).send("Compartment already booked");
     }
@@ -518,21 +560,30 @@ app.post("/locker/book", isAuthenticated, async (req, res) => {
     compartment.bookingInfo = {
       userId: req.session.userId,
       bookingTime: new Date(),
-      otp
+      otp,
     };
+    const bookingData = {
+      lockerId,
+      compartmentId,
+      otp,
+    };
+
+    const qrText = JSON.stringify(bookingData);
+    const qrUrl = await QRCode.toDataURL(qrText);
+    console.log(qrUrl);
+    compartment.qrCode = qrUrl;
 
     await locker.save();
 
     // Redirect to QR display route
-    res.redirect(`/locker/qr?lockerId=${lockerId}&compartmentId=${compartmentId}&otp=${otp}`);
+    res.redirect(
+      `/locker/qr?lockerId=${lockerId}&compartmentId=${compartmentId}&otp=${otp}`
+    );
   } catch (err) {
     console.error(err);
     res.status(500).send("Server error");
   }
 });
-
-
-
 
 // -----------------------------------------------COURIERLOGIN ROUTES ------------------------------------------------
 // GET - Courier Registration Page
@@ -582,13 +633,19 @@ app.post("/courier/login", async (req, res) => {
 
 app.get("/courier/dashboard", async (req, res) => {
   const courierId = req.session.courierId;
-  const lockers = await Locker.find({ "compartments.bookingInfo.courierId": courierId });
+  const lockers = await Locker.find({
+    "compartments.bookingInfo.courierId": courierId,
+  });
 
   const deliveries = [];
 
-  lockers.forEach(locker => {
-    locker.compartments.forEach(comp => {
-      if (comp.bookingInfo.courierId?.toString() === courierId.toString() && comp.isBooked && comp.isLocked) {
+  lockers.forEach((locker) => {
+    locker.compartments.forEach((comp) => {
+      if (
+        comp.bookingInfo.courierId?.toString() === courierId.toString() &&
+        comp.isBooked &&
+        comp.isLocked
+      ) {
         deliveries.push({
           lockerId: locker.lockerId,
           compartmentId: comp.compartmentId,
@@ -605,7 +662,9 @@ app.post("/courier/deliver", async (req, res) => {
   const { lockerId, compartmentId } = req.body;
   const locker = await Locker.findOne({ lockerId });
 
-  const compartment = locker.compartments.find(c => c.compartmentId === compartmentId);
+  const compartment = locker.compartments.find(
+    (c) => c.compartmentId === compartmentId
+  );
 
   if (!compartment || !compartment.isLocked) {
     req.flash("error", "Compartment not found or already unlocked");
@@ -616,10 +675,12 @@ app.post("/courier/deliver", async (req, res) => {
   compartment.isLocked = false;
   await locker.save();
 
-  req.flash("success", `Compartment ${compartmentId} unlocked. Delivery successful.`);
+  req.flash(
+    "success",
+    `Compartment ${compartmentId} unlocked. Delivery successful.`
+  );
   res.redirect("/courier/dashboard");
 });
-
 
 app.post("/courier/dropoff", isCourierAuthenticated, async (req, res) => {
   const { lockerId, compartmentId } = req.body;
@@ -632,7 +693,9 @@ app.post("/courier/dropoff", isCourierAuthenticated, async (req, res) => {
       return res.redirect("/courier/dashboard");
     }
 
-    const compartment = locker.compartments.find(c => c.compartmentId === compartmentId);
+    const compartment = locker.compartments.find(
+      (c) => c.compartmentId === compartmentId
+    );
 
     if (!compartment) {
       req.flash("error", "Invalid compartment.");
@@ -652,12 +715,15 @@ app.post("/courier/dropoff", isCourierAuthenticated, async (req, res) => {
     compartment.bookingInfo = {
       courierId: req.session.courierId,
       bookingTime: new Date(),
-      otp
+      otp,
     };
 
     await locker.save();
 
-    req.flash("success", `Package dropped successfully. OTP for pickup: ${otp}`);
+    req.flash(
+      "success",
+      `Package dropped successfully. OTP for pickup: ${otp}`
+    );
     res.redirect("/courier/dashboard");
   } catch (err) {
     console.error(err);
@@ -665,10 +731,6 @@ app.post("/courier/dropoff", isCourierAuthenticated, async (req, res) => {
     res.redirect("/courier/dashboard");
   }
 });
-
-
-
-
 
 // ----------------------------------------------- LOCKER EMULATOR ---------------------------------------------------------
 
@@ -683,7 +745,6 @@ app.get("/locker/emulator/:lockerId", async (req, res) => {
     res.status(500).json({ message: "Server error", error: err });
   }
 });
-
 
 // Lock compartment
 app.post("/locker/lock", async (req, res) => {
@@ -726,7 +787,6 @@ app.post("/locker/status", async (req, res) => {
   );
   res.redirect("/locker/emulator/" + lockerId);
 });
-
 
 app.post("/locker/unlock/:lockerId/:compartmentId", async (req, res) => {
   const { lockerId, compartmentId } = req.params;
@@ -772,8 +832,6 @@ app.post("/locker/unlock/:lockerId/:compartmentId", async (req, res) => {
   res.redirect("/locker/emulator/" + lockerId);
 });
 
-
-
 app.get("/qrScan", (req, res) => {
   res.render("qrScan.ejs");
 });
@@ -818,10 +876,9 @@ app.post("/unlock-via-qr", async (req, res) => {
   }
 });
 
-
 // ----------------------------------------------- LANDING PAGE (PICKUP OR DROP OFF) ROUTES --------------------------------------
 
-app.get("/home",isAuthenticated,(req,res)=>{
+app.get("/home", isAuthenticated, (req, res) => {
   res.render("LandingPage.ejs");
 });
 
@@ -837,12 +894,14 @@ app.get("/user/pickup/self", async (req, res) => {
     return res.redirect("/login");
   }
 
-  const lockers = await Locker.find({ "compartments.bookingInfo.userId": userId });
+  const lockers = await Locker.find({
+    "compartments.bookingInfo.userId": userId,
+  });
 
   let compartments = [];
 
-  lockers.forEach(locker => {
-    locker.compartments.forEach(compartment => {
+  lockers.forEach((locker) => {
+    locker.compartments.forEach((compartment) => {
       if (
         compartment.bookingInfo &&
         compartment.bookingInfo.userId &&
@@ -860,7 +919,7 @@ app.get("/user/pickup/self", async (req, res) => {
   });
 
   // extract locker IDs for filter dropdown
-  const lockerIds = [...new Set(lockers.map(l => l.lockerId))];
+  const lockerIds = [...new Set(lockers.map((l) => l.lockerId))];
 
   res.render("userPickupSelf", {
     compartments,
@@ -869,19 +928,17 @@ app.get("/user/pickup/self", async (req, res) => {
   });
 });
 
-
-
 app.get("/user/pickup/otp", async (req, res) => {
   const lockers = await Locker.find({ "compartments.isBooked": true });
 
   const bookedCompartments = [];
 
-  lockers.forEach(locker => {
-    locker.compartments.forEach(comp => {
+  lockers.forEach((locker) => {
+    locker.compartments.forEach((comp) => {
       if (comp.isBooked && comp.isLocked) {
         bookedCompartments.push({
           lockerId: locker.lockerId,
-          compartmentId: comp.compartmentId
+          compartmentId: comp.compartmentId,
         });
       }
     });
@@ -890,10 +947,8 @@ app.get("/user/pickup/otp", async (req, res) => {
   res.render("userPickupOtp", {
     compartments: bookedCompartments,
     qrCode: null,
-   
   });
 });
-
 
 app.post("/user/pickup/otp", async (req, res) => {
   const selected = req.body.selectedCompartment; // format: lockerId|compartmentId
@@ -907,13 +962,15 @@ app.post("/user/pickup/otp", async (req, res) => {
     return res.redirect("/user/pickup/otp");
   }
 
-  const compartment = locker.compartments.find(c => c.compartmentId === compartmentId);
+  const compartment = locker.compartments.find(
+    (c) => c.compartmentId === compartmentId
+  );
 
   if (!compartment) {
     req.flash("error", "Invalid compartment ID");
     return res.redirect("/user/pickup/otp");
   }
- 
+
   if (compartment.bookingInfo.otp === otp) {
     // ✅ Unlock
     compartment.isLocked = false;
@@ -929,7 +986,12 @@ app.post("/user/pickup/otp", async (req, res) => {
   }
 });
 
+app.get("/qr/:id", async (req, res) => {
+  const parcel = await Parcel.findById(req.params.id);
+  if (!parcel) return res.status(404).send("QR not found");
 
+  res.render("qrMob", { qrImage: parcel.qrImage });
+});
 
 app.get("/user/dropoff", async (req, res) => {
   const userId = req.session.userId;
@@ -940,12 +1002,14 @@ app.get("/user/dropoff", async (req, res) => {
   }
 
   // Find lockers with compartments booked by this user
-  const lockers = await Locker.find({ "compartments.bookingInfo.userId": userId });
+  const lockers = await Locker.find({
+    "compartments.bookingInfo.userId": userId,
+  });
 
   const compartments = [];
 
-  lockers.forEach(locker => {
-    locker.compartments.forEach(compartment => {
+  lockers.forEach((locker) => {
+    locker.compartments.forEach((compartment) => {
       if (
         compartment.isBooked &&
         compartment.isLocked &&
@@ -968,49 +1032,133 @@ app.get("/user/dropoff", async (req, res) => {
     compartments,
   });
 });
-
 app.post("/user/dropoff", async (req, res) => {
   const userId = req.session.userId;
-  const { lockerCompartment, otp } = req.body;
-
+  const user = await User.findById(req.session.userId);
   if (!userId) {
     req.flash("error", "Session expired. Please login again.");
     return res.redirect("/login");
   }
+  try {
+    const { lockerCompartment, receiverName, receiverPhone, otp } = req.body;
+    const [lockerId, compartmentId] = lockerCompartment.split("|");
 
-  const [lockerId, compartmentId] = lockerCompartment.split("|");
+    const locker = await Locker.findOne({ lockerId });
+    if (!locker) return res.status(404).send("Locker not found");
 
-  const locker = await Locker.findOne({ lockerId });
+    const compartment = locker.compartments.find(
+      (c) =>
+        c.compartmentId === compartmentId &&
+        c.bookingInfo?.userId?.toString() === userId.toString()
+    );
 
-  if (!locker) {
-    req.flash("error", "Locker not found.");
-    return res.redirect("/user/dropoff");
+    if (!compartment) {
+      req.flash("error", "Compartment not found or not booked by you.");
+      return res.redirect("/user/dropoff");
+    }
+    // Validate OTP
+    if (compartment.bookingInfo.otp !== otp) {
+      return res.status(400).send("Invalid OTP");
+    }
+
+    // Unlock logic (simulate only here)
+    compartment.isLocked = false;
+    compartment.isBooked = true;
+
+    // Update receiver info
+    compartment.bookingInfo = {
+      bookingTime: new Date(),
+      otp,
+      receiverName,
+      receiverPhone,
+    };
+    await locker.save();
+    const bookingData = {
+  lockerId,
+  compartmentId,
+  otp,
+};
+
+const qrText = JSON.stringify(bookingData);
+const qrImage = await QRCode.toDataURL(qrText); 
+    // Check if receiver is a user
+    const newParcel = new Parcel({
+      senderId: userId,
+      senderName: user.username, // or name
+      receiverName,
+      receiverPhone,
+      lockerId,
+      compartmentId,
+      qrImage,
+      status: "Waiting for Pickup",
+      droppedAt: new Date(),
+    });
+
+    await newParcel.save();
+    const receiverUser = await User.findOne({ username: receiverName });
+    // Push reference to the Parcel document
+    receiverUser.parcels = receiverUser.parcels || [];
+    receiverUser.parcels.push(newParcel._id);
+    await receiverUser.save();
+    //Send SMS to receiver
+    const smsLink = `https://virtuallocker.onrender.com/qr/`;
+      const message = await client.messages.create({
+        body: `📦 Parcel dropped in Locker ${lockerId}, Compartment ${compartmentId} by ${user.username} \n OTP : ${otp}, Click Here to unlock via QR : ${smsLink}`,
+        from: process.env.TWILIO_PHONE_NUMBER,
+        to: process.env.TO_PHONE_NUMBER, // Or `receiverPhone` if you verified that number too
+      });
+      console.log(`📦 Parcel dropped in Locker ${lockerId}, Compartment ${compartmentId} by ${user.username} \n OTP : ${otp}, Click Here to unlock via QR : ${smsLink}`);
+      console.log("SMS sent:", message.sid);
+  
+    req.flash("success", "Compartment Unlocked, drop your parcel!!");
+    res.redirect("/user/dropoff");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Something went wrong");
   }
-
-  const compartment = locker.compartments.find(c => 
-    c.compartmentId === compartmentId &&
-    c.bookingInfo?.userId?.toString() === userId.toString()
-  );
-
-  if (!compartment) {
-    req.flash("error", "Compartment not found or not booked by you.");
-    return res.redirect("/user/dropoff");
-  }
-
-  if (compartment.bookingInfo.otp !== otp) {
-    req.flash("error", "Incorrect OTP.");
-    return res.redirect("/user/dropoff");
-  }
-
-  // ✅ Unlock the compartment
-  compartment.isLocked = false;
-  compartment.isBooked = false;
-  await locker.save();
-
-  req.flash("success", `Compartment ${compartmentId} unlocked successfully!`);
-  res.redirect("/user/dropoff");
 });
 
+// app.post("/user/dropoff", async (req, res) => {
+//   const userId = req.session.userId;
+//   const { lockerCompartment, otp } = req.body;
+
+//   if (!userId) {
+//     req.flash("error", "Session expired. Please login again.");
+//     return res.redirect("/login");
+//   }
+
+//   const [lockerId, compartmentId] = lockerCompartment.split("|");
+
+//   const locker = await Locker.findOne({ lockerId });
+
+//   if (!locker) {
+//     req.flash("error", "Locker not found.");
+//     return res.redirect("/user/dropoff");
+//   }
+
+//   const compartment = locker.compartments.find(c =>
+//     c.compartmentId === compartmentId &&
+//     c.bookingInfo?.userId?.toString() === userId.toString()
+//   );
+
+//   if (!compartment) {
+//     req.flash("error", "Compartment not found or not booked by you.");
+//     return res.redirect("/user/dropoff");
+//   }
+
+//   if (compartment.bookingInfo.otp !== otp) {
+//     req.flash("error", "Incorrect OTP.");
+//     return res.redirect("/user/dropoff");
+//   }
+
+//   // ✅ Unlock the compartment
+//   compartment.isLocked = false;
+//   compartment.isBooked = false;
+//   await locker.save();
+
+//   req.flash("success", `Compartment ${compartmentId} unlocked successfully!`);
+//   res.redirect("/user/dropoff");
+// });
 
 // ------------------------------------------------- ADMIN ROUTES ---------------------------------------------------------
 
@@ -1038,7 +1186,6 @@ app.post("/admin/register", async (req, res) => {
   }
 });
 
-
 // ADMIN
 // Admin Login Page
 app.get("/admin/login", (req, res) => {
@@ -1057,9 +1204,9 @@ app.post("/admin/login", async (req, res) => {
 });
 app.get("/admin/dashboard", isAdmin, async (req, res) => {
   try {
-    const user = await User.findOne({role:"admin"});
+    const user = await User.findOne({ role: "admin" });
     const lockers = await Locker.find({});
-    res.render("adminDashboard", { lockers,user });
+    res.render("adminDashboard", { lockers, user });
   } catch (err) {
     console.error("❌ Error loading admin dashboard:", err);
     req.flash("error", "Failed to load dashboard.");
@@ -1079,7 +1226,7 @@ app.get("/admin/bookings", isAdmin, async (req, res) => {
 
     for (const locker of lockers) {
       for (const compartment of locker.compartments) {
-        if (compartment.isBooked && compartment.bookingInfo.userId) {
+        if (compartment.isBooked || compartment.bookingInfo.userId) {
           const user = await User.findById(
             compartment.bookingInfo.userId
           ).select("username");
@@ -1125,29 +1272,27 @@ app.get("/admin/locker/:lockerId", isAdmin, async (req, res) => {
   }
 });
 
-
 app.post("/admin/add-locker", isAdmin, async (req, res) => {
   const { lockerId, address, lat, lng } = req.body;
-const compartments = req.body.compartments || {};
- console.log("Locker ID:", req.body.lockerId);
+  const compartments = req.body.compartments || {};
+  console.log("Locker ID:", req.body.lockerId);
   console.log("Compartments:", req.body.compartments);
   console.log("Address:", req.body.address);
   console.log("Lat:", req.body.lat);
   console.log("Lng:", req.body.lng);
 
-const compartmentArray = Object.values(compartments).map((c, i) => ({
-  compartmentId: c.compartmentId || `C${i + 1}`,
-  size: c.size || 'medium',
-  isBooked: false,
-  isLocked: true,
-  bookingInfo: {
-    userId: null,
-    bookingTime: null,
-    otp: null,
-  },
-  qrCode: null,
-}));
-
+  const compartmentArray = Object.values(compartments).map((c, i) => ({
+    compartmentId: c.compartmentId || `C${i + 1}`,
+    size: c.size || "medium",
+    isBooked: false,
+    isLocked: true,
+    bookingInfo: {
+      userId: null,
+      bookingTime: null,
+      otp: null,
+    },
+    qrCode: null,
+  }));
 
   console.log("Final compartments:", compartmentArray); // ✅ debug
 
@@ -1157,19 +1302,9 @@ const compartmentArray = Object.values(compartments).map((c, i) => ({
     compartments: compartmentArray,
   });
 
-  for (let compartment of newLocker.compartments) {
-    const qrUrl = `/locker/access/${lockerId}/${compartment.compartmentId}`;
-    const qrDataUrl = await QRCode.toDataURL(qrUrl);
-    compartment.qrCode = qrDataUrl;
-  }
-
   await newLocker.save();
   res.redirect("/admin/dashboard");
 });
-
-
-
-
 
 app.post("/admin/delete-locker", async (req, res) => {
   const { lockerId } = req.body;
@@ -1191,6 +1326,7 @@ app.post("/admin/cancel", isAdmin, async (req, res) => {
     if (compartment && compartment.isBooked) {
       compartment.isBooked = false;
       compartment.isLocked = true;
+      compartment.qrCode = null;
       compartment.bookingInfo = {
         userId: null,
         otp: null,
@@ -1242,8 +1378,6 @@ app.use((req, res, next) => {
   res.status(404).render("errorpage", { errorMessage: "Page Not Found (404)" });
 });
 
-
-
 // Admin Logout
 app.get("/admin/logout", (req, res) => {
   req.session.destroy(() => {
@@ -1251,9 +1385,7 @@ app.get("/admin/logout", (req, res) => {
   });
 });
 
-
 // ---------------------------------------------------- TECHNICIAN ROUTES ------------------------------------------------------
-
 
 app.get("/technician/login", (req, res) => {
   res.render("techLogin", { error: null });
@@ -1273,9 +1405,6 @@ app.get("/technician/dashboard", async (req, res) => {
   // <-- must be accessed ONLY ONCE
   res.render("addLockerTechnician");
 });
-
-
-
 
 // -------------------------------------------BACKEND MISCELLANEOUS ROUTES-----------------------------------------------------------
 
@@ -1358,10 +1487,6 @@ app.get("/technician/dashboard", async (req, res) => {
 //   }
 // });
 
-
-
-
-
 /// ---------------------------------------------------PAYMENT ROUTES------------------------------------------------
 
 // app.post("/payment/create-order", async (req, res) => {
@@ -1437,41 +1562,13 @@ app.get("/technician/dashboard", async (req, res) => {
 //   }
 // });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // -------------------------------------------Error-handling middleware------------------------------------------------------
 app.use((err, req, res, next) => {
   console.error(err.stack); // Log the error details (optional)
-  res
-    .status(500)
-    .render("errorpage", {
-      errorMessage: err.message || "Internal Server Error",
-    });
+  res.status(500).render("errorpage", {
+    errorMessage: err.message || "Internal Server Error",
+  });
 });
-
-
-
-
-
-
-
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);

@@ -12,7 +12,9 @@ const CompartmentSchema = new mongoose.Schema({
   bookingInfo: {
     userId: { type: String, default: null },
     bookingTime: { type: Date, default: null },
-    otp: { type: String, default: null }
+    otp: { type: String, default: null },
+    recieverName :  { type: String, default: null },
+    recieverPhone : {type: String, default: null}
   },
   courierInfo: {
     courierId: mongoose.Schema.Types.ObjectId,
@@ -23,6 +25,7 @@ const CompartmentSchema = new mongoose.Schema({
 
 const LockerSchema = new mongoose.Schema({
   lockerId: { type: String, required: true, unique: true },
+  location_id: { type: mongoose.Schema.Types.ObjectId, ref: 'DropLocation' },
   location: {
     lat: { type: Number },
     lng: { type: Number },

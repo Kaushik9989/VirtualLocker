@@ -1,19 +1,19 @@
 <% layout("/layouts/boilerplate") %>
 
 <body class="bg-light min-vh-100">
-  <!-- Main Map Section -->
-  <div class="container-fluid py-5">
-    <div class="row justify-content-center">
-      <div class="col-lg-10">
-        <h2 class="fw-bold text-center mb-4">📍 Nearest Lockers</h2>
-        <div id="locker-map" class="rounded shadow" style="height: 450px;"></div>
-      </div>
-    </div>
-  </div>
+  <% if (messages.success && messages.success.length > 0) { %>
+  <div class="alert alert-success"><%= messages.success[0] %></div>
+<% } %>
 
+<% if (messages.error && messages.error.length > 0) { %>
+  <div class="alert alert-danger"><%= messages.error[0] %></div>
+<% } %>
   <!-- Slide-In Locker Info Drawer -->
-  <div id="locker-info-drawer" class="position-fixed top-0 end-0 bg-white shadow-lg p-4"
-    style="width: 320px; height: 100%; z-index: 1050; transform: translateX(100%); transition: transform 0.3s ease-in-out;">
+  <div
+    id="locker-info-drawer"
+    class="position-fixed top-0 end-0 bg-white shadow-lg p-4"
+    style="width: 320px; height: 100%; z-index: 1050; transform: translateX(100%); transition: transform 0.3s ease-in-out;"
+  >
     <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
       <h5 class="mb-0 fw-semibold">Locker Details</h5>
       <button class="btn btn-sm btn-outline-secondary" onclick="closeLockerInfo()">✖</button>
@@ -21,44 +21,88 @@
     <div id="locker-info-content" class="text-start small"></div>
   </div>
 
-  <!-- Action Cards Section -->
+  <!-- Action Section -->
   <div class="container mt-5 pt-4">
-    <h2 class="fw-bold text-center mb-3">🚀 Welcome to DropPoint</h2>
+    <h2 class="fw-bold text-center mb-3"> Welcome Back, <%= user.username %></h2>
+
+    <!-- Wallet Summary Card -->
+    <div class="container mb-5">
+      <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+          <div class="card wallet-card text-center">
+            <div class="card-body d-flex flex-column align-items-center py-4">
+              <div class="mb-3">
+                <i class="fas fa-wallet fa-3x"></i>
+              </div>
+              <h5 class="fw-bold mb-1">Wallet Balance</h5>
+              <p class="fs-3 text-success mb-3">₹ <%= user.wallet?.credits || 0 %></p>
+              <a href="/<%= user._id %>/credits" class="btn btn-outline-success px-4">
+                <i class="fas fa-cog me-1"></i> Manage Wallet
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Prompt -->
     <p class="text-center lead text-muted mb-4">Choose your action to get started</p>
 
+    <!-- Action Cards -->
     <div class="row justify-content-center">
       <div class="col-md-3 mb-4">
         <a href="/user/pickup" class="text-decoration-none">
-          <div class="card h-100 shadow-sm border-0 text-center hover-scale">
+          <div class="card h-100 shadow-sm border-0 text-center hover-scale action-card">
             <div class="card-body py-4">
               <i class="fas fa-box-open fa-3x text-primary mb-3"></i>
-              <h5 class="card-title fw-semibold">Pickup</h5>
+              <h5 class="card-title fw-semibold">Recieve a Parcel</h5>
             </div>
           </div>
         </a>
       </div>
       <div class="col-md-3 mb-4">
         <a href="/user/dropoff" class="text-decoration-none">
-          <div class="card h-100 shadow-sm border-0 text-center hover-scale">
+          <div class="card h-100 shadow-sm border-0 text-center hover-scale action-card">
             <div class="card-body py-4">
               <i class="fas fa-box fa-3x text-success mb-3"></i>
-              <h5 class="card-title fw-semibold">Drop-off</h5>
+              <h5 class="card-title fw-semibold">Send Parcel</h5>
             </div>
           </div>
         </a>
       </div>
+        <div class="col-md-3 mb-4">
+  <a href="/map" class="text-decoration-none">
+    <div class="card h-100 shadow-sm border-0 text-center hover-scale action-card">
+      <div class="card-body py-4">
+        <i class="fas fa-map-marker-alt fa-3x text-danger mb-3"></i>
+        <h5 class="card-title fw-semibold">Nearby Lockers</h5>
+      </div>
+    </div>
+  </a>
+</div>
+</div>
     </div>
   </div>
 
-  <!-- Bootstrap + Font Awesome -->
+  <!-- Locker Map Section
+  <div class="container-fluid py-5">
+    <div class="row justify-content-center">
+      <div class="col-lg-10">
+        <h2 class="fw-bold text-center mb-4">📍 Nearest Lockers</h2>
+        <div id="locker-map" class="rounded shadow" style="height: 450px;"></div>
+      </div>
+    </div>
+  </div> -->
+
+
+  <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
   <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
-
-  <!-- Leaflet -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
   <!-- Locker Map Script -->
   <script>
+    
     const lockers = <%- JSON.stringify(lockers) %>;
     const map = L.map('locker-map').setView([20.5937, 78.9629], 5);
 
@@ -77,14 +121,14 @@
         popupAnchor: [0, -30],
       });
 
-        const userMarker = L.marker([userLat, userLng], { icon: userIcon })
-          .addTo(map)
-          .bindPopup(`<b>📍 You are here</b> &nbsp;<a href="/profile" target="_blank">View Profile</a>`)
-          .openPopup();
+      const userMarker = L.marker([userLat, userLng], { icon: userIcon })
+        .addTo(map)
+        .bindPopup(`<b>📍 You are here</b> &nbsp;<a href="/profile" target="_blank">View Profile</a>`)
+        .openPopup();
 
-        userMarker.on("click", () => {
-          window.location.href = "/profile";
-        });
+      userMarker.on("click", () => {
+        window.location.href = "/profile";
+      });
 
       map.setView([userLat, userLng], 14);
       showNearestLockers(userLat, userLng);
@@ -98,7 +142,6 @@
 
     function showNearestLockers(userLat, userLng) {
       const radiusInKm = 80;
-
       lockers.forEach(locker => {
         if (locker.location.lat && locker.location.lng) {
           const lat = locker.location.lat;
@@ -151,11 +194,57 @@
     }
   </script>
 
-  <!-- Optional hover scale effect -->
+  <!-- Custom Modern Styling -->
   <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    .hover-scale {
+      transition: transform 0.3s ease;
+    }
+
     .hover-scale:hover {
       transform: scale(1.05);
-      transition: 0.3s ease;
+    }
+
+    .wallet-card {
+      background: linear-gradient(135deg, #f0faff, #e8f6f3);
+      border-radius: 1rem;
+      border: none;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+    }
+
+    .wallet-card .fas {
+      color: #0d6efd;
+    }
+
+    #locker-info-drawer {
+      border-left: 2px solid #eee;
+      border-top-left-radius: 1rem;
+      border-bottom-left-radius: 1rem;
+    }
+
+    #locker-map {
+      border-radius: 1rem;
+      overflow: hidden;
+    }
+
+    .card-body i {
+      transition: transform 0.3s ease;
+    }
+
+    .card-body:hover i {
+      transform: scale(1.2);
+    }
+
+    .lead {
+      font-size: 1.15rem;
+    }
+
+    .btn-sm {
+      font-size: 0.85rem;
+      padding: 0.4rem 0.7rem;
     }
   </style>
 </body>
