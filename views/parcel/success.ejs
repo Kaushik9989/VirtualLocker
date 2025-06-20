@@ -21,8 +21,9 @@
                 <div class="mt-4">
                     <h5 class="mb-2">⏰ Locker Access Expires On:</h5>
                     <div class="fs-5 text-danger fw-semibold">
-                        <%= new Date(parcel.expiresAt).toLocaleString("en-IN", { dateStyle: "full" , timeStyle: "short"
-                            }) %>
+                        <%= new Date(parcel.expiresAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" ,
+                            weekday: "long" , year: "numeric" , month: "long" , day: "numeric" , hour: "numeric" ,
+                            minute: "2-digit" , hour12: true }) %>
                     </div>
                     <p class="text-muted small mt-1">Make sure the parcel is picked up before this date.</p>
                 </div>
