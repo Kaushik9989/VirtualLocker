@@ -5,13 +5,13 @@
     <p><strong>Type:</strong> <%= draft.type %></p>
     <p><strong>Size:</strong> <%= draft.size %></p>
     <p><strong>Description:</strong> <%= draft.description %></p>
-    <p><strong>Locker ID:</strong> <%= draft.lockerId %></p>
+    <p><strong>Locker ID:</strong> <%= draft.lockerBoxId %></p>
     <p><strong>Receiver:</strong> <%= draft.receiverName %> (📱 <%= draft.receiverPhone %>)</p>
     <hr>
-    <div class="mb-3">
-      <label class="form-label">Total Cost (₹)</label>
-      <input type="number" name="cost" class="form-control" required>
-    </div>
+   <div class="mb-3">
+  <label class="form-label">Total Cost (₹)/ Hour</label>
+  <input type="text" class="form-control" value="<%= draft.cost %>" readonly>
+</div>  
     <div class="mb-3">
       <label class="form-label">Payment Option</label>
       <select name="paymentOption" class="form-select" required>
