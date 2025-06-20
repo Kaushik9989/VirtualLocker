@@ -1,0 +1,24 @@
+<% layout("layouts/boilerplate") %>
+<div class="container py-5">
+  <h2 class="text-center mb-4">Step 3: Confirm & Pay</h2>
+  <form action="/send/step3" method="POST" class="card shadow p-4 mx-auto" style="max-width: 600px;">
+    <p><strong>Type:</strong> <%= draft.type %></p>
+    <p><strong>Size:</strong> <%= draft.size %></p>
+    <p><strong>Description:</strong> <%= draft.description %></p>
+    <p><strong>Locker ID:</strong> <%= draft.lockerId %></p>
+    <p><strong>Receiver:</strong> <%= draft.receiverName %> (📱 <%= draft.receiverPhone %>)</p>
+    <hr>
+    <div class="mb-3">
+      <label class="form-label">Total Cost (₹)</label>
+      <input type="number" name="cost" class="form-control" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Payment Option</label>
+      <select name="paymentOption" class="form-select" required>
+        <option value="sender_pays">Sender Pays</option>
+        <option value="receiver_pays">Receiver Pays</option>
+      </select>
+    </div>
+    <button class="btn btn-success w-100">✅ Confirm & Generate QR</button>
+  </form>
+</div>

@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Navbar with Sidebar Toggle</title>
 
   <!-- Bootstrap CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+    crossorigin="anonymous">
 
   <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
 
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
@@ -89,9 +92,10 @@
         <i class="fas fa-tools me-2"></i>Drop Point
       </a>
       <!-- Sidebar Toggle Button inside Navbar -->
-      <button class="btn btn-dark" id="sidebarToggleBtn" data-bs-toggle="offcanvas" data-bs-target="#rightSidebar" aria-controls="rightSidebar">
-  <i class="fa-solid fa-bars" id="toggleIcon"></i>
-</button>
+      <button class="btn btn-dark" id="sidebarToggleBtn" data-bs-toggle="offcanvas" data-bs-target="#rightSidebar"
+        aria-controls="rightSidebar">
+        <i class="fa-solid fa-bars" id="toggleIcon"></i>
+      </button>
     </div>
   </nav>
 
@@ -104,11 +108,17 @@
     <div class="offcanvas-body">
       <ul class="nav flex-column">
         <li class="nav-item mb-2"><i class="fa-solid fa-image me-2"></i><a href="/dashboard">Home</a></li>
-        <li class="nav-item mb-2"><i class="fa-solid fa-arrow-up-right-from-square me-2"></i><a href="/dashboard">Book a Locker</a></li>
+        <li class="nav-item mb-2"><i class="fa-solid fa-arrow-up-right-from-square me-2"></i><a href="/dashboard">Book a
+            Locker</a></li>
         <li class="nav-item mb-2"><i class="fa-solid fa-calendar-days me-2"></i><a href="#">Events</a></li>
         <li class="nav-item mb-2"><i class="fa-solid fa-phone me-2"></i><a href="#">Contact</a></li>
         <li class="nav-item mb-2"><i class="fa-solid fa-gear me-2"></i><a href="#">Settings</a></li>
         <li class="nav-item mb-2"><i class="fas fa-sign-in-alt me-2"></i><a href="/logout">Logout</a></li>
+        <li class="nav-item">
+          <a class="nav-link" href="/history">
+            <i class="fas fa-history me-1"></i> Parcel History
+          </a>
+        </li>
       </ul>
       <hr />
       <h6>Follow Us</h6>
@@ -121,21 +131,23 @@
     </div>
   </div>
   <!-- Bootstrap JS -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    crossorigin="anonymous"></script>
   <script>
-  const toggleBtn = document.getElementById("sidebarToggleBtn");
-  const toggleIcon = document.getElementById("toggleIcon");
-  const sidebar = document.getElementById("rightSidebar");
+    const toggleBtn = document.getElementById("sidebarToggleBtn");
+    const toggleIcon = document.getElementById("toggleIcon");
+    const sidebar = document.getElementById("rightSidebar");
 
-  sidebar.addEventListener("shown.bs.offcanvas", () => {
-    toggleIcon.classList.remove("fa-bars");
-    toggleIcon.classList.add("fa-xmark");
-  });
+    sidebar.addEventListener("shown.bs.offcanvas", () => {
+      toggleIcon.classList.remove("fa-bars");
+      toggleIcon.classList.add("fa-xmark");
+    });
 
-  sidebar.addEventListener("hidden.bs.offcanvas", () => {
-    toggleIcon.classList.remove("fa-xmark");
-    toggleIcon.classList.add("fa-bars");
-  });
-</script>
+    sidebar.addEventListener("hidden.bs.offcanvas", () => {
+      toggleIcon.classList.remove("fa-xmark");
+      toggleIcon.classList.add("fa-bars");
+    });
+  </script>
 </body>
+
 </html>

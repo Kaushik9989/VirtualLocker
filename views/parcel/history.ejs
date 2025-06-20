@@ -1,0 +1,46 @@
+<% layout("layouts/boilerplate") %>
+
+<div class="container py-5">
+  <h2 class="fw-bold text-center mb-4">📦 Your Parcel History</h2>
+
+  <% if (parcels.length === 0) { %>
+    <div class="alert alert-info text-center">
+      You haven't sent any parcels yet.
+    </div>
+  <% } else { %>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle shadow-sm rounded bg-white">
+        <thead class="table-light">
+          <tr>
+            <th>📅 Date</th>
+            <th>📍 Location</th>
+            <th>🔐 Locker</th>
+            <th>👤 Receiver</th>
+            <th>📦 Type</th>
+            <th>📏 Size</th>
+            <th>💸 Cost</th>
+            <th>📊 Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% parcels.forEach(parcel => { %>
+            <tr>
+              <td><%= new Date(parcel.createdAt).toLocaleString() %></td>
+              <td><%= parcel.location_id?.name || parcel.location_id?.address || "N/A" %></td>
+              <td><%= parcel.lockerId?.lockerBoxId || "N/A" %></td>
+              <td><%= parcel.receiverName %> (<%= parcel.receiverPhone %>)</td>
+              <td><%= parcel.type %></td>
+              <td><%= parcel.size %></td>
+              <td>₹<%= parseFloat(parcel.cost).toFixed(2) %></td>
+              <td>
+                <span class="badge bg-<%= parcel.status === 'delivered' ? 'success' : parcel.status === 'expired' ? 'danger' : 'secondary' %>">
+                  <%= parcel.status.charAt(0).toUpperCase() + parcel.status.slice(1) %>
+                </span>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>

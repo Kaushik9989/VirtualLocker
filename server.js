@@ -66,6 +66,10 @@ app.use(
     secret: "heeeheheah", // replace with env var in prod
     resave: false,
     saveUninitialized: false,
+     store: MongoStore.create({
+    mongoUrl: MONGO_URI,
+    ttl: 60 * 60 * 24 * 7 // Session TTL in seconds (7 days)
+  }),
     cookie: {
       maxAge: 30000 * 60 * 60 * 24, // 1 day
     },
@@ -422,19 +426,85 @@ app.get('/map', async (req, res) => {
 
 //// NEW LOCKER ROUTES
 
-app.get("/send/step1", async (req, res) => {
+app.get("/send/step1",isAuthenticated, async (req, res) => {
   const lockers = await Locker1.find({ status: 'available' }).populate('location_id');
   res.render("parcel/step1", { lockers });
 });
 
+app.post("/send/step1", isAuthenticated,(req, res) => {
+  req.session.parcelDraft = {
+    description: req.body.description,
+    type: req.body.type,
+    size: req.body.size,
+    lockerId: req.body.lockerId,
+    location_id: req.body.location_id
+    
+  };
+  res.redirect("/send/step2");
+});
+app.get("/send/step2", isAuthenticated,(req, res) => {
+  res.render("parcel/step2");
+});
+app.post("/send/step2", isAuthenticated,(req, res) => {
+  req.session.parcelDraft.receiverName = req.body.receiverName;
+  req.session.parcelDraft.receiverPhone = req.body.receiverPhone;
+  res.redirect("/send/step3");
+});
+
+
+app.get("/send/step3", isAuthenticated,(req, res) => {
+  res.render("parcel/step3", { draft: req.session.parcelDraft });
+});
+
+app.post("/send/step3", isAuthenticated,async (req, res) => {
+  const draft = req.session.parcelDraft;
+  const accessCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+  const unlockUrl = `${req.protocol}://${req.get('host')}/unlock/${draft.lockerId}/${accessCode}`;
+  const qrImage = await QRCode.toDataURL(unlockUrl);
+
+  const parcel = new Parcel1({
+    ...draft,
+    senderId: req.user._id,
+    senderName: req.user.username,
+    accessCode,
+    qrImage,
+    cost: req.body.cost,
+    paymentOption: req.body.paymentOption,
+    droppedAt: new Date(),
+    expiresAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000) // 2 days
+  });
+
+  await parcel.save();
+
+  // update locker status
+  await Locker1.findByIdAndUpdate(draft.lockerId, {
+    status: 'occupied',
+    isLocked: true
+  });
+
+  delete req.session.parcelDraft;
+  res.redirect(`/parcel/${parcel._id}/success`);
+});
+app.get("/parcel/:id/success", async (req, res) => {
+  const parcel = await Parcel1.findById(req.params.id);
+  res.render("parcel/success", { parcel });
+});
 
 
 
+app.get('/history', async (req, res) => {
+  try {
+    const parcels = await Parcel1.find({ senderId: req.user._id })
+      .sort({ createdAt: -1 })
+      .populate('location_id')
+      .populate('lockerId');
 
-
-
-
-
+    res.render('parcel/history', { parcels });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error");
+  }
+});
 
 
 

@@ -1,0 +1,15 @@
+<% layout("layouts/boilerplate") %>
+<div class="container py-5">
+  <h2 class="text-center mb-4">Step 2: Receiver Info</h2>
+  <form action="/send/step2" method="POST" class="card shadow p-4 mx-auto" style="max-width: 600px;">
+    <div class="mb-3">
+      <label class="form-label">Receiver Name</label>
+      <input type="text" name="receiverName" class="form-control" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Receiver Phone</label>
+      <input type="tel" name="receiverPhone" class="form-control" required pattern="[0-9]{10}">
+    </div>
+    <button class="btn btn-primary w-100">Next Step ➡</button>
+  </form>
+</div>
