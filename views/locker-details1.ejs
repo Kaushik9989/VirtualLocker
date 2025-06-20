@@ -15,30 +15,30 @@
                     
                   </div>
 
-                  <table class="table table-bordered table-hover">
+                  <table class="table table-bordered table-hover" style="text-align: center;">
                     <thead class="table-light">
                       <tr>
                         <th>Compartment</th>
-                        <th>Status</th>
                         <th>Size</th>
+                        <th>Status</th>
                         <th>Action</th>
                       </tr>
                     </thead>
                     <tbody>
                       <% locker.compartments.forEach(comp => { %>
                         <tr>
-                          <td><strong>Compartment <%= comp.compartmentId %></strong></td>
-                          <td><strong><%= comp.size%></strong></td>
+                          <td><strong> <%= comp.compartmentId %></strong></td>
+                          <td><strong><%= comp.size=== "medium" ? "M" : "L"%></strong></td>
                           <td>
-                            <%= comp.isBooked ? "Booked" : "Available" %> |
-                            <%= comp.isLocked ? "Locked" : "Unlocked" %>
+                            <%= comp.isBooked ? "Occupied" : "Available" %> 
+                           
                           </td>
                           <td>
                             <% if (!comp.isBooked) { %>
                               <form action="/locker/book" method="POST" class="d-inline">
                                 <input type="hidden" name="lockerId" value="<%= locker.lockerId %>" />
                                 <input type="hidden" name="compartmentId" value="<%= comp.compartmentId %>" />
-                                <button type="submit" class="btn btn-sm btn-success">Book</button>
+                                <button type="submit" class="btn btn-sm btn-success">Reserve</button>
                               </form>
                             <% } else if (comp.bookingInfo && comp.bookingInfo.userId && user && comp.bookingInfo.userId.toString() === user._id.toString()) { %>
                               <form action="/locker/cancel" method="POST" class="d-inline">

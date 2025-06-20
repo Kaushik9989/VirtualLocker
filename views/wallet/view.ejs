@@ -1,0 +1,76 @@
+<% layout('layouts/boilerplate') %>
+
+<div class="container py-5">
+
+  <!-- Flash Messages -->
+  <% if (messages.success && messages.success.length > 0) { %>
+    <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+      <i class="fas fa-check-circle me-2"></i> <%= messages.success[0] %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+
+  <% if (messages.error && messages.error.length > 0) { %>
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+      <i class="fas fa-exclamation-circle me-2"></i> <%= messages.error[0] %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+
+  <!-- Wallet Header -->
+  <div class="text-center mb-5">
+    <h2 class="fw-bold"><i class="fas fa-wallet me-2 text-primary"></i> Wallet for <%= user.username %></h2>
+    <p class="text-muted">Manage your balance and spending preferences below</p>
+  </div>
+
+  <!-- Wallet Overview Cards -->
+  <div class="row justify-content-center mb-4">
+    <div class="col-md-4 mb-3">
+      <div class="card shadow-sm border-0 text-center">
+        <div class="card-body">
+          <i class="fas fa-coins fa-2x text-success mb-2"></i>
+          <h5 class="card-title fw-semibold mb-1">Credits</h5>
+          <p class="fs-4 text-primary mb-0"><%= user.wallet.credits %></p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4 mb-3">
+      <div class="card shadow-sm border-0 text-center">
+        <div class="card-body">
+          <i class="fas fa-chart-line fa-2x text-warning mb-2"></i>
+          <h5 class="card-title fw-semibold mb-1">Total Spent</h5>
+          <p class="fs-4 text-danger mb-0">₹<%= parseFloat(user.wallet.totalSpent) %></p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4 mb-3">
+      <div class="card shadow-sm border-0 text-center">
+        <div class="card-body">
+          <i class="fas fa-sync-alt fa-2x text-info mb-2"></i>
+          <h5 class="card-title fw-semibold mb-1">Auto Reload</h5>
+          <p class="fs-5 mb-0"><%= user.wallet.autoReload ? 'Enabled' : 'Disabled' %></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Credits Form -->
+  <div class="row justify-content-center mt-4">
+    <div class="col-md-6">
+      <div class="card shadow border-0">
+        <div class="card-body">
+          <h4 class="fw-bold mb-3"><i class="fas fa-plus-circle me-2 text-primary"></i>Add Credits</h4>
+          <form action="/<%= user._id %>/credits/add" method="POST">
+            <div class="mb-3">
+              <label for="amount" class="form-label">Amount to Add</label>
+              <input type="number" class="form-control form-control-lg" id="amount" name="amount" min="1" required placeholder="Enter amount (e.g., 100)">
+            </div>
+            <button type="submit" class="btn btn-primary w-100 shadow-sm">
+              <i class="fas fa-wallet me-2"></i>Add Credits
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
