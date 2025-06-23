@@ -2,7 +2,7 @@
 
 <body class="bg-light min-vh-100">
  <% if (messages.success && messages.success.length > 0) { %>
-  <div class="alert alert-success alert-dismissible fade show" role="alert">
+  <div class="alert alert-success alert-dismissible fade show mt-5" role="alert">
     <%= messages.success[0] %>
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
   </div>
@@ -43,9 +43,13 @@
     </div>
   </div>
 <% } else { %>
-  <p class="mt-4 text-center" style="color: red;">
-    No active subscription. </br><a href="/plans" class="btn btn-success btn-sm mt-2">Choose Plan</a>
-  </p>
+  <div class="alert alert-warning text-center p-4 mt-4" style="max-width: 400px; margin: 0 auto; border-radius: 12px;">
+  <i class="fas fa-exclamation-triangle fa-2x text-danger mb-2"></i>
+  <h5 class="mb-2 text-dark">No Active Subscription</h5>
+  <p class="mb-3 text-muted">You currently don't have an active plan.</p>
+  <a href="/plans" class="btn  btn-sm px-4" style="background-color: #e65c00; color: white;">Choose a Plan</a>
+</div>
+
 <% } %>
 
   <!-- Action Section -->

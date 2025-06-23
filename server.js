@@ -584,10 +584,29 @@ app.get("/admnDash", isAdmin, async (req, res) => {
   res.render("admin/dashboard", { apiKeys, roles, logs });
 });
 const DUMMY_PLANS = [
-  { id: "basic", name: "Basic Plan", price: 0, credits: 50 },
-  { id: "pro", name: "Pro Plan", price: 0, credits: 150 },
-  { id: "elite", name: "Elite Plan", price: 0, credits: 500 },
+  {
+    id: "basic",
+    name: "Basic Plan",
+    price: 49,
+    credits: 50,
+    description: "Perfect for occasional users. Get 50 locker credits for light usage."
+  },
+  {
+    id: "pro",
+    name: "Pro Plan",
+    price: 99,
+    credits: 150,
+    description: "Great for regular users. Includes 150 credits at a discounted rate."
+  },
+  {
+    id: "elite",
+    name: "Elite Plan",
+    price: 449,
+    credits: 500,
+    description: "Best for businesses or heavy users. Unlock maximum value with 500 credits."
+  },
 ];
+
 app.get("/plans", isAuthenticated, (req, res) => {
   res.render("subscription/plans", { plans: DUMMY_PLANS });
 });
@@ -637,6 +656,35 @@ app.post("/subscribe/cancel", isAuthenticated, async (req, res) => {
   req.flash("success", "Your subscription has been cancelled.");
 res.redirect("/dashboard");
 
+});
+
+
+
+
+
+
+app.get("/newprofile", isAuthenticated, async (req, res) => {
+  const user = await User.findById(req.user._id); // req.user is set via session/passport
+  res.render("newprofile", { user, messages: req.flash() });
+});
+
+
+app.post("/newprofile", isAuthenticated, async (req, res) => {
+  const { username, email } = req.body;
+
+  try {
+    await User.findByIdAndUpdate(req.user._id, {
+      username,
+      email,
+    });
+
+    req.flash("success", "Profile updated successfully!");
+    res.redirect("/newprofile");
+  } catch (err) {
+    console.error(err);
+    req.flash("error", "Something went wrong.");
+    res.redirect("/newprofile");
+  }
 });
 
 

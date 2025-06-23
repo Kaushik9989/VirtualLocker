@@ -1,17 +1,18 @@
 <% layout("layouts/boilerplate") %>
 
 <div class="container mt-5">
-  <h2 class="mb-4">Available Subscription Plans</h2>
+  <h2 class="mb-4" style="text-align: center;">Available Subscription Plans</h2>
   <form method="POST" action="/subscribe/select">
     <div class="row">
       <% plans.forEach(plan => { %>
-        <div class="col-md-4 mb-3">
-          <div class="card h-100">
+        <div class="col-md-4 mb-3 mt-5" style="text-align: center; ">
+          <div class="card h-100" style="background-color: black; color: white;">
             <div class="card-body">
-              <h5 class="card-title"><%= plan.name %></h5>
-              <p>Price: Free</p>
+            <p class="card-title fs-4 fw-semibold mb-3" style="color: orange;"><b><%= plan.name %></b></p>
+              <p class="card-text fs-5 mb-4">Price: Price: ₹<%=plan.price%></p>
               <p>Credits: <%= plan.credits %></p>
-              <button type="submit" name="planId" value="<%= plan.id %>" class="btn btn-primary w-100">Select Plan</button>
+              <p class="card-text  mb-4"><%= plan.description %></p>
+              <button type="submit" name="planId" value="<%= plan.id %>" class="btn  btn-lg mt-auto rounded-pill fs-5" style="background-color: orange;">Select Plan</button>
             </div>
           </div>
         </div>
