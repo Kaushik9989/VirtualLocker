@@ -1,100 +1,64 @@
 <% layout("layouts/boilerplate") %>
 
-    <div class="container py-5">
-        <div class="row justify-content-center">
-            <div class="col-lg-8 text-center">
-                <h2 class="fw-bold text-success mb-4">✅ Parcel Sent Successfully!</h2>
+<div class="container py-5">
+    <% if (parcel.paymentOption === "receiver_pays") { %>
+  <div class="alert alert-warning">
+    🚧 Waiting for receiver's payment. Once they pay, you'll be notified to drop off the parcel.
+  </div>
+<% } else { %>
+  <div class="alert alert-success">
+    ✅ QR is active! Drop your parcel at any nearby locker by scanning it.
+  </div>
+<% } %>
+  <div class="text-center">
+    <h2 class="fw-bold text-success mb-4">✅ Parcel Booked!</h2>
 
-                <!-- QR Code -->
-                <div class="mb-4">
-                    <img src="<%= parcel.qrImage %>" alt="Parcel QR Code" class="img-fluid shadow rounded"
-                        style="max-width: 250px" />
-                    <p class="text-muted mt-2">Scan this QR to unlock the locker</p>
-                </div>
-
-                <!-- OTP -->
-                <h5 class="mb-3">🔐 Access Code (OTP):</h5>
-                <div class="fs-3 fw-bold text-primary border border-2 border-primary d-inline-block px-4 py-2 rounded">
-                    <%= parcel.accessCode %>
-                </div>
-                <!-- Expiry Date -->
-                <div class="mt-4">
-                    <h5 class="mb-2">⏰ Locker Access Expires On:</h5>
-                    <div class="fs-5 text-danger fw-semibold">
-                        <%= new Date(parcel.expiresAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" ,
-                            weekday: "long" , year: "numeric" , month: "long" , day: "numeric" , hour: "numeric" ,
-                            minute: "2-digit" , hour12: true }) %>
-                    </div>
-                    <p class="text-muted small mt-1">Make sure the parcel is picked up before this date.</p>
-                </div>
-
-
-                <!-- Share Buttons -->
-                <div class="mt-5">
-                    <h5>📤 Share with Recipient</h5>
-                    <!-- Share Buttons -->
-
-                    <div class="d-flex justify-content-center flex-wrap gap-3 mt-3">
-
-                        <button class="btn btn-success" onclick="shareQR()">
-                            <i class="fas fa-share-alt me-1"></i> Share QR Link
-                        </button>
-
-                        <button class="btn btn-outline-secondary" onclick="copyLink()">
-                            <i class="fas fa-link me-1"></i> Copy QR Link
-                        </button>
-
-                        <a href="https://wa.me/?text=<%= encodeURIComponent('📦 Your parcel is ready to pickup!\n\n🔐 OTP: ' + parcel.accessCode + '\n📍 Locker Location: https://www.google.com/maps?q=' + parcel.location.lat + ',' + parcel.location.lng) %>"
-                            target="_blank" class="btn btn-outline-success">
-                            <i class="fab fa-whatsapp me-1"></i> WhatsApp
-                        </a>
-
-                        <button class="btn btn-outline-info" onclick="shareLocation()">
-                            <i class="fas fa-map-marker-alt me-1"></i> Share Location
-                        </button>
-                    </div>
-                </div>
-
-            </div>
-
-            <a href="/dashboard" class="btn btn-primary mt-5">🏠 Go to Dashboard</a>
-        </div>
-    </div>
+    <div class="mb-4">
+      <img src="<%= parcel.qrImage %>" alt="QR Code" class="img-fluid shadow rounded" style="max-width: 250px" />
+      <p class="text-muted mt-2">Scan this QR at any nearby DropPoint locker</p>
     </div>
 
-    <script>
-        function shareQR() {
-            if (navigator.share) {
-                navigator
-                    .share({
-                        title: "📦 Your Parcel Pickup QR",
-                        text: "Here's your QR code link to unlock your parcel locker:",
-                        url: "<%= parcel.unlockUrl %>",
-                    })
-                    .catch((err) => console.error("Share failed:", err));
-            } else {
-                alert("Your browser doesn't support Web Share. Use Copy Link instead.");
-            }
-        }
+    <h5 class="mb-3">🔐 OTP Access Code:</h5>
+    <div class="fs-3 fw-bold text-primary border px-4 py-2 rounded d-inline-block">
+      <%= parcel.accessCode %>
+    </div>
 
-        function copyLink() {
-            navigator.clipboard.writeText("<%= parcel.unlockUrl %>");
-            alert("✅ Link copied to clipboard!");
-        }
+    <div class="mt-4">
+      <h6>📦 Parcel Details</h6>
+      <p><strong>Type:</strong> <%= parcel.type %></p>
+      <p><strong>Size:</strong> <%= parcel.size %></p>
+      <p><strong>Receiver:</strong> <%= parcel.receiverName %> (<%= parcel.receiverPhone %>)</p>
+      <p><strong>Expires At:</strong> <%= new Date(parcel.expiresAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) %></p>
+    </div>
 
-        function shareLocation() {
-            const mapUrl = `https://www.google.com/maps?q=<%= parcel.location.lat %>,<%= parcel.location.lng %>`;
-            if (navigator.share) {
-                navigator
-                    .share({
-                        title: "📍 Locker Location",
-                        text: "Here's the pickup locker location on Google Maps:",
-                        url: mapUrl,
-                    })
-                    .catch((err) => console.error("Share failed:", err));
-            } else {
-                navigator.clipboard.writeText(mapUrl);
-                alert("✅ Location link copied to clipboard!");
-            }
-        }
-    </script>
+    <div class="mt-4 d-flex justify-content-center gap-3 flex-wrap">
+      <button class="btn btn-success" onclick="shareQR()">
+        <i class="fas fa-share-alt me-1"></i> Share QR
+      </button>
+      <button class="btn btn-outline-secondary" onclick="copyLink()">
+        <i class="fas fa-copy me-1"></i> Copy Link
+      </button>
+    </div>
+
+    <a href="/dashboard" class="btn btn-primary mt-5">🏠 Back to Dashboard</a>
+  </div>
+</div>
+
+<script>
+  function shareQR() {
+    if (navigator.share) {
+      navigator.share({
+        title: "📦 Your Parcel QR",
+        text: "Scan this QR at any locker to drop your parcel.",
+        url: "<%= parcel.unlockUrl %>"
+      }).catch(console.error);
+    } else {
+      alert("Your browser doesn't support Web Share.");
+    }
+  }
+
+  function copyLink() {
+    navigator.clipboard.writeText("<%= parcel.unlockUrl %>");
+    alert("✅ Link copied to clipboard");
+  }
+</script>

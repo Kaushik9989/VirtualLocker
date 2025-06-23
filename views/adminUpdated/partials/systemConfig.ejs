@@ -1,0 +1,31 @@
+<h4 class="fw-semibold mb-3">System Configuration</h4>
+
+<div class="row">
+  <div class="col-md-6 mb-3">
+    <div class="card">
+      <div class="card-body">
+        <h5>Security Settings</h5>
+        <div class="form-check form-switch mt-2">
+          <input class="form-check-input" type="checkbox" checked>
+          <label class="form-check-label">Require 2FA for Admin</label>
+        </div>
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" checked>
+          <label class="form-check-label">API Rate Limiting</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6 mb-3">
+    <div class="card">
+      <div class="card-body">
+        <h5>Locker Settings</h5>
+        <label class="form-label">Auto-unlock timeout (min)</label>
+        <input type="number" class="form-control mb-2" value="5">
+        <label class="form-label">Offline threshold (min)</label>
+        <input type="number" class="form-control" value="15">
+      </div>
+    </div>
+  </div>
+</div>

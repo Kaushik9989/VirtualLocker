@@ -1,0 +1,6 @@
+<% layout("layouts/boilerplate") %>
+
+<h2>🕒 Waiting for Receiver to Pay</h2>
+<p><strong>Receiver:</strong> <%= parcel.receiverName %> (<%= parcel.receiverPhone %>)</p>
+<p>A payment link has been sent. Locker will be booked after successful payment.</p>
+<p><strong>Expires At:</strong> <%= new Date(parcel.expiresAt).toLocaleString("en-IN") %></p>

@@ -1,24 +1,22 @@
-<% layout("layouts/boilerplate") %>
-<div class="container py-5">
-  <h2 class="text-center mb-4">Step 3: Confirm & Pay</h2>
-  <form action="/send/step3" method="POST" class="card shadow p-4 mx-auto" style="max-width: 600px;">
-    <p><strong>Type:</strong> <%= draft.type %></p>
-    <p><strong>Size:</strong> <%= draft.size %></p>
-    <p><strong>Description:</strong> <%= draft.description %></p>
-    <p><strong>Locker ID:</strong> <%= draft.lockerBoxId %></p>
-    <p><strong>Receiver:</strong> <%= draft.receiverName %> (📱 <%= draft.receiverPhone %>)</p>
-    <hr>
-   <div class="mb-3">
-  <label class="form-label">Total Cost (₹)/ Hour</label>
-  <input type="text" class="form-control" value="<%= draft.cost %>" readonly>
-</div>  
-    <div class="mb-3">
-      <label class="form-label">Payment Option</label>
-      <select name="paymentOption" class="form-select" required>
-        <option value="sender_pays">Sender Pays</option>
-        <option value="receiver_pays">Receiver Pays</option>
-      </select>
+<% layout("/layouts/boilerplate") %>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-7">
+                <h3 class="mb-4 fw-bold">💳 Step 3: Payment Option</h3>
+                <form action="/send/step3" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Who Pays for This Parcel?</label>
+                        <select name="paymentOption" class="form-select" required>
+                            <option value="sender_pays">Sender Pays</option>
+                            <option value="receiver_pays">Receiver Pays</option>
+                        </select>
+                        <small class=" d-block mt-2" style="color: red;">
+                            If receiver pays, the locker will be booked after they complete the payment within 2 hours.
+                        </small>
+                    </div>
+
+                    <button class="btn btn-success w-100">Generate Drop QR</button>
+                </form>
+            </div>
+        </div>
     </div>
-    <button class="btn btn-success w-100">✅ Confirm & Generate QR</button>
-  </form>
-</div>

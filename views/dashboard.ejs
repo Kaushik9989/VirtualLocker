@@ -1,13 +1,20 @@
 <% layout("/layouts/boilerplate") %>
 
 <body class="bg-light min-vh-100">
-  <% if (messages.success && messages.success.length > 0) { %>
-  <div class="alert alert-success"><%= messages.success[0] %></div>
+ <% if (messages.success && messages.success.length > 0) { %>
+  <div class="alert alert-success alert-dismissible fade show" role="alert">
+    <%= messages.success[0] %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
 <% } %>
 
 <% if (messages.error && messages.error.length > 0) { %>
-  <div class="alert alert-danger"><%= messages.error[0] %></div>
+  <div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <%= messages.error[0] %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
 <% } %>
+
   <!-- Slide-In Locker Info Drawer -->
   <div
     id="locker-info-drawer"
@@ -20,6 +27,26 @@
     </div>
     <div id="locker-info-content" class="text-start small"></div>
   </div>
+  <div class="container mt-5">
+  <h2>Welcome, <%= user.username %>!</h2>
+<% if (user.subscription && user.subscription.planId) { %>
+  <div class="card mt-3">
+    <div class="card-body">
+      <h4 class="text-success fw-bold mb-2">Subscription Plan: <%= user.subscription.planId %></h4>
+      <p class="text-muted mb-1">Status: <%= user.subscription.status %></p>
+      <% if (user.subscription.currentPeriodEnd) { %>
+        <p class="text-muted mb-2">Valid Till: <%= new Date(user.subscription.currentPeriodEnd).toDateString() %></p>
+      <% } %>
+      <form method="POST" action="/subscribe/cancel" onsubmit="return confirm('Are you sure you want to cancel your subscription immediately?');">
+        <button type="submit" class="btn btn-danger btn-sm">Cancel Subscription Now</button>
+      </form>
+    </div>
+  </div>
+<% } else { %>
+  <p class="mt-4 text-center" style="color: red;">
+    No active subscription. </br><a href="/plans" class="btn btn-success btn-sm mt-2">Choose Plan</a>
+  </p>
+<% } %>
 
   <!-- Action Section -->
   <div class="container mt-5 pt-4">
@@ -197,55 +224,95 @@
 
   <!-- Custom Modern Styling -->
   <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
+    
+  :root {
+    --orange: #ff6b00;
+    --light-orange: #fff7f0;
+    --deep-orange: #e65c00;
+    --gray: #f8f9fa;
+  }
+
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background-color: var(--gray);
+  }
+
+  .text-orange {
+    color: var(--orange) !important;
+  }
+
+  .btn-orange {
+    background-color: var(--orange);
+    color: #fff;
+    border: none;
+  }
+
+  .btn-orange:hover {
+    background-color: var(--deep-orange);
+  }
+
+  .hover-scale {
+    transition: transform 0.3s ease;
+  }
+
+  .hover-scale:hover {
+    transform: scale(1.05);
+  }
+
+  .wallet-card {
+    background: var(--light-orange);
+    border-radius: 1rem;
+    border: 1px solid #ffe4d3;
+    box-shadow: 0 0 15px rgba(255, 107, 0, 0.1);
+  }
+
+  .wallet-card .fas {
+    color: var(--orange);
+  }
+
+  #locker-info-drawer {
+    border-left: 2px solid #eee;
+    border-top-left-radius: 1rem;
+    border-bottom-left-radius: 1rem;
+  }
+
+  #locker-map {
+    border-radius: 1rem;
+    overflow: hidden;
+  }
+
+  .card-body i {
+    transition: transform 0.3s ease;
+  }
+
+  .card-body:hover i {
+    transform: scale(1.2);
+  }
+
+  .lead {
+    font-size: 1.15rem;
+  }
+
+  .btn-sm {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.7rem;
+  }
+
+  /* Responsive fix */
+  @media (max-width: 576px) {
+    h2.fw-bold, h2.mb-4 {
+      font-size: 1.4rem;
+      text-align: center;
     }
 
-    .hover-scale {
-      transition: transform 0.3s ease;
+    .card-title {
+      font-size: 1rem;
     }
 
-    .hover-scale:hover {
-      transform: scale(1.05);
+    .btn {
+      font-size: 0.9rem;
     }
+  }
+</style>
 
-    .wallet-card {
-      background: linear-gradient(135deg, #f0faff, #e8f6f3);
-      border-radius: 1rem;
-      border: none;
-      box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
-    }
-
-    .wallet-card .fas {
-      color: #0d6efd;
-    }
-
-    #locker-info-drawer {
-      border-left: 2px solid #eee;
-      border-top-left-radius: 1rem;
-      border-bottom-left-radius: 1rem;
-    }
-
-    #locker-map {
-      border-radius: 1rem;
-      overflow: hidden;
-    }
-
-    .card-body i {
-      transition: transform 0.3s ease;
-    }
-
-    .card-body:hover i {
-      transform: scale(1.2);
-    }
-
-    .lead {
-      font-size: 1.15rem;
-    }
-
-    .btn-sm {
-      font-size: 0.85rem;
-      padding: 0.4rem 0.7rem;
-    }
-  </style>
 </body>

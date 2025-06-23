@@ -1,0 +1,14 @@
+<h4 class="fw-semibold mb-3">Audit Logs</h4>
+<input type="text" class="form-control mb-3" placeholder="Search logs...">
+
+<div class="list-group">
+  <% logs.forEach(log => { %>
+    <div class="list-group-item d-flex justify-content-between align-items-center small">
+      <div>
+        <strong><%= log.action %></strong> by <%= log.user %><br>
+        <span class="text-muted"><%= log.details %></span>
+      </div>
+      <span class="text-muted"><%= log.timestamp %></span>
+    </div>
+  <% }) %>
+</div>

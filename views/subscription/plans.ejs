@@ -1,0 +1,21 @@
+<% layout("layouts/boilerplate") %>
+
+<div class="container mt-5">
+  <h2 class="mb-4">Available Subscription Plans</h2>
+  <form method="POST" action="/subscribe/select">
+    <div class="row">
+      <% plans.forEach(plan => { %>
+        <div class="col-md-4 mb-3">
+          <div class="card h-100">
+            <div class="card-body">
+              <h5 class="card-title"><%= plan.name %></h5>
+              <p>Price: Free</p>
+              <p>Credits: <%= plan.credits %></p>
+              <button type="submit" name="planId" value="<%= plan.id %>" class="btn btn-primary w-100">Select Plan</button>
+            </div>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  </form>
+</div>

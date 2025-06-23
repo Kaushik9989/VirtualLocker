@@ -55,6 +55,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
+app.use(express.static('public'));
 
 mongoose
   .connect(MONGO_URI)
@@ -421,6 +422,226 @@ app.get("/map", async (req, res) => {
     res.status(500).send("Failed to load lockers.");
   }
 });
+
+
+/// updated locker flow
+
+app.get("/send/step1", isAuthenticated, (req, res) => {
+  res.render("parcel/step1");
+});
+
+app.post("/send/step1", isAuthenticated, (req, res) => {
+  req.session.parcelDraft = {
+    type: req.body.type,
+    size: req.body.size,
+    description: req.body.description || null,
+  };
+  res.redirect("/send/step2");
+});
+
+app.get("/send/step2", isAuthenticated, (req, res) => {
+  res.render("parcel/step2");
+});
+
+app.post("/send/step2", isAuthenticated, (req, res) => {
+  req.session.parcelDraft.receiverName = req.body.receiverName;
+  req.session.parcelDraft.receiverPhone = req.body.receiverPhone;
+  res.redirect("/send/step3");
+});
+app.get("/send/step3", isAuthenticated, (req, res) => {
+  res.render("parcel/step3");
+});
+
+app.post("/send/step3", isAuthenticated, async (req, res) => {
+  const draft = req.session.parcelDraft;
+  draft.paymentOption = req.body.paymentOption;
+  const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const unlockUrl = `${req.protocol}://${req.get("host")}/drop/${accessCode}`;
+  const qrImage = await QRCode.toDataURL(unlockUrl);
+  const cost = getEstimatedCost(draft.size);
+
+  // For sender_pays → drop allowed immediately
+  // For receiver_pays → wait for receiver to complete payment first
+  const parcel = new Parcel1({
+    ...draft,
+    senderId: req.user._id,
+    senderName: req.user.username,
+    accessCode,
+    unlockUrl,
+    qrImage,
+    cost,
+    status: draft.paymentOption === "receiver_pays" ? "awaiting_payment" : "awaiting_drop",
+    paymentStatus: draft.paymentOption === "receiver_pays" ? "pending" : "completed",
+    droppedAt: draft.paymentOption === "sender_pays" ? new Date() : null,
+    expiresAt: draft.paymentOption === "receiver_pays"
+      ? new Date(Date.now() + 2 * 60 * 60 * 1000) // 2 hours to pay
+      : new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days to drop
+  });
+
+  await parcel.save();
+  delete req.session.parcelDraft;
+
+  if (draft.paymentOption === "receiver_pays") {
+    // Send receiver payment link via SMS
+    const link = `${req.protocol}://${req.get("host")}/payment/receiver/${parcel._id}`;
+
+    return res.render("parcel/waiting-payment", { parcel });
+  }
+
+  res.redirect(`/parcel/${parcel._id}/success`);
+});
+app.post("/payment/receiver/:id/success", async (req, res) => {
+  const parcel = await Parcel1.findById(req.params.id);
+  if (!parcel) return res.status(404).send("Parcel not found");
+
+  if (parcel.paymentStatus === "completed") {
+    return res.send("Payment already completed.");
+  }
+
+  parcel.status = "awaiting_drop";
+  parcel.paymentStatus = "completed";
+  parcel.droppedAt = new Date();
+  parcel.expiresAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000); // extend after payment
+
+  await parcel.save();
+  res.redirect(`/parcel/${parcel._id}/success`);
+});
+app.get("/parcel/:id/success", isAuthenticated, async (req, res) => {
+  const parcel = await Parcel1.findById(req.params.id);
+  if (!parcel) return res.status(404).send("Parcel not found");
+
+  parcel.location = {
+    lat: 20.5937,
+    lng: 78.9629,
+  };
+
+  res.render("parcel/success", { parcel });
+});
+
+
+function getEstimatedCost(size) {
+  if (size === "small") return 10;
+  if (size === "medium") return 20;
+  return 30;
+}
+
+app.get("/parcel/:id/success", isAuthenticated, async (req, res) => {
+  const parcel = await Parcel1.findById(req.params.id);
+  if (!parcel) return res.status(404).send("Parcel not found");
+
+  // Prepare location for sharing if needed
+  parcel.location = {
+    lat: 20.5937, // fallback India center or locker zone
+    lng: 78.9629
+  };
+
+  res.render("parcel/success", { parcel });
+});
+
+/// unlock route
+
+app.get("/drop/:accessCode", async (req, res) => {
+  const parcel = await Parcel1.findOne({ accessCode: req.params.accessCode, status: 'awaiting_drop' });
+
+  if (!parcel) return res.status(404).send("Invalid or expired QR");
+
+  // Locker selection logic here
+  const locker = await Locker1.findOne({
+    size: parcel.size,
+    isLocked: false,
+    status: 'available'
+  });
+
+  if (!locker) {
+    return res.send("No compatible lockers available at this location.");
+  }
+
+  // Assign & lock
+  parcel.lockerId = locker._id;
+  parcel.status = "dropped";
+  parcel.droppedAt = new Date();
+  await parcel.save();
+
+  locker.isLocked = true;
+  locker.status = "occupied";
+  await locker.save();
+
+  res.send("✅ Locker opened! Place your parcel inside.");
+});
+
+
+
+
+app.get("/adminDash",(req,res)=>{
+  res.render("adminUpdated/dashboard");
+})
+
+app.get("/admnDash", isAdmin, async (req, res) => {
+  const apiKeys = await ApiKey.find();
+  const roles = await Role.find();
+  const logs = await AuditLog.find().sort({ createdAt: -1 }).limit(20);
+
+  res.render("admin/dashboard", { apiKeys, roles, logs });
+});
+const DUMMY_PLANS = [
+  { id: "basic", name: "Basic Plan", price: 0, credits: 50 },
+  { id: "pro", name: "Pro Plan", price: 0, credits: 150 },
+  { id: "elite", name: "Elite Plan", price: 0, credits: 500 },
+];
+app.get("/plans", isAuthenticated, (req, res) => {
+  res.render("subscription/plans", { plans: DUMMY_PLANS });
+});
+
+
+app.post("/subscribe/select", isAuthenticated, async (req, res) => {
+  const selectedPlan = DUMMY_PLANS.find(p => p.id === req.body.planId);
+  if (!selectedPlan) return res.status(400).send("Invalid plan selected");
+
+  const user = await User.findById(req.user._id);
+
+  user.subscription = {
+    planId: selectedPlan.id,
+    status: "active",
+    currentPeriodStart: new Date(),
+    currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // +30 days
+    cancelAtPeriodEnd: false,
+    stripeSubscriptionId: null, // Dummy flow
+  };
+
+  // Optional: Give plan credits
+  user.wallet.credits += selectedPlan.credits;
+
+  await user.save();
+  req.flash("success","Subscription added Successfully!");
+  res.redirect("/dashboard");
+});
+
+app.post("/subscribe/cancel", isAuthenticated, async (req, res) => {
+  const user = await User.findById(req.user._id); 
+  
+  if (!user.subscription?.planId) {
+    return res.status(400).send("No active subscription.");
+  }
+
+  // Clear the subscription object completely
+  user.subscription = {
+    planId: null,
+    status: "cancelled",
+    currentPeriodStart: null,
+    currentPeriodEnd: null,
+    cancelAtPeriodEnd: false,
+    stripeSubscriptionId: null
+  };
+
+  await user.save();
+  req.flash("success", "Your subscription has been cancelled.");
+res.redirect("/dashboard");
+
+});
+
+
+
+
 
 //// NEW LOCKER ROUTES
 

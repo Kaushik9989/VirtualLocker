@@ -1,57 +1,37 @@
-<% layout("layouts/boilerplate") %>
-  <div class="container py-5">
-    <h2 class="text-center mb-4">Step 1: Parcel Details</h2>
-    <form action="/send/step1" method="POST" class="card shadow p-4 mx-auto" style="max-width: 600px">
-      <div class="mb-3">
-        <label class="form-label">Parcel Type</label>
-        <select name="type" class="form-select" required>
-          <option value="">Select Type</option>
-          <option>document</option>
-          <option>package</option>
-          <option>gift</option>
-          <option>other</option>
-        </select>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Parcel Size</label>
-        <select name="size" class="form-select" required>
-          <option value="">Select Size</option>
-          <option>small</option>
-          <option>medium</option>
-          <option>large</option>
-        </select>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Description</label>
-        <textarea name="description" class="form-control" required></textarea>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Locker</label>
-        <select name="lockerId" class="form-select" required onchange="updateLocation(this)">
-          <% lockers.forEach(locker=> { %>
-            <option value="<%= locker._id %>" data-location="<%= locker.location_id?._id %>">
-              <%= locker.lockerBoxId %> - <%= locker.size %> (<%= locker.location_id?.name ||
-                    locker.location_id?.address %>)
-            </option>
-            <% }) %>
-        </select>
+<% layout("/layouts/boilerplate") %>
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+      <h3 class="mb-4 fw-bold">📦 Step 1: Parcel Details</h3>
+      <form action="/send/step1" method="POST">
+        <div class="mb-3">
+          <label class="form-label">Type</label>
+          <select class="form-select" name="type" required>
+            <option value="" disabled selected>Select Type</option>
+            <option value="document">Document</option>
+            <option value="package">Package</option>
+            <option value="gift">Gift</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
 
-        <!-- Hidden input to store the actual location_id -->
-        <input type="hidden" name="location_id" id="location_id"> 
+        <div class="mb-3">
+          <label class="form-label">Size</label>
+          <select class="form-select" name="size" required>
+            <option value="" disabled selected>Select Size</option>
+            <option value="small">Small</option>
+            <option value="medium">Medium</option>
+            <option value="large">Large</option>
+          </select>
+        </div>
 
-        <button class="btn btn-primary w-100 mt-5">Next Step ➡</button>
-    </form>
+        <div class="mb-3">
+          <label class="form-label">Description (Optional)</label>
+          <input type="text" class="form-control" name="description" placeholder="What are you sending?" />
+        </div>
+
+        <button class="btn btn-primary w-100">Next</button>
+      </form>
+    </div>
   </div>
-  <script>
-  function updateLocation(select) {
-    const selectedOption = select.options[select.selectedIndex];
-    const locationId = selectedOption.getAttribute("data-location");
-    document.getElementById("location_id").value = locationId;
-  }
-
-  // Initialize value if already selected
-  window.onload = function () {
-    const select = document.querySelector('select[name="lockerId"]');
-    if (select) updateLocation(select);
-  }
-</script>
+</div>
