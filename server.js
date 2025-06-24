@@ -222,7 +222,7 @@ res.render("recieve", {
 
 app.get("/account",async(req,res)=>{
    const user = await User.findById(req.session.userId);
-  res.render("account",{user});
+  res.render("account",{user, activePage : "account"});
 })
 //-------------------------------------USER DASHBOARD ------------------------------------------
 app.get("/home", (req, res) => {

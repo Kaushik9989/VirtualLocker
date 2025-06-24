@@ -234,4 +234,68 @@
  
 
 </body>
+<footer>
+    <div class="f-info">
+        <div class="f-info-socials">
+            <i class="fa-brands fa-square-facebook"></i>
+            <i class="fa-brands fa-square-instagram"></i>
+            <i class="fa-brands fa-linkedin"></i>
+        </div>
+        <div class="f-info-brand">© DropPoint Systems Private Limited</div>
+        <div class="f-info-links">
+            <a href="/terms">Terms</a>
+            <a href="/privacy">Privacy</a>
+        </div>
+    </div>
+</footer>
+
+<style>
+/* Ensure the body and html take full height */
+html, body {
+    height: 100%;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Make the main content grow to push footer down */
+main {
+    flex: 1 0 auto;
+}
+
+/* Footer styles */
+footer {
+    flex-shrink: 0;
+    width: 100%;
+    background-color: #f8f8f8; /* Optional: for visibility */
+}
+
+.f-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    text-align: center;
+}
+
+.f-info-socials, .f-info-brand, .f-info-links {
+    margin: 10px 0;
+}
+
+.f-info-socials i {
+    font-size: 1.5rem;
+    margin: 0 10px;
+}
+
+.f-info-links a {
+    margin: 0 10px;
+    text-decoration: none;
+    color: #333;
+}
+
+.f-info-links a:hover {
+    text-decoration: underline;
+}
+</style>
 
