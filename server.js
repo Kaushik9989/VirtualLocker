@@ -148,7 +148,7 @@ passport.use(
       clientID:
         "587834679125-34p3obvnjoa9o8qsa4asgrgubneh5atg.apps.googleusercontent.com", // from Google Cloud
       clientSecret: "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", // from Google Cloud
-      callbackURL: "http://localhost:8080/auth/google/callback",
+      callbackURL: "https://virtuallocker.onrender.com/auth/google/callback",
     },
     async (accessToken, refreshToken, profile, done) => {
       // Find or create user in DB
