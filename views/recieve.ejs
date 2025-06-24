@@ -1,0 +1,173 @@
+<% layout("/layouts/boilerplate") %>
+
+<style>
+  .receive-header {
+    text-align: center;
+    margin-top: 2rem;
+  }
+
+  .receive-header .icon-circle {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #6366f1, #9333ea);
+    border-radius: 50%;
+    margin: 0 auto 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    color: white;
+  }
+
+  .parcel-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .parcel-header {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 600;
+    font-size: 1rem;
+  }
+
+  .badge {
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .badge-ready {
+    background: #d1fae5;
+    color: #065f46;
+  }
+
+  .badge-urgent {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+
+  .badge-delivered {
+    background: #e0f2fe;
+    color: #0369a1;
+  }
+
+  .parcel-sub {
+    color: #6b7280;
+    margin-top: 4px;
+    font-size: 0.9rem;
+  }
+
+  .parcel-meta {
+    font-size: 0.8rem;
+    color: #6b7280;
+    display: flex;
+    gap: 1rem;
+    margin: 0.5rem 0 1rem;
+  }
+
+  .pickup-box {
+    background: #ecfdf5;
+    padding: 1rem;
+    border-radius: 14px;
+    text-align: center;
+    border: 1px solid #bbf7d0;
+    margin-top: 1rem;
+  }
+
+  .pickup-box h5 {
+    color: #065f46;
+    font-weight: 600;
+    font-size: 1rem;
+  }
+
+  .pickup-code {
+    font-size: 1.25rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+    margin: 0.5rem 0;
+  }
+
+  .pickup-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+    justify-content: center;
+  }
+
+  .btn-green {
+    background: #16a34a;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+  }
+
+  .btn-outline {
+    border: 1px solid #d1d5db;
+    background: white;
+    color: #111827;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+  }
+
+  .bottom-nav .nav-item:nth-child(3) {
+    color: #9333ea;
+    font-weight: 600;
+  }
+</style>
+
+<div class="receive-header">
+  <div class="icon-circle">
+    <i class="fas fa-box"></i>
+  </div>
+  <h5>Your Parcels</h5>
+  <p class="text-muted mb-4">Track and collect your deliveries</p>
+</div>
+
+<!-- Ready Parcel -->
+<div class="parcel-card">
+  <div class="parcel-header">
+    <span>From: Mike Chen</span>
+    <span class="badge badge-ready">ready</span>
+  </div>
+  <div class="parcel-sub">Birthday gift package</div>
+  <div class="parcel-meta">
+    <span><i class="fas fa-map-marker-alt"></i> Downtown Mall</span>
+    <span><i class="fas fa-clock"></i> 368d ago</span>
+  </div>
+
+  <div class="pickup-box">
+    <h5><i class="fas fa-check-circle me-1"></i> Ready for pickup</h5>
+    <div class="pickup-code">DP–4F8K–9X2M</div>
+    <small class="text-muted">Show this code at the locker</small>
+    <div class="pickup-buttons">
+      <a href="#" class="btn-green"><i class="fas fa-map-marker-alt me-1"></i> Directions</a>
+      <a href="#" class="btn-outline"><i class="fas fa-qrcode me-1"></i> Show QR</a>
+    </div>
+  </div>
+</div>
+
+<!-- Delivered Parcel -->
+<div class="parcel-card">
+  <div class="parcel-header">
+    <span>From: Amazon</span>
+    <div class="d-flex gap-2">
+      <span class="badge badge-urgent">Urgent</span>
+      <span class="badge badge-delivered">delivered</span>
+    </div>
+  </div>
+  <div class="parcel-sub">Electronics order #12345</div>
+  <div class="parcel-meta">
+    <span><i class="fas fa-map-marker-alt"></i> University Campus</span>
+    <span><i class="fas fa-clock"></i> 370d ago</span>
+  </div>
+</div>
+
+

@@ -1,0 +1,157 @@
+<% layout("/layouts/boilerplate") %>
+
+<style>
+  .send-container {
+    padding: 2rem 1.25rem;
+    max-width: 500px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .send-icon {
+    background-color: #d1fae5;
+    border-radius: 50%;
+    width: 64px;
+    height: 64px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto 1rem;
+  }
+
+  .send-icon i {
+    font-size: 28px;
+    color: #059669;
+  }
+
+  .send-heading {
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+
+  .send-subtext {
+    color: #6b7280;
+    font-size: 0.95rem;
+  }
+
+  .start-delivery {
+    border: 2px dashed #cbd5e1;
+    border-radius: 14px;
+    padding: 1rem;
+    margin: 1.5rem 0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .start-delivery:hover {
+    background-color: #f9fafb;
+  }
+
+  .delivery-types {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    gap: 1rem;
+  }
+
+  .delivery-type {
+    flex: 1;
+    padding: 1rem;
+    border-radius: 12px;
+    background-color: #f3f4f6;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+
+  .delivery-type:hover {
+    background-color: #e5e7eb;
+  }
+
+  .delivery-type i {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .how-it-works {
+    text-align: left;
+    background-color: #f9fafb;
+    border-radius: 12px;
+    padding: 1rem;
+    font-size: 0.95rem;
+    color: #374151;
+  }
+
+  .how-it-works h6 {
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+  }
+
+  .how-it-works ol {
+    padding-left: 1.25rem;
+  }
+
+  
+  .nav-item {
+    text-align: center;
+    font-size: 0.85rem;
+    color: #6b7280;
+  }
+
+  .nav-item.active {
+    color: #4e54c8;
+    font-weight: 600;
+  }
+
+   .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-top: 1px solid #eee;
+    background-color: #fff;
+    padding: 10px 0;
+    display: flex;
+    justify-content: space-around;
+    z-index: 999;
+  }
+</style>
+
+<div class="send-container mt-4">
+  <div class="send-icon">
+    <i class="fas fa-paper-plane"></i>
+  </div>
+  <h5 class="send-heading">Send a Parcel</h5>
+  <p class="send-subtext">Quick 3-step process to send your items securely</p>
+
+  <a href="/send/step1" class="start-delivery d-block text-decoration-none text-dark">
+    <i class="fas fa-plus fa-lg"></i>
+    <p class="mt-2 mb-0 fw-medium">Start New Delivery</p>
+    <small class="text-muted">Send to any Drop Point location</small>
+  </a>
+
+  <div class="delivery-types">
+    <div class="delivery-type text-center">
+      <i class="fas fa-box text-primary"></i>
+      <div>Standard</div>
+    </div>
+    <div class="delivery-type text-center">
+      <i class="fas fa-bolt text-warning"></i>
+      <div>Express</div>
+    </div>
+    <div class="delivery-type text-center">
+      <i class="fas fa-gift text-purple"></i>
+      <div>Gift</div>
+    </div>
+  </div>
+
+  <div class="how-it-works">
+    <h6>How it works</h6>
+    <ol>
+      <li><strong>Choose recipient & location</strong> <br />Enter phone number and select drop point</li>
+      <li><strong>Drop off your parcel</strong> <br />Use QR code to access locker</li>
+      <li><strong>Recipient gets notified</strong> <br />They'll receive pickup instructions</li>
+    </ol>
+  </div>
+</div>
+
+<!-- Bottom Navigation -->

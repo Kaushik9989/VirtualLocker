@@ -19,6 +19,20 @@
   <!-- Map Libraries -->
   <link href="https://unpkg.com/maplibre-gl@3.0.0/dist/maplibre-gl.css" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <!-- Leaflet CSS -->
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44c="
+  crossorigin=""
+/>
+
+<!-- Leaflet JS -->
+<script
+  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-o9N1j7kMHtDkH2Zqk6m27zO+Em1zzXhNc6zYtD38g1o="
+  crossorigin=""
+></script>
 
   <!-- Custom CSS -->
   <link rel="stylesheet" href="/css/style.css" />
@@ -79,9 +93,43 @@
       padding-top: 70px;
       margin-left: 0;
     }
+    .nav-item {
+    text-align: center;
+    font-size: 0.85rem;
+    text-decoration: none;
+    color: #6b7280;
+  }
+
+  .nav-item.active {
+    color: #4e54c8;
+    font-weight: 600;
+  }
+
+   .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-top: 1px solid #eee;
+    background-color: #fff;
+    padding: 10px 0;
+    display: flex;
+    justify-content: space-around;
+    z-index: 999;
+  }
+   .notification-dot {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: red;
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 50%;
+  }
   </style>
 </head>
-
+<% var activePage = typeof activePage !== 'undefined' ? activePage : ''; %>
 <body>
   <%- include("../includes/navbar.ejs") %>
 
@@ -91,6 +139,25 @@
   <div class="container main-content">
     <%- body %>
   </div>
+  <div class="bottom-nav">
+  <a href="/dashboard" style="text-decoration: none;" class="nav-item <%= activePage === 'home' ? 'active' : '' %>">
+    <i class="fas fa-home"></i><br />Home
+  </a>
+  <a href="/sendParcel" class="nav-item <%= activePage === 'send' ? 'active' : '' %>">
+    <i class="fas fa-paper-plane"></i><br />Send
+  </a>
+  <a href="/receive" class="nav-item position-relative <%= activePage === 'receive' ? 'active' : '' %>">
+    <i class="fas fa-box-open"></i><br />Receive
+    <span class="notification-dot">2</span>
+  </a>
+  <a href="/locations" class="nav-item <%= activePage === 'locations' ? 'active' : '' %>">
+    <i class="fas fa-map-marker-alt"></i><br />Locations
+  </a>
+  <a href="/account" class="nav-item <%= activePage === 'account' ? 'active' : '' %>">
+    <i class="fas fa-user"></i><br />Account
+  </a>
+</div>
+
 
   <%- include("../includes/footer.ejs") %>
 

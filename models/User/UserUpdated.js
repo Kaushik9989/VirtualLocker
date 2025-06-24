@@ -19,7 +19,6 @@ const subscriptionSchema = new mongoose.Schema(
     currentPeriodStart: Date,
     currentPeriodEnd: Date,
     cancelAtPeriodEnd: { type: Boolean, default: false },
-    stripeSubscriptionId: { type: String, unique: true, sparse: true },
   },
   { _id: false }
 );

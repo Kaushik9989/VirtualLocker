@@ -29,17 +29,15 @@ const MONGO_URI =
 const QRCode = require("qrcode");
 require("dotenv").config();
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
-
+const {sendOTP} = require("./twilio.js");
 const locker = require("./models/locker.js");
 
 require("dotenv").config();
 const twilio = require("twilio");
-
 const client = twilio(
   process.env.TWILIO_ACCOUNT_SID,
   process.env.TWILIO_AUTH_TOKEN
 );
-
 //const { client, serviceSid } = require("./twilio");
 
 // const razorpay = new Razorpay({
@@ -106,6 +104,9 @@ passport.deserializeUser(async (id, done) => {
 // MIDDLEWARES
 
 function isAuthenticated(req, res, next) {
+  if (req.session.user) {
+    return next();
+  }
   if (req.session.userId) return next();
   res.redirect("/login");
 }
@@ -147,7 +148,7 @@ passport.use(
       clientID:
         "587834679125-34p3obvnjoa9o8qsa4asgrgubneh5atg.apps.googleusercontent.com", // from Google Cloud
       clientSecret: "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", // from Google Cloud
-      callbackURL: "https://virtuallocker.onrender.com/auth/google/callback",
+      callbackURL: "http://localhost:8080/auth/google/callback",
     },
     async (accessToken, refreshToken, profile, done) => {
       // Find or create user in DB
@@ -167,6 +168,62 @@ passport.use(
 app.get("/", (req, res) => {
   res.redirect("/dashboard");
 });
+
+app.get("/sendParcel",(req,res)=>{
+  res.render("sendParcel",{activePage:"send"});
+  
+})
+
+app.get("/locations", isAuthenticated, async(req, res) => {
+   const lockersRaw = await Locker.find({});
+    const locations = await DropLocation.find({ status: 'active' });
+
+    // Optional: calculate distance on backend (if user location is available)
+    // Or attach dummy `distance` & rating temporarily
+    const enrichedLocations = locations.map(loc => ({
+      ...loc.toObject(),
+      distance: Math.floor(Math.random() * 20) + 1,  // dummy distance
+      rating: (Math.random() * 2 + 3).toFixed(1),     // dummy rating 3.0–5.0
+    }));
+    const lockers = lockersRaw.map((locker) => ({
+      lockerId: locker.lockerId,  
+      compartments: locker.compartments,
+      location: locker.location || { lat: null, lng: null, address: "" },
+    }));
+  res.render("locations", {lockers,
+    activePage: "locations",
+    locations: enrichedLocations
+  });
+
+});
+app.get("/receive",(req,res)=>{
+
+
+res.render("recieve", {
+  activePage: "receive",
+  parcels: [
+    {
+      from: "Mike Chen",
+      desc: "Birthday gift package",
+      location: "Downtown Mall",
+      date: "368d ago",
+      code: "DP–4F8K–9X2M",
+      status: "ready"
+    },
+    {
+      from: "Amazon",
+      desc: "Electronics order #12345",
+      location: "University Campus",
+      date: "370d ago",
+      status: "delivered"
+    }
+  ]
+});});
+
+app.get("/account",async(req,res)=>{
+   const user = await User.findById(req.session.userId);
+  res.render("account",{user});
+})
 //-------------------------------------USER DASHBOARD ------------------------------------------
 app.get("/home", (req, res) => {
   if (req.isAuthenticated()) return res.render("LandingPage");
@@ -174,16 +231,16 @@ app.get("/home", (req, res) => {
 });
 app.get("/dashboard", isAuthenticated, async (req, res) => {
   try {
-    const user = req.user;
+     const user = await User.findById(req.session.userId).lean();
     const lockersRaw = await Locker.find({});
 
     const lockers = lockersRaw.map((locker) => ({
-      lockerId: locker.lockerId,
+      lockerId: locker.lockerId,  
       compartments: locker.compartments,
       location: locker.location || { lat: null, lng: null, address: "" },
     }));
 
-    res.render("dashboard", { user, lockers });
+    res.render("newDashboard", { user, lockers ,activePage:"home"});
   } catch (err) {
     console.error("Error loading dashboard:", err);
     res.status(500).send("Internal Server Error");
@@ -262,123 +319,155 @@ app.get("/logout", (req, res) => {
 // -------------------------------------------LOGIN VIA OTP ROUTES---------------------------------------------------
 // REGISTER VIA OTP
 
-app.post("/register-send-otp", async (req, res) => {
-  const { username, password, phone } = req.body;
-  try {
-    req.session.tempUser = { username, password, phone };
+app.post("/register-phone", async (req, res) => {
+  const { phone } = req.body;
+  const otp = Math.floor(100000 + Math.random() * 900000); // 6-digit OTP
 
-    await client.verify.v2
-      .services(serviceSid)
-      .verifications.create({ to: `+91${phone}`, channel: "sms" });
-
-    res.redirect("/verify-register-otp");
-  } catch (err) {
-    console.error("Failed to send OTP:", err);
-    res.status(500).send("Could not send OTP");
-  }
-});
-app.get("/verify-register-otp", (req, res) => {
-  res.render("verify-register-otp");
-});
-
-app.post("/verify-register-otp", async (req, res) => {
-  const { otp } = req.body;
-  const { username, password, phone } = req.session.tempUser || {};
-
-  if (!username || !password || !phone) {
-    return res.send("Session expired. Please register again.");
-  }
+  req.session.phone = phone;
+  req.session.otp = otp;
 
   try {
-    const verification = await client.verify.v2
-      .services(serviceSid)
-      .verificationChecks.create({ to: `+91${phone}`, code: otp });
-
-    if (verification.status !== "approved") {
-      return res.send("Incorrect OTP.");
-    }
-
-    const existing = await User.findOne({ phone });
-    if (existing) return res.send("Phone already registered.");
-
-    const newUser = new User({
-      username,
-      password,
-      phone,
-      isPhoneVerified: true,
+    await client.messages.create({
+      body: `Your verification code is ${otp}`,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: `+91${phone}`
     });
-    await newUser.save();
-
-    req.session.userId = newUser._id;
-    res.redirect("/dashboard"); // or wherever you want
+    res.redirect("/verify");
   } catch (err) {
-    console.error(err);
-    res.status(500).send("OTP verification failed");
+    console.error(err.message);
+    res.render("register", { error: "Failed to send OTP. Check phone number." });
   }
 });
 
-// LOGIN VIA OTP
+app.get("/verify", (req, res) => {
+  res.render("verify", { error: null });
+});
 
-app.post("/login-send-otp", async (req, res) => {
-  const phone = req.body.phone;
+app.post("/verify", (req, res) => {
+  const { otp } = req.body;
+
+  if (otp === String(req.session.otp)) {
+     return res.redirect("/set-username");
+  } else {
+    return res.render("verify", { error: "❌ Incorrect OTP. Try again." });
+  }
+});
+
+app.get("/set-username", (req, res) => {
+  if (!req.session.phone) return res.redirect("/register");
+  res.render("set-username", { error: null });
+});
+
+app.post("/set-username", async (req, res) => {
+  const { username } = req.body;
+  const phone = req.session.phone;
+
+  if (!phone) {
+    return res.redirect("/register");
+  }
 
   try {
-    // Check if user with this phone exists
-    const existingUser = await User.findOne({ phone });
-    if (!existingUser) {
-      return res.render("login", { error: "Phone number not registered." });
-    }
+    // Create new user
+    const user = new User({
+      phone,
+      username,
+      uid: "user_" + Math.random().toString(36).substr(2, 9), // generate UID
+    });
 
-    await client.verify.v2
-      .services(serviceSid)
-      .verifications.create({ to: `+91${phone}`, channel: "sms" });
+    await user.save();
 
-    // Redirect to OTP verification page
-    res.redirect(`/verify-login-otp?phone=${phone}`);
+    // Store in session manually (no Passport)
+    req.session.user = {
+      _id: user._id,
+      uid: user.uid,
+      phone: user.phone,
+      username: user.username,
+    };
+
+    // Clear temporary session data
+    delete req.session.phone;
+    delete req.session.otp;
+
+    res.redirect("/dashboard");
   } catch (err) {
-    console.error("Error sending OTP:", err);
-    res.render("login", { error: "Failed to send OTP. Try again." });
+    console.error("Error saving user:", err);
+    res.render("set-username", {
+      error: "❌ Failed to save user. Username or phone may already exist.",
+    });
   }
 });
 
-app.get("/verify-login-otp", (req, res) => {
-  const phone = req.query.phone;
-  res.render("verify-login-otp", { phone, error: null });
-});
 
-app.post("/verify-login-otp", async (req, res, next) => {
-  const { phone, otp } = req.body;
+app.post("/otpLogin", async (req, res) => {
+  const { phone } = req.body;
+  const user = await User.findOne({ phone });
+
+  if (!user) {
+    return res.render("login", { error: "❌ Phone number not registered." });
+  }
+
+  const otp = Math.floor(100000 + Math.random() * 900000);
+  req.session.loginOtp = otp;
+  req.session.loginPhone = phone;
 
   try {
-    const verificationCheck = await client.verify.v2
-      .services(serviceSid)
-      .verificationChecks.create({ to: `+91${phone}`, code: otp });
+    await client.messages.create({
+      body: `Your login OTP is: ${otp}`,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: `+91${phone}`,
+    });
 
-    if (verificationCheck.status === "approved") {
-      const user = await User.findOne({ phone });
-      if (!user) {
-        return res.render("verify-login-otp", {
-          phone,
-          error: "User not found.",
-        });
-      }
-
-      // Log in the user using Passport
-      req.logIn(user, (err) => {
-        if (err) {
-          console.error("Login error:", err);
-          return next(err);
-        }
-        return res.redirect("/dashboard");
-      });
-    } else {
-      return res.render("verify-login-otp", { phone, error: "Invalid OTP" });
-    }
+    res.redirect("/verify-login");
   } catch (err) {
-    console.error("OTP verification error:", err);
-    res.render("verify-login-otp", { phone, error: "Failed to verify OTP" });
+    console.error("OTP sending failed:", err);
+    res.render("login", { error: "❌ Failed to send OTP. Try again." });
   }
 });
+
+app.get("/verify-login", (req, res) => {
+  if (!req.session.loginPhone) return res.redirect("/login");
+  res.render("verify-login", { error: null });
+});
+
+app.post("/verify-login", async (req, res) => {
+  const { otp } = req.body;
+  const phone = req.session.loginPhone;
+
+  if (!phone || otp !== String(req.session.loginOtp)) {
+    return res.render("verify-login", { error: "❌ Invalid OTP. Try again." });
+  }
+
+  try {
+    const user = await User.findOne({ phone });
+
+    if (!user) {
+      return res.redirect("/register");
+    }
+
+    // Save user in session
+    req.session.user = {
+      _id: user._id,
+      username: user.username,
+      phone: user.phone,
+    };
+
+     req.user = req.session.user;
+    req.session.userId = req.session.user;
+
+
+    // Clean up
+    delete req.session.loginOtp;
+    delete req.session.loginPhone;
+
+    res.redirect("/dashboard");
+  } catch (err) {
+    console.error("Login failed:", err);
+    res.render("verify-login", { error: "❌ Something went wrong." });
+  }
+});
+
+
+
 
 // =------------------------------------------------CREDIT WALLET SECTION--------------------------------------------------\\
 // GET: View wallet
@@ -898,6 +987,8 @@ app.post("/user/book", async (req, res) => {
     comp.bookingInfo = {
       userId,
       bookingTime: new Date(),
+
+
       otp: Math.floor(1000 + Math.random() * 9000).toString(),
     };
 

@@ -1,0 +1,160 @@
+<% layout("/layouts/boilerplate") %>
+
+<style>
+  .gradient-card {
+    background: linear-gradient(90deg, #4e54c8, #ff6a00);
+    border-radius: 16px;
+    color: white;
+  }
+
+  .gradient-btn {
+    border-radius: 12px;
+    color: white;
+    font-weight: 500;
+    padding: 14px 0;
+  }
+
+  .btn-send {
+    background-color: #16c784;
+  }
+
+  .btn-locate {
+    background-color: #7e22ce;
+  }
+
+  .incoming-card {
+    border-radius: 14px;
+    background-color: #fff;
+    border: 1px solid #eee;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  }
+
+  .status-badge {
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 12px;
+  }
+
+  .status-ready {
+    background-color: #d1fae5;
+    color: #065f46;
+  }
+
+  .status-delivered {
+    background-color: #e0f2fe;
+    color: #0369a1;
+  }
+
+  .status-urgent {
+    background-color: #fee2e2;
+    color: #b91c1c;
+  }
+
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-top: 1px solid #eee;
+    background-color: #fff;
+    padding: 10px 0;
+    display: flex;
+    justify-content: space-around;
+    z-index: 999;
+  }
+
+  .nav-item {
+    text-align: center;
+    font-size: 0.85rem;
+    color: #6b7280;
+  }
+
+  .nav-item.active {
+    color: #4e54c8;
+    font-weight: 600;
+  }
+
+  .notification-dot {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: red;
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 50%;
+  }
+</style>
+
+
+  <!-- Flash Messages -->
+  <% if (messages.success && messages.success.length > 0) { %>
+    <div class="alert alert-success alert-dismissible fade show mt-5" role="alert">
+      <%= messages.success[0] %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  <% } %>
+  <% if (messages.error && messages.error.length > 0) { %>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+      <%= messages.error[0] %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  <% } %>
+  <!-- Welcome Card -->
+  <div class="gradient-card p-4 mb-4 d-flex justify-content-between align-items-center mt-5">
+    <div>
+      <h5>Welcome back, <%= user.username %></h5>
+      <p class="mb-0">You have 2 parcels waiting</p>
+    </div>
+    <h3 class="mb-0 fw-bold"><%=user.wallet.credits%> <small style="font-size: 16px;">Credits</small></h3>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="row text-center mb-4">
+    <div class="col-6">
+      <a href="/sendParcel" class="btn gradient-btn btn-send w-100">Send Parcel</a>
+    </div>
+    <div class="col-6">
+      <a href="/locations" class="btn gradient-btn btn-locate w-100">Find Locations</a>
+    </div>
+  </div>
+
+  <!-- Incoming Parcels -->
+  <h5 class="mb-3">Incoming Parcels <span class="badge bg-secondary">2</span></h5>
+
+  <div class="incoming-card p-3 mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <div>
+        <strong>From: Mike Chen</strong>
+        <p class="mb-0 text-muted">Birthday gift package</p>
+        <small class="text-muted"><i class="fas fa-map-marker-alt me-1"></i>Downtown Mall • 368d ago</small>
+      </div>
+      <span class="status-badge status-ready">ready</span>
+    </div>
+    <div class="d-flex justify-content-between align-items-center">
+      <span class="text-muted">DP–4F8K–9X2M</span>
+      <a href="#" class="btn btn-sm btn-primary">View QR</a>
+    </div>
+  </div>
+
+  <div class="incoming-card p-3 mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <div>
+        <strong>From: Amazon</strong>
+        <p class="mb-0 text-muted">—</p>
+        <small class="text-muted"><i class="fas fa-map-marker-alt me-1"></i>Warehouse • 1d ago</small>
+      </div>
+      <div class="d-flex gap-2">
+        <span class="status-badge status-urgent">Urgent</span>
+        <span class="status-badge status-delivered">delivered</span>
+      </div>
+    </div>
+    <div class="d-flex justify-content-between align-items-center">
+      <span class="text-muted">DP–5Z9H–2PKL</span>
+      <a href="#" class="btn btn-sm btn-outline-primary">Track</a>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Nav -->

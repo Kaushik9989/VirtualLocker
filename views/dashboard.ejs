@@ -1,121 +1,244 @@
 <% layout("/layouts/boilerplate") %>
 
-<body class="bg-light min-vh-100">
- <% if (messages.success && messages.success.length > 0) { %>
-  <div class="alert alert-success alert-dismissible fade show mt-5" role="alert">
-    <%= messages.success[0] %>
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-  </div>
-<% } %>
+<body class="min-vh-100" style="background:rgba(255, 2, 2, 0.05); font-family: 'Poppins', sans-serif;">
 
-<% if (messages.error && messages.error.length > 0) { %>
-  <div class="alert alert-danger alert-dismissible fade show" role="alert">
-    <%= messages.error[0] %>
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-  </div>
-<% } %>
+  <!-- Flash Messages -->
+  <% if (messages.success && messages.success.length > 0) { %>
+    <div class="alert alert-success alert-dismissible fade show mt-5" role="alert">
+      <%= messages.success[0] %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  <% } %>
+  <% if (messages.error && messages.error.length > 0) { %>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+      <%= messages.error[0] %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  <% } %>
 
-  <!-- Slide-In Locker Info Drawer -->
-  <div
-    id="locker-info-drawer"
-    class="position-fixed top-0 end-0 bg-white shadow-lg p-4"
-    style="width: 320px; height: 100%; z-index: 1050; transform: translateX(100%); transition: transform 0.3s ease-in-out;"
-  >
+  <!-- Welcome Banner -->
+ <div class="container-fluid px-4 py-4 mb-4 bg-white shadow-sm rounded-bottom mt-5 " style="border-bottom: 3px solid orange;">
+    <div class="row align-items-center">
+      <div class="col-md-8">
+        <h1 class="fw-bold mb-2" style="color: orange;">
+          <span aria-hidden="true">👋</span> 
+          <span class="visually-hidden">Welcome</span>
+          Hello, <span class="text" style="color: orange;"><%= user.username %></span>!
+        </h1>
+        <p class="lead text-muted mb-0" style="font-size: 1.1rem;">
+          We're glad to see you back at Drop Point. Let's make delivery smart and smooth together.
+        </p>
+      </div>
+      <div class="col-md-4 text-md-end text-center mt-3 mt-md-0">
+        <a href="/profile" class="btn btn-primary btn-sm px-3 py-2" style="border-radius: 20px;">
+          <i class="fas fa-user-circle me-2" aria-hidden="true"></i>
+          <span>View Profile</span>
+        </a>
+      </div>
+    </div>
+</div>
+ <!-- Quick Actions -->
+  <div class="container mt-5 pt-4">
+  <div class="text-center mb-5">
+    <h2 class="fw-bold display-6 mb-3">Quick Actions</h2>
+    <p class="text-muted lead">Get things done with one click</p>
+  </div>
+
+  <div class="row g-4 justify-content-center">
+    <!-- Send Parcel Card -->
+    <div class="col-lg-3 col-md-5 col-sm-6 mb-4">
+      <a href="/send/step1" class="text-decoration-none">
+        <div class="card h-100 border-0 shadow-sm rounded-3 overflow-hidden hover-scale">
+          <div class="card-body p-4 text-center d-flex flex-column align-items-center justify-content-center">
+            <div class="icon-wrapper bg-success bg-opacity-10 rounded-circle p-3 mb-3">
+              <i class="fas fa-paper-plane fa-2x text-success"></i>
+            </div>
+            <h5 class="fw-semibold mb-0">Send Parcel</h5>
+            <p class="text-muted small mt-2">Ship items to any location</p>
+          </div>
+          <div class="card-footer bg-transparent border-0 py-3">
+            <span class="text-success small fw-medium">Start Shipping <i class="fas fa-arrow-right ms-1"></i></span>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <!-- Receive Parcel Card -->
+    <div class="col-lg-3 col-md-5 col-sm-6 mb-4">
+      <a href="/user/pickup" class="text-decoration-none">
+        <div class="card h-100 border-0 shadow-sm rounded-3 overflow-hidden hover-scale">
+          <div class="card-body p-4 text-center d-flex flex-column align-items-center justify-content-center">
+            <div class="icon-wrapper bg-primary bg-opacity-10 rounded-circle p-3 mb-3">
+              <i class="fas fa-box-open fa-2x text-primary"></i>
+            </div>
+            <h5 class="fw-semibold mb-0">Receive Parcel</h5>
+            <p class="text-muted small mt-2">Collect your deliveries</p>
+          </div>
+          <div class="card-footer bg-transparent border-0 py-3">
+            <span class="text-primary small fw-medium">Track Packages <i class="fas fa-arrow-right ms-1"></i></span>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <!-- Add more action cards here if needed -->
+  </div>
+  <hr class="my-5" style="opacity: 0.15;" />
+  <!-- User Info Section -->
+  <div class="container mt-5">
+    <div class="row g-4">
+      <!-- Wallet -->
+      <div class="col-md-6">
+  <div class="card wallet-card h-100 border-0 shadow-sm" style="border-radius: 12px;">
+    <div class="card-body d-flex flex-column align-items-center justify-content-center p-4">
+      <div class="icon-container bg-light-success rounded-circle p-3 mb-3">
+        <i class="fas fa-wallet fa-2x text-success" aria-hidden="true"></i>
+      </div>
+      <h3 class="fw-bold mb-2" style="color: #2c3e50;">Wallet Balance</h3>
+      
+      <div class="d-flex align-items-center mb-3">
+        <span class="fs-2 fw-bold text-success me-1">₹</span>
+        <span class="fs-1 fw-bold text-success"><%= user.wallet?.credits || 0 %></span>
+      </div>
+      
+      <a href="/<%= user._id %>/credits" 
+         class="btn btn-success px-4 py-2 mt-2" 
+         style="border-radius: 8px;"
+         aria-label="Manage your wallet settings">
+        <i class="fas fa-cog me-2" aria-hidden="true"></i>
+        Manage Wallet
+      </a>
+    </div>
+  </div>
+</div>
+
+      <!-- Subscription -->
+<div class="col-md-6">
+  <% if (user.subscription && user.subscription.planId) { %>
+    <div class="card h-100 border-0 shadow-sm" style="border-radius: 12px; border-left: 4px solid #28a745;">
+      <div class="card-body d-flex flex-column py-4 px-4">
+        <div class="d-flex align-items-center mb-3">
+          <i class="fas fa-crown text-success me-2"></i>
+          <h5 class="fw-bold mb-0 text-dark">Premium Subscription</h5>
+          <span class="badge bg-success bg-opacity-10 text-success ms-auto"><%= user.subscription.planId %></span>
+        </div>
+        
+        <div class="mb-3">
+          <div class="d-flex align-items-center mb-2">
+            <i class="fas fa-circle-check text-success me-2" style="font-size: 0.8rem;"></i>
+            <span class="text-muted">Status: </span>
+            <span class="ms-2 fw-medium text-capitalize"><%= user.subscription.status %></span>
+          </div>
+          
+          <% if (user.subscription.currentPeriodEnd) { %>
+            <div class="d-flex align-items-center">
+              <i class="fas fa-calendar-day text-success me-2" style="font-size: 0.8rem;"></i>
+              <span class="text-muted">Renews on: </span>
+              <span class="ms-2 fw-medium">
+                <%= new Date(user.subscription.currentPeriodEnd).toLocaleDateString('en-US', { 
+                  month: 'short', 
+                  day: 'numeric', 
+                  year: 'numeric' 
+                }) %>
+              </span>
+            </div>
+          <% } %>
+        </div>
+        
+        <div class="mt-auto">
+          <form method="POST" action="/subscribe/cancel" 
+                onsubmit="return confirm('Are you sure you want to cancel your subscription? You will lose access to premium features immediately.');">
+            <button type="submit" class="btn btn-outline-danger w-100 py-2" style="border-radius: 8px;">
+              <i class="fas fa-slash me-1"></i> Cancel Subscription
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  <% } else { %>
+    <div class="card h-100 border-0" style="border-radius: 12px; background: linear-gradient(135deg, #fff9e6 0%, #fff3cc 100%);">
+      <div class="card-body text-center p-4 d-flex flex-column justify-content-center">
+        
+          <i class="fas fa-exclamation-circle fa-2x text-warning mb-5" style="--fa-secondary-opacity: 1.0;"></i>
+       
+        <h5 class="fw-bold text-dark mb-2">No Active Subscription</h5>
+        <p class="text-muted mb-3" style="max-width: 300px; margin: 0 auto;">
+          Upgrade to unlock premium features and benefits
+        </p>
+        <a href="/plans" class="btn btn-warning px-4 py-2 mt-2" style="border-radius: 8px; font-weight: 500;">
+          <i class="fas fa-rocket me-2"></i> View Plans
+        </a>
+      </div>
+    </div>
+  <% } %>
+</div>
+    </div>
+  </div>
+
+ 
+</div>
+
+
+
+  <!-- Divider -->
+  <hr class="my-5" style="opacity: 0.15;" />
+
+  <!-- Locker Map Title -->
+  <div class="container text-center">
+    <h4 class="fw-bold mb-4">📍 Nearby Lockers</h4>
+  </div>
+
+  <!-- Map + Locker Details and Sidebar remain unchanged below -->
+
+
+
+    
+  
+
+  <!-- Sidebar -->
+  <div id="locker-info-drawer" class="position-fixed top-0 end-0 bg-white shadow-lg p-4"
+    style="width: 320px; height: 100%; z-index: 1050; transform: translateX(100%); transition: transform 0.3s ease-in-out; margin-top: 56px;">
     <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-      <h5 class="mb-0 fw-semibold">Locker Details</h5>
+      <h6 class="mb-0 fw-semibold">Locker Details</h6>
       <button class="btn btn-sm btn-outline-secondary" onclick="closeLockerInfo()">✖</button>
     </div>
     <div id="locker-info-content" class="text-start small"></div>
   </div>
-  <div class="container mt-5">
-  <h2>Welcome, <%= user.username %>!</h2>
-<% if (user.subscription && user.subscription.planId) { %>
-  <div class="card mt-3">
-    <div class="card-body">
-      <h4 class="text-success fw-bold mb-2">Subscription Plan: <%= user.subscription.planId %></h4>
-      <p class="text-muted mb-1">Status: <%= user.subscription.status %></p>
-      <% if (user.subscription.currentPeriodEnd) { %>
-        <p class="text-muted mb-2">Valid Till: <%= new Date(user.subscription.currentPeriodEnd).toDateString() %></p>
-      <% } %>
-      <form method="POST" action="/subscribe/cancel" onsubmit="return confirm('Are you sure you want to cancel your subscription immediately?');">
-        <button type="submit" class="btn btn-danger btn-sm">Cancel Subscription Now</button>
-      </form>
+
+  <!-- Fullscreen Map -->
+ <div class="container-fluid mb-5" style="margin-top: 56px;">
+  <div class="row">
+    <div class="col-12 px-0 position-relative">
+      <div id="map-controls" class="position-absolute">
+  <button
+    id="recenter-btn"
+    class="btn btn-light border shadow-sm"
+    onclick="recenterToUser()"
+  >
+    <i class="fas fa-crosshairs"></i></button>
+</div>
+      <div id="locker-map" class="map-section"></div>
     </div>
   </div>
-<% } else { %>
-  <div class="alert alert-warning text-center p-4 mt-4" style="max-width: 400px; margin: 0 auto; border-radius: 12px;">
-  <i class="fas fa-exclamation-triangle fa-2x text-danger mb-2"></i>
-  <h5 class="mb-2 text-dark">No Active Subscription</h5>
-  <p class="mb-3 text-muted">You currently don't have an active plan.</p>
-  <a href="/plans" class="btn  btn-sm px-4" style="background-color: #e65c00; color: white;">Choose a Plan</a>
 </div>
 
-<% } %>
 
-  <!-- Action Section -->
-  <div class="container mt-5 pt-4">
-    <h2 class="fw-bold text-center mb-3"> Welcome Back, <%= user.username %></h2>
-
-    <!-- Wallet Summary Card -->
-    <div class="container mb-5">
-      <div class="row justify-content-center">
-        <div class="col-md-6 col-lg-5">
-          <div class="card wallet-card text-center">
-            <div class="card-body d-flex flex-column align-items-center py-4">
-              <div class="mb-3">
-                <i class="fas fa-wallet fa-3x"></i>
-              </div>
-              <h5 class="fw-bold mb-1">Wallet Balance</h5>
-              <p class="fs-3 text-success mb-3">₹ <%= user.wallet?.credits || 0 %></p>
-              <a href="/<%= user._id %>/credits" class="btn btn-outline-success px-4">
-                <i class="fas fa-cog me-1"></i> Manage Wallet
-              </a>
-            </div>
-          </div>
+  <!-- Custom Location Access Modal -->
+  <div class="modal fade" id="locationModal" tabindex="-1" aria-labelledby="locationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content shadow">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="locationModalLabel">📍 Location Access Needed</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-center">
+          <p>We need your location to show lockers near you.</p>
+          <i class="fas fa-map-marker-alt fa-3x text-danger mb-3"></i><br />
+          <button class="btn btn-success" onclick="triggerGeolocation()">Allow Location</button>
         </div>
       </div>
     </div>
-
-    <!-- Action Prompt -->
-    <p class="text-center lead text-muted mb-4">Choose your action to get started</p>
-
-    <!-- Action Cards -->
-    <div class="row justify-content-center">
-      
-      <div class="col-md-3 mb-4">
-        <a href="/send/step1" class="text-decoration-none">
-          <div class="card h-100 shadow-sm border-0 text-center hover-scale action-card">
-            <div class="card-body py-4">
-              <i class="fas fa-box fa-3x text-success mb-3"></i>
-              <h5 class="card-title fw-semibold">Send Parcel</h5>
-            </div>
-          </div>
-        </a>
-      </div>
-      <div class="col-md-3 mb-4">
-        <a href="/user/pickup" class="text-decoration-none">
-          <div class="card h-100 shadow-sm border-0 text-center hover-scale action-card">
-            <div class="card-body py-4">
-              <i class="fas fa-box-open fa-3x text-primary mb-3"></i>
-              <h5 class="card-title fw-semibold">Recieve a Parcel</h5>
-            </div>
-          </div>
-        </a>
-      </div>
-        <div class="col-md-3 mb-4">
-  <a href="/map" class="text-decoration-none">
-    <div class="card h-100 shadow-sm border-0 text-center hover-scale action-card">
-      <div class="card-body py-4">
-        <i class="fas fa-map-marker-alt fa-3x text-danger mb-3"></i>
-        <h5 class="card-title fw-semibold">Nearby Lockers</h5>
-      </div>
-    </div>
-  </a>
-</div>
-</div>
-    </div>
   </div>
-
   <!-- Locker Map Section
   <div class="container-fluid py-5">
     <div class="row justify-content-center">
@@ -224,35 +347,52 @@
     function closeLockerInfo() {
       document.getElementById("locker-info-drawer").style.transform = "translateX(100%)";
     }
+    function recenterToUser() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        map.setView([lat, lng], 14);
+      },
+      (error) => {
+        console.error("Location error:", error.message);
+        alert("Unable to access your location.");
+      }
+    );
+  } else {
+    alert("Geolocation is not supported by your browser.");
+  }
+}
+
   </script>
 
   <!-- Custom Modern Styling -->
   <style>
     
+.card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+}
+.btn {
+  transition: all 0.2s ease;
+}
   :root {
     --orange: #ff6b00;
     --light-orange: #fff7f0;
     --deep-orange: #e65c00;
     --gray: #f8f9fa;
+    --blue-bg: #e0f2fe;
+    --orange-bg: #fffaf0;
+    --font-main: 'Segoe UI', 'Poppins', sans-serif;
   }
 
   body {
-    font-family: 'Segoe UI', sans-serif;
-    background-color: var(--gray);
-  }
-
-  .text-orange {
-    color: var(--orange) !important;
-  }
-
-  .btn-orange {
-    background-color: var(--orange);
-    color: #fff;
-    border: none;
-  }
-
-  .btn-orange:hover {
-    background-color: var(--deep-orange);
+    font-family: var(--font-main);
+    background: linear-gradient(to bottom right, var(--blue-bg), var(--orange-bg));
   }
 
   .hover-scale {
@@ -263,9 +403,14 @@
     transform: scale(1.05);
   }
 
+  .card, .wallet-card {
+    border-radius: 1rem;
+    border: none;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+  }
+
   .wallet-card {
     background: var(--light-orange);
-    border-radius: 1rem;
     border: 1px solid #ffe4d3;
     box-shadow: 0 0 15px rgba(255, 107, 0, 0.1);
   }
@@ -274,15 +419,78 @@
     color: var(--orange);
   }
 
+  .btn-sm, .btn-outline-success, .btn-danger {
+    border-radius: 10px;
+    font-size: 0.9rem;
+  }
+
+  .btn-orange {
+    background-color: var(--orange);
+    color: white;
+    border: none;
+  }
+
+  .btn-orange:hover {
+    background-color: var(--deep-orange);
+  }
+
+  .lead {
+    font-size: 1.1rem;
+    font-weight: 500;
+  }
+
+  h2, h3, h4 {
+    font-weight: 600;
+  }
+
+  .alert {
+    border-radius: 10px;
+  }
+
+  .map-section {
+    height: 50vh;
+    border-radius: 1rem;
+    overflow: hidden;
+  }
+
+  @media (max-width: 768px) {
+    .map-section {
+      height: 300px;
+    }
+  }
+
   #locker-info-drawer {
     border-left: 2px solid #eee;
     border-top-left-radius: 1rem;
     border-bottom-left-radius: 1rem;
+    max-height: 100vh;
+    overflow-y: auto;
   }
 
-  #locker-map {
-    border-radius: 1rem;
-    overflow: hidden;
+  #map-controls {
+    top: 85px;
+    left: 15px;
+    z-index: 9999;
+  }
+
+  #map-controls button {
+    font-size: 0.9rem;
+    padding: 6px 12px;
+    border-radius: 6px;
+  }
+
+  .btn-outline-success {
+    border: 1px solid var(--orange);
+    color: var(--orange);
+  }
+
+  .btn-outline-success:hover {
+    background-color: var(--orange);
+    color: white;
+  }
+
+  .text-orange {
+    color: var(--orange) !important;
   }
 
   .card-body i {
@@ -292,31 +500,7 @@
   .card-body:hover i {
     transform: scale(1.2);
   }
-
-  .lead {
-    font-size: 1.15rem;
-  }
-
-  .btn-sm {
-    font-size: 0.85rem;
-    padding: 0.4rem 0.7rem;
-  }
-
-  /* Responsive fix */
-  @media (max-width: 576px) {
-    h2.fw-bold, h2.mb-4 {
-      font-size: 1.4rem;
-      text-align: center;
-    }
-
-    .card-title {
-      font-size: 1rem;
-    }
-
-    .btn {
-      font-size: 0.9rem;
-    }
-  }
 </style>
+
 
 </body>

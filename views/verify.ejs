@@ -1,0 +1,36 @@
+<% layout("/layouts/boilerplate") %>
+
+<!-- Main Content -->
+<body class="bg-light min-vh-100 d-flex align-items-center justify-content-center">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-6 col-lg-5">
+        <div class="card shadow-lg border-0 rounded-4">
+          <div class="card-body p-4">
+            <h3 class="card-title mb-4 text-center">🔐 Verify OTP</h3>
+
+            <% if (error) { %>
+              <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <%= error %>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            <% } %>
+
+            <form method="POST" action="/verify">
+              <div class="mb-3">
+                <label for="otp" class="form-label">Enter the OTP sent to your phone</label>
+                <input type="text" class="form-control form-control-lg" id="otp" name="otp" placeholder="6-digit code" required>
+              </div>
+
+              <div class="d-grid">
+                <button type="submit" class="btn btn-success btn-lg">Verify OTP</button>  
+              </div>
+            </form>
+
+            <p class="text-center mt-3 text-muted" style="font-size: 0.9rem;">Didn’t receive it? <a href="/resend-otp" class="text-decoration-none">Resend OTP</a></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>

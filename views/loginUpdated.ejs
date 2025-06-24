@@ -1,0 +1,97 @@
+<% layout("/layouts/boilerplate") %>
+
+<body class="min-vh-100 d-flex justify-content-center align-items-center bg-light">
+  <div class="container py-5" style="max-width: 400px;">
+    <!-- Logo & Welcome -->
+    <div class="text-center mb-4">
+      <div class="rounded-4 mx-auto mb-3 d-flex justify-content-center align-items-center" style="width: 80px; height: 80px; background: linear-gradient(to right, #2563eb, #f97316);">
+        <i class="bi bi-box text-white fs-2"></i>
+      </div>
+      <h2 class="fw-bold text-gradient">Welcome to Drop Point</h2>
+      <p class="text-muted small">Smart parcel delivery made simple</p>
+    </div>
+
+    <!-- Features -->
+    <div class="row mb-4 text-center">
+      <div class="col-4">
+        <div class="bg-white border rounded shadow-sm py-2">
+          <i class="bi bi-lightning-charge-fill text-primary mb-1"></i>
+          <p class="small mb-0 fw-medium">Fast</p>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="bg-white border rounded shadow-sm py-2">
+          <i class="bi bi-shield-lock-fill text-success mb-1"></i>
+          <p class="small mb-0 fw-medium">Secure</p>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="bg-white border rounded shadow-sm py-2">
+          <i class="bi bi-check-circle-fill text-warning mb-1"></i>
+          <p class="small mb-0 fw-medium">Reliable</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alert Error Message -->
+    <% if (typeof error !== 'undefined' && error) { %>
+      <div class="alert alert-danger d-flex align-items-center" role="alert">
+        <i class="bi bi-exclamation-circle me-2"></i>
+        <%= error %>
+      </div>
+    <% } %>
+
+    <!-- Login Card -->
+    <div class="card shadow-sm border-0">
+      <div class="card-header text-center">
+        <h5 class="mb-0">Sign In</h5>
+        <small class="text-muted">Choose your preferred method</small>
+      </div>
+      <div class="card-body">
+       
+          <!-- Google Sign In -->
+          <form method="POST" action="/auth/google">
+            <button type="submit" class="btn btn-outline-dark w-100 mb-3">
+              <i class="bi bi-google me-2"></i> Continue with Google
+            </button>
+          </form>
+
+          <div class="text-center my-2 text-muted small">OR</div>
+
+          <!-- Switch to Phone -->
+          <form method="GET" action="/auth/phone">
+            <button class="btn btn-primary w-100">
+              <i class="bi bi-phone-fill me-2"></i> Continue with Phone
+            </button>
+          </form>
+       
+          <!-- Phone Sign In Form -->
+          <form method="POST" action="/auth/phone">
+            <div class="mb-3">
+              <label for="phone" class="form-label">Phone Number</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-phone"></i></span>
+                <input type="tel" class="form-control" id="phone" name="phone" placeholder="(555) 123-4567" required maxlength="14" %>">
+              </div>
+              <small class="text-muted">We'll send an OTP via SMS</small>   
+            </div>
+            <button type="submit" class="btn btn-primary w-100">
+              <i class="bi bi-arrow-right me-2"></i> Send Verification Code
+            </button>
+            <a href="/auth/login" class="btn btn-link w-100 mt-2">Back to sign-in options</a>
+          </form>
+      
+      </div>
+    </div>
+
+    <!-- Trust Section -->
+    <div class="text-center mt-3 text-muted small">
+      <p>By continuing, you agree to our <a href="#">Terms</a> & <a href="#">Privacy</a>.</p>
+      <div class="d-flex justify-content-center gap-3">
+        <span><i class="bi bi-shield-lock-fill me-1"></i>Secure</span>
+        <span><i class="bi bi-envelope-fill me-1"></i>No Spam</span>
+        <span><i class="bi bi-check-circle-fill me-1"></i>Trusted</span>
+      </div>
+    </div>
+  </div>
+</body>

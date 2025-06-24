@@ -144,44 +144,10 @@
               </div>
               <% } %>
 
-              <div class="register-container">
-                <div class="register-section">
-                  <h4>Register with Credentials</h4>
-                  <form method="POST" action="/auth/register">
-                    <div class="mb-3">
-                      <label class="form-label"
-                        ><i class="fas fa-user me-2"></i>Username</label
-                      >
-                      <input
-                        type="text"
-                        class="form-control"
-                        name="username"
-                        placeholder="Enter your username"
-                        required
-                      />
-                    </div>
-                    <div class="mb-3">
-                      <label class="form-label"
-                        ><i class="fas fa-lock me-2"></i>Password</label
-                      >
-                      <input
-                        type="password"
-                        class="form-control"
-                        name="password"
-                        placeholder="Enter your password"
-                        required
-                      />
-                    </div>
-                    <div class="d-grid">
-                      <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-user-plus me-2"></i>Register
-                      </button>
-                    </div>
-                  </form>
-                </div>
+              
 
                 <div class="register-section">
-                  <h4>Other Registration Options</h4>
+                  
                   <div class="d-grid mb-3">
                     <a href="/auth/google" class="text-decoration-none">
                       <button
@@ -199,32 +165,9 @@
                   </div>
                 </div>
                 <div class="register-section">
-                  <h4>Register with Credentials + Phone</h4>
-                  <form method="POST" action="/register-send-otp">
-                    <div class="mb-3">
-                      <label class="form-label">
-                        <i class="fas fa-user me-2"></i>Username
-                      </label>
-                      <input
-                        type="text"
-                        class="form-control"
-                        name="username"
-                        placeholder="Enter your username"
-                        required
-                      />
-                    </div>
-                    <div class="mb-3">
-                      <label class="form-label">
-                        <i class="fas fa-lock me-2"></i>Password
-                      </label>
-                      <input
-                        type="password"
-                        class="form-control"
-                        name="password"
-                        placeholder="Enter your password"
-                        required
-                      />
-                    </div>
+                  <h4>Register via Phone</h4>
+                  <form method="POST" action="/register-phone">
+                    
                     <div class="mb-3">
                       <label class="form-label">
                         <i class="fas fa-phone me-2"></i>Phone Number
