@@ -1,349 +1,349 @@
 <% layout("/layouts/boilerplate") %>
 
 <style>
-  .locations-header {
-    text-align: center;
-    margin-top: 2rem;
-  }
+.locations-header {
+text-align: center;
+margin-top: 2rem;
+}
 
-  .locations-header .icon-circle {
-    width: 60px;
-    height: 60px;
-    background: #f3e8ff;
-    border-radius: 50%;
-    margin: 0 auto 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 26px;
-    color: #8b5cf6;
-  }
+.locations-header .icon-circle {
+width: 60px;
+height: 60px;
+background: #f3e8ff;
+border-radius: 50%;
+margin: 0 auto 1rem;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 26px;
+color: #8b5cf6;
+}
 #map-controls {
-  top: 20px;
-  right: 10px;
-  z-index: 1000;
+top: 20px;
+right: 10px;
+z-index: 1000;
 }
-  .nearby-box {
-    background: linear-gradient(to right, #3b82f6, #9333ea);
-    color: white;
-    border-radius: 14px;
-    padding: 1.25rem;
-    margin: 2rem 0 1.5rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .nearby-box .btn-map {
-    background: white;
-    color: #4b5563;
-    font-weight: 500;
-    border-radius: 8px;
-    padding: 0.5rem 1rem;
-    border: none;
-  }
-
-  .location-card {
-    background: white;
-    border-radius: 14px;
-    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
-    padding: 1.25rem;
-    margin-bottom: 1.25rem;
-  }
-
-  .location-header {
-    display: flex;
-    justify-content: space-between;
-    font-weight: 600;
-    font-size: 1rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .location-sub {
-    color: #6b7280;
-    margin-bottom: 0.5rem;
-  }
-
-  .location-details {
-    font-size: 0.85rem;
-    color: #4b5563;
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 0.5rem;
-  }
-  #locker-map {
-  height: 400px;
-  width: 100%;
-  border-radius: 12px;
-  margin-top: 1rem;
+.nearby-box {
+background: linear-gradient(to right, #3b82f6, #9333ea);
+color: white;
+border-radius: 14px;
+padding: 1.25rem;
+margin: 2rem 0 1.5rem;
+display: flex;
+justify-content: space-between;
+align-items: center;
 }
 
-  .tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-  }
+.nearby-box .btn-map {
+background: white;
+color: #4b5563;
+font-weight: 500;
+border-radius: 8px;
+padding: 0.5rem 1rem;
+border: none;
+}
 
-  .tag {
-    background: #f3f4f6;
-    color: #374151;
-    font-size: 0.75rem;
-    padding: 4px 10px;
-    border-radius: 999px;
-  }
+.location-card {
+background: white;
+border-radius: 14px;
+box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
+padding: 1.25rem;
+margin-bottom: 1.25rem;
+}
 
-  .card-actions {
-    display: flex;
-    justify-content: space-between;
-    gap: 0.75rem;
-  }
+.location-header {
+display: flex;
+justify-content: space-between;
+font-weight: 600;
+font-size: 1rem;
+margin-bottom: 0.5rem;
+}
 
-  .btn-outline {
-    border: 1px solid #d1d5db;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    background: white;
-    color: #111827;
-    width: 100%;
-  }
+.location-sub {
+color: #6b7280;
+margin-bottom: 0.5rem;
+}
 
-  .btn-primary {
-    background: #2563eb;
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    width: 100%;
-  }
+.location-details {
+font-size: 0.85rem;
+color: #4b5563;
+display: flex;
+gap: 1rem;
+margin-bottom: 0.5rem;
+}
+#locker-map {
+height: 400px;
+width: 100%;
+border-radius: 12px;
+margin-top: 1rem;
+}
 
-  .bottom-nav .nav-item:nth-child(4) {
-    color: #4e54c8;
-    font-weight: 600;
-  }
+.tags {
+display: flex;
+flex-wrap: wrap;
+gap: 0.5rem;
+margin-bottom: 1rem;
+}
+
+.tag {
+background: #f3f4f6;
+color: #374151;
+font-size: 0.75rem;
+padding: 4px 10px;
+border-radius: 999px;
+}
+
+.card-actions {
+display: flex;
+justify-content: space-between;
+gap: 0.75rem;
+}
+
+.btn-outline {
+border: 1px solid #d1d5db;
+padding: 0.5rem 1rem;
+border-radius: 8px;
+font-size: 0.9rem;
+background: white;
+color: #111827;
+width: 100%;
+}
+
+.btn-primary {
+background: #2563eb;
+color: white;
+border: none;
+padding: 0.5rem 1rem;
+border-radius: 8px;
+font-size: 0.9rem;
+width: 100%;
+}
+
+.bottom-nav .nav-item:nth-child(4) {
+color: #4e54c8;
+font-weight: 600;
+}
 </style>
 
 <div class="locations-header">
-  <div class="icon-circle">
-    <i class="fas fa-map-marker-alt"></i>
-  </div>
-  <h5>Drop Point Locations</h5>
-  <p class="text-muted mb-4">Find convenient pickup and drop-off points near you</p>
+<div class="icon-circle">
+<i class="fas fa-map-marker-alt"></i>
+</div>
+<h5>Drop Point Locations</h5>
+<p class="text-muted mb-4">Find convenient pickup and drop-off points near you</p>
 </div>
 
-  <!-- Locker Map Title -->
-  <div class="container text-center">
-    <h4 class="fw-bold mb-4">📍 Nearby Lockers</h4>
-  </div>
-
-  <!-- Map + Locker Details and Sidebar remain unchanged below -->
-
-
-
-    
-  
-
-  <!-- Sidebar -->
-  <div id="locker-info-drawer" class="position-fixed top-0 end-0 bg-white shadow-lg p-4"
-    style="width: 320px; height: 100%; z-index: 1050; transform: translateX(100%); transition: transform 0.3s ease-in-out; margin-top: 56px;">
-    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-      <h6 class="mb-0 fw-semibold">Locker Details</h6>
-      <button class="btn btn-sm btn-outline-secondary" onclick="closeLockerInfo()">✖</button>
-    </div>
-    <div id="locker-info-content" class="text-start small"></div>
-  </div>
-
-  <!-- Fullscreen Map -->
- <div class="container-fluid mb-5" style="margin-top: 56px;">
-  <div class="row">
-    <div class="col-12 px-0 position-relative">
-      <div id="map-controls" class="position-absolute">
-  <button
-    id="recenter-btn"
-    class="btn btn-light border shadow-sm"
-    onclick="recenterToUser()"
-  >
-    <i class="fas fa-crosshairs"></i></button>
-</div>
-      <div id="locker-map" class="map-section"></div>
-    </div>
-  </div>
+<!-- Locker Map Title -->
+<div class="container text-center">
+<h4 class="fw-bold mb-4">📍 Nearby Lockers</h4>
 </div>
 
+<!-- Map + Locker Details and Sidebar remain unchanged below -->
 
-  <!-- Custom Location Access Modal -->
-  <div class="modal fade" id="locationModal" tabindex="-1" aria-labelledby="locationModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content shadow">
-        <div class="modal-header bg-primary text-white">
-          <h5 class="modal-title" id="locationModalLabel">📍 Location Access Needed</h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body text-center">
-          <p>We need your location to show lockers near you.</p>
-          <i class="fas fa-map-marker-alt fa-3x text-danger mb-3"></i><br />
-          <button class="btn btn-success" onclick="triggerGeolocation()">Allow Location</button>
-        </div>
-      </div>
-    </div>
-  </div>
- 
+
+
+
+
+
+<!-- Sidebar -->
+<div id="locker-info-drawer" class="position-fixed top-0 end-0 bg-white shadow-lg p-4"
+style="width: 320px; height: 100%; z-index: 1050; transform: translateX(100%); transition: transform 0.3s ease-in-out; margin-top: 56px;">
+<div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+<h6 class="mb-0 fw-semibold">Locker Details</h6>
+<button class="btn btn-sm btn-outline-secondary" onclick="closeLockerInfo()">✖</button>
+</div>
+<div id="locker-info-content" class="text-start small"></div>
+</div>
+
+<!-- Fullscreen Map -->
+<div class="container-fluid mb-5" style="margin-top: 56px;">
+<div class="row">
+<div class="col-12 px-0 position-relative">
+<div id="map-controls" class="position-absolute">
+<button
+id="recenter-btn"
+class="btn btn-light border shadow-sm"
+onclick="recenterToUser()"
+>
+<i class="fas fa-crosshairs"></i></button>
+</div>
+<div id="locker-map" class="map-section"></div>
+</div>
+</div>
+</div>
+
+
+<!-- Custom Location Access Modal -->
+<div class="modal fade" id="locationModal" tabindex="-1" aria-labelledby="locationModalLabel" aria-hidden="true">
+<div class="modal-dialog modal-dialog-centered">
+<div class="modal-content shadow">
+<div class="modal-header bg-primary text-white">
+<h5 class="modal-title" id="locationModalLabel">📍 Location Access Needed</h5>
+<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body text-center">
+<p>We need your location to show lockers near you.</p>
+<i class="fas fa-map-marker-alt fa-3x text-danger mb-3"></i><br />
+<button class="btn btn-success" onclick="triggerGeolocation()">Allow Location</button>
+</div>
+</div>
+</div>
+</div>
+
 
 <% lockers.forEach(locker => { %>
-  <div class="location-card">
-    <div class="location-header">
-      <span><%= locker.lockerId %></span>
-      <span class="text-success fw-semibold">
-        Available Lockers: <%= locker.compartments.filter(c => !c.isBooked).length %>/<%= locker.compartments.length %>
-      </span>
-    </div>
-    <div class="location-sub">
-      <%= locker.location?.address || 'Address not available' %>
-    </div>
-    <div class="location-details">
-      <% if (locker.location?.lat && locker.location?.lng) { %>
-        <span>
-          <i class="fas fa-map-marker-alt"></i>
-          <%= locker.location.lat.toFixed(5) %>, <%= locker.location.lng.toFixed(5) %>
-        </span>
-      <% } else { %>
-        <span>No Coordinates</span>
-      <% } %>
-    </div>
-    <div class="card-actions">
-      <a 
-        href="https://www.google.com/maps/dir/?api=1&destination=<%= locker.location.lat %>,<%= locker.location.lng %>" 
-        target="_blank" 
-        class="btn btn-outline-dark d-flex align-items-center justify-content-center gap-2">
-        <i class="fas fa-location-arrow"></i> Directions
-      </a>
-      <a 
-        href="/locker/<%=locker.lockerId%>" 
-        class="btn btn-warning d-flex align-items-center justify-content-center gap-2">
-        <i class="fas fa-check-circle"></i> Select Locker
-      </a>
-    </div>
-  </div>
+<div class="location-card">
+<div class="location-header">
+<span><%= locker.lockerId %></span>
+<span class="text-success fw-semibold">
+Available Lockers: <%= locker.compartments.filter(c => !c.isBooked).length %>/<%= locker.compartments.length %>
+</span>
+</div>
+<div class="location-sub">
+<%= locker.location?.address || 'Address not available' %>
+</div>
+<div class="location-details">
+<% if (locker.location?.lat && locker.location?.lng) { %>
+<span>
+<i class="fas fa-map-marker-alt"></i>
+<%= locker.location.lat.toFixed(5) %>, <%= locker.location.lng.toFixed(5) %>
+</span>
+<% } else { %>
+<span>No Coordinates</span>
+<% } %>
+</div>
+<div class="card-actions">
+<a
+href="https://www.google.com/maps/dir/?api=1&destination=<%= locker.location.lat %>,<%= locker.location.lng %>"
+target="_blank"
+class="btn btn-outline-dark d-flex align-items-center justify-content-center gap-2">
+<i class="fas fa-location-arrow"></i> Directions
+</a>
+<a
+href="/locker/<%=locker.lockerId%>"
+class="btn btn-warning d-flex align-items-center justify-content-center gap-2">
+<i class="fas fa-check-circle"></i> Select Locker
+</a>
+</div>
+</div>
 <% }) %>
 
 
 
 <script>
-    function recenterToUser() {
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-        console.log("Recentering to: ", lat, lng); // ✅ Debug
-        map.setView([lat, lng], 14);
-      },
-      (error) => {
-        console.error("Location error:", error.message);
-        alert("Unable to access your location.");
-      }
-    );
-  } else {
-    alert("Geolocation is not supported by your browser.");
-  }
+function recenterToUser() {
+if (navigator.geolocation) {
+navigator.geolocation.getCurrentPosition(
+(position) => {
+const lat = position.coords.latitude;
+const lng = position.coords.longitude;
+console.log("Recentering to: ", lat, lng); // ✅ Debug
+map.setView([lat, lng], 14);
+},
+(error) => {
+console.error("Location error:", error.message);
+alert("Unable to access your location.");
 }
-  function openLockerInfo() {
-    document.getElementById("locker-info-drawer").style.transform = "translateX(0)";
-  }
+);
+} else {
+alert("Geolocation is not supported by your browser.");
+}
+}
+function openLockerInfo() {
+document.getElementById("locker-info-drawer").style.transform = "translateX(0)";
+}
 
-  function closeLockerInfo() {
-    document.getElementById("locker-info-drawer").style.transform = "translateX(100%)";
-  }
-  let map;
-  document.addEventListener("DOMContentLoaded", function () {
-    const lockers = <%- JSON.stringify(lockers) %>;
-    map = L.map('locker-map').setView([20.5937, 78.9629], 5);
+function closeLockerInfo() {
+document.getElementById("locker-info-drawer").style.transform = "translateX(100%)";
+}
+let map;
+document.addEventListener("DOMContentLoaded", function () {
+const lockers = <%- JSON.stringify(lockers) %>;
+map = L.map('locker-map').setView([20.5937, 78.9629], 5);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18
-    }).addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+maxZoom: 18
+}).addTo(map);
 
-    navigator.geolocation.getCurrentPosition(success, error);
+navigator.geolocation.getCurrentPosition(success, error);
 
-    function success(position) {
-      const userLat = position.coords.latitude;
-      const userLng = position.coords.longitude;
+function success(position) {
+const userLat = position.coords.latitude;
+const userLng = position.coords.longitude;
 
-      const userIcon = L.icon({
-        iconUrl: "https://cdn-icons-png.flaticon.com/512/1946/1946429.png",
-        iconSize: [35, 35],
-        iconAnchor: [17, 34],
-        popupAnchor: [0, -30],
-      });
+const userIcon = L.icon({
+iconUrl: "https://cdn-icons-png.flaticon.com/512/1946/1946429.png",
+iconSize: [35, 35],
+iconAnchor: [17, 34],
+popupAnchor: [0, -30],
+});
 
-      const userMarker = L.marker([userLat, userLng], { icon: userIcon })
-        .addTo(map)
-        .bindPopup(`<b>📍 You are here</b> &nbsp;<a href="/profile" target="_blank">View Profile</a>`)
-        .openPopup();
+const userMarker = L.marker([userLat, userLng], { icon: userIcon })
+.addTo(map)
+.bindPopup(`<b>📍 You are here</b> &nbsp;<a href="/profile" target="_blank">View Profile</a>`)
+.openPopup();
 
-      userMarker.on("click", () => {
-        window.location.href = "/profile";
-      });
+userMarker.on("click", () => {
+window.location.href = "/profile";
+});
 
-      map.setView([userLat, userLng], 14);
-      showNearestLockers(userLat, userLng);
-    }
+map.setView([userLat, userLng], 14);
+showNearestLockers(userLat, userLng);
+}
 
-    function error(err) {
-      console.error("Geolocation error:", err.message);
-      alert("Could not get your location.");
-      map.setView([20.5937, 78.9629], 5);
-    }
+function error(err) {
+console.error("Geolocation error:", err.message);
+alert("Could not get your location.");
+map.setView([20.5937, 78.9629], 5);
+}
 
-    function showNearestLockers(userLat, userLng) {
-      const radiusInKm = 80;
-      lockers.forEach(locker => {
-        if (locker.location.lat && locker.location.lng) {
-          const lat = locker.location.lat;
-          const lng = locker.location.lng;
-          const distance = getDistanceFromLatLonInKm(userLat, userLng, lat, lng);
+function showNearestLockers(userLat, userLng) {
+const radiusInKm = 80;
+lockers.forEach(locker => {
+if (locker.location.lat && locker.location.lng) {
+const lat = locker.location.lat;
+const lng = locker.location.lng;
+const distance = getDistanceFromLatLonInKm(userLat, userLng, lat, lng);
 
-          if (distance <= radiusInKm) {
-            const total = locker.compartments.length;
-            const available = locker.compartments.filter(c => !c.isBooked).length;
+if (distance <= radiusInKm) {
+const total = locker.compartments.length;
+const available = locker.compartments.filter(c => !c.isBooked).length;
 
-            const marker = L.marker([lat, lng]).addTo(map);
-            marker.on("click", () => {
-              const content = `
-                <p><strong>Locker ID:</strong> ${locker.lockerId}</p>
-                <p><strong>Address:</strong> ${locker.location.address || "Not Available"}</p>
-                <p><strong>Total Compartments:</strong> ${total}</p>
-                <p><strong>Available:</strong> ${available}</p>
-                <a href="/locker/${locker.lockerId}" class="btn btn-sm btn-primary w-100 my-2">📦 Go to Locker</a>
-                <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" class="btn btn-sm btn-outline-success w-100">📍 Get Directions</a>
-              `;
-              document.getElementById("locker-info-content").innerHTML = content;
-              openLockerInfo();
-            });
-          }
-        }
-      });
-    }
+const marker = L.marker([lat, lng]).addTo(map);
+marker.on("click", () => {
+const content = `
+<p><strong>Locker ID:</strong> ${locker.lockerId}</p>
+<p><strong>Address:</strong> ${locker.location.address || "Not Available"}</p>
+<p><strong>Total Compartments:</strong> ${total}</p>
+<p><strong>Available:</strong> ${available}</p>
+<a href="/locker/${locker.lockerId}" class="btn btn-sm btn-primary w-100 my-2">📦 Go to Locker</a>
+<a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" class="btn btn-sm btn-outline-success w-100">📍 Get Directions</a>
+`;
+document.getElementById("locker-info-content").innerHTML = content;
+openLockerInfo();
+});
+}
+}
+});
+}
 
-    function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
-      const R = 6371;
-      const dLat = deg2rad(lat2 - lat1);
-      const dLon = deg2rad(lon2 - lon1);
-      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return R * c;
-    }
+function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+const R = 6371;
+const dLat = deg2rad(lat2 - lat1);
+const dLon = deg2rad(lon2 - lon1);
+const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+Math.sin(dLon / 2) * Math.sin(dLon / 2);
+const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+return R * c;
+}
 
-    function deg2rad(deg) {
-      return deg * (Math.PI / 180);
-    }
-
-    
+function deg2rad(deg) {
+return deg * (Math.PI / 180);
+}
 
 
-  });
+
+
+});
 </script>

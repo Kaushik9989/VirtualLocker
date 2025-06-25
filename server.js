@@ -148,7 +148,8 @@ passport.use(
       clientID:
         "587834679125-34p3obvnjoa9o8qsa4asgrgubneh5atg.apps.googleusercontent.com", // from Google Cloud
       clientSecret: "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", // from Google Cloud
-      callbackURL: "https://virtuallocker.onrender.com/auth/google/callback",
+      //callbackURL: "https://virtuallocker.onrender.com/auth/google/callback",
+      callbackURL:"http://localhost:8080/auth/google/callback",
     },
     async (accessToken, refreshToken, profile, done) => {
       // Find or create user in DB
@@ -169,8 +170,16 @@ app.get("/", (req, res) => {
   res.redirect("/dashboard");
 });
 
-app.get("/sendParcel",(req,res)=>{
-  res.render("sendParcel",{activePage:"send"});
+app.get("/sendParcel",async(req,res)=>{
+  const user = await User.findById(req.session.userId);
+  const bookedParcels = await Parcel1.find({
+    senderId: user,
+    status: { $in: ["awaiting_drop", "awaiting_payment", "sent", "delivered"] },
+  }).sort({ createdAt: -1 });
+  res.render("sendParcel",{
+    user: req.session.user,
+    bookedParcels,
+  });
   
 })
 
@@ -233,6 +242,14 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
   try {
      const user = await User.findById(req.session.userId).lean();
     const lockersRaw = await Locker.find({});
+    const userPhone = req.user?.phone;
+  const userName = req.user?.username;
+
+  const incomingParcels = await Parcel1.find({
+    receiverPhone: userPhone,
+    status: { $in: ["awaiting_drop", "sent", "delivered"] }, // customize statuses
+  }).sort({ createdAt: -1 });
+
 
     const lockers = lockersRaw.map((locker) => ({
       lockerId: locker.lockerId,  
@@ -240,7 +257,7 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
       location: locker.location || { lat: null, lng: null, address: "" },
     }));
 
-    res.render("newDashboard", { user, lockers ,activePage:"home"});
+    res.render("newDashboard", { user, lockers ,activePage:"home", incomingParcels, userName});
   } catch (err) {
     console.error("Error loading dashboard:", err);
     res.status(500).send("Internal Server Error");
