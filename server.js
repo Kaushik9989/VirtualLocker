@@ -84,6 +84,11 @@ app.use((req, res, next) => {
   if (req.session.user) req.user = req.session.user;
   next();
 });
+
+app.use((req, res, next) => {
+  if (req.session.user) req.user = req.session.user;
+  next();
+});
 app.use((req, res, next) => {
   res.locals.user = req.session.user || null;
   next();
@@ -112,7 +117,7 @@ function isAuthenticated(req, res, next) {
   if (req.session.user) {
     return next();
   }
-  if (req.session.userId) return next();
+ 
   res.redirect("/login");
 }
 
@@ -177,7 +182,7 @@ app.get("/", (req, res) => {
 });
 
 app.get("/sendParcel", async (req, res) => {
-  const user = await User.findById(req.session.user);
+  const user = await User.findById(req.session.user._id);
   const bookedParcels = await Parcel1.find({
     senderId: user,
     status: { $in: ["awaiting_drop", "awaiting_payment", "sent", "delivered"] },
@@ -234,7 +239,7 @@ app.get("/receive", (req, res) => {
 });
 
 app.get("/account", async (req, res) => {
-  const user = await User.findById(req.session.user);
+  const user = await User.findById(req.session.user._id);
   res.render("account", { user, activePage: "account" });
 });
 //-------------------------------------USER DASHBOARD ------------------------------------------
@@ -248,9 +253,7 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
   }
 
   try {
-    const user = await User.findById(
-      req.session.user?._id || req.session.userId
-    ).lean();
+    const user = await User.findById(req.session.user._id).lean();
     if (!user) return res.redirect("/login");
 
     const lockersRaw = await Locker.find({});
@@ -297,11 +300,11 @@ app.get(
     req.session.user = {
       _id: req.user._id,
       uid: req.user.uid,
-      username: req.user.username || null,
-      phone: req.user.phone || null,
-      email: req.user.email || null,
+      username: req.user.username,
+      phone: req.user.phone,
+      email: req.user.email,
       wallet: req.user.wallet || { credits: 0 },
-    }; // so your session-based auth also works
+    };// so your session-based auth also works
     res.redirect("/dashboard");
   }
 );
@@ -416,11 +419,13 @@ app.post("/verify", async (req, res) => {
       const existingUser = await User.findOne({ phone });
       if (existingUser) {
         // Already registered, log them in
-        req.session.user = {
+       req.session.user = {
           _id: existingUser._id,
           uid: existingUser.uid,
-          phone: existingUser.phone,
           username: existingUser.username,
+          phone: existingUser.phone,
+          email: existingUser.email || null,
+          wallet: existingUser.wallet || { credits: 0 },
         };
         delete req.session.phone;
         return res.redirect("/dashboard");
@@ -463,15 +468,14 @@ app.post("/set-username", async (req, res) => {
 
     await user.save();
 
-    req.session.user = {
-      _id: req.user._id,
-      uid: req.user.uid,
-      username: req.user.username || null,
-      phone: req.user.phone || null,
-      email: req.user.email || null,
-      wallet: req.user.wallet || { credits: 0 },
+     req.session.user = {
+      _id: user._id,
+      uid: user.uid,
+      username: user.username,
+      phone: user.phone,
+      email: user.email || null,
+      wallet: user.wallet || { credits: 0 },
     };
-
     delete req.session.phone;
     res.redirect("/dashboard");
   } catch (err) {
@@ -535,17 +539,17 @@ app.post("/verify-login", async (req, res) => {
 
     if (!user) {
       // 👇 User doesn't exist, redirect to set-username
-      return res.redirect("/set-username");
+      return res.redirect("/set-username"); 
     }
 
     // ✅ Existing user
     req.session.user = {
-      _id: req.user._id,
-      uid: req.user.uid,
-      username: req.user.username || null,
-      phone: req.user.phone || null,
-      email: req.user.email || null,
-      wallet: req.user.wallet || { credits: 0 },
+       _id: user._id,
+      uid: user.uid,
+      username: user.username || null,
+      phone:user.phone || null,
+      email: user.email || null,
+      wallet: user.wallet || { credits: 0 },
     };
 
     delete req.session.phone;
@@ -849,7 +853,7 @@ app.post("/subscribe/select", isAuthenticated, async (req, res) => {
   const selectedPlan = DUMMY_PLANS.find((p) => p.id === req.body.planId);
   if (!selectedPlan) return res.status(400).send("Invalid plan selected");
 
-  const user = await User.findById(req.user._id);
+  const user = await User.findById(req.session.user._id);
 
   user.subscription = {
     planId: selectedPlan.id,
@@ -869,7 +873,7 @@ app.post("/subscribe/select", isAuthenticated, async (req, res) => {
 });
 
 app.post("/subscribe/cancel", isAuthenticated, async (req, res) => {
-  const user = await User.findById(req.user._id);
+  const user = await User.findById(req.session.user._id);
 
   if (!user.subscription?.planId) {
     return res.status(400).send("No active subscription.");
@@ -891,7 +895,7 @@ app.post("/subscribe/cancel", isAuthenticated, async (req, res) => {
 });
 
 app.get("/newprofile", isAuthenticated, async (req, res) => {
-  const user = await User.findById(req.user._id); // req.user is set via session/passport
+  const user = await User.findById(req.session.user._id); // req.user is set via session/passport
   res.render("newprofile", { user, messages: req.flash() });
 });
 
@@ -1045,7 +1049,7 @@ app.get("/profile", isAuthenticated, async (req, res) => {
   try {
     const userId = req.session.user;
 
-    const user = await User.findById(req.session.user).populate("parcels");
+    const user = await User.findById(req.session.user._id).populate("parcels");
     const allLockers = await Locker.find({
       "compartments.bookingInfo.userId": userId,
     });
@@ -1627,7 +1631,7 @@ app.get("/user/dropoff", async (req, res) => {
 });
 app.post("/user/dropoff", async (req, res) => {
   const userId = req.session.userId;
-  const user = await User.findById(req.session.userId);
+  const user = await User.findById(req.session.user._id);
   if (!userId) {
     req.flash("error", "Session expired. Please login again.");
     return res.redirect("/login");
