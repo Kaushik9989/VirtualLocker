@@ -147,8 +147,9 @@ passport.use(
     {
       clientID:
         "587834679125-34p3obvnjoa9o8qsa4asgrgubneh5atg.apps.googleusercontent.com", // from Google Cloud
-      clientSecret: "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", // from Google Cloud
-      callbackURL: "https://virtuallocker.onrender.com/auth/google/callback",
+      clientSecret: "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",  // from Google Cloud
+      callbackURL: process.env.GOOGLE_CALLBACK_URL,
+      // callbackURL: "https://virtuallocker.onrender.com/auth/google/callback",
       // callbackURL:"http://localhost:8080/auth/google/callback",
     },
     async (accessToken, refreshToken, profile, done) => {

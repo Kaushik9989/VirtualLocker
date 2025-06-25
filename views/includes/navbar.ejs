@@ -183,7 +183,7 @@
 
       <!-- User Dropdown -->
       <div class="dropdown">
-        <button class="btn btn-link p-1 dropdown-toggle-no-arrow" data-bs-toggle="dropdown">
+       <a href="/account" style="color: white; text-decoration: none;"> <button class="btn btn-link p-1" >
           <div class="user-avatar rounded-circle overflow-hidden">
             <div
               class="avatar-placeholder bg-primary text-white d-flex align-items-center justify-content-center rounded-circle"
@@ -191,20 +191,8 @@
               <%= user?.username ? user.username.charAt(0).toUpperCase() : 'U' %>
             </div>
           </div>
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end">
-          <li class="dropdown-header">
-            <div class="fw-semibold">
-              <%= user?.username || 'User' %>
-            </div>
-          </li>
-          <li><hr class="dropdown-divider"></li>
-          <li><a class="dropdown-item" href="/users/account"><i class="bi bi-gear me-2"></i>Settings</a></li>
-          <li><a class="dropdown-item" href="/users/profile"><i class="bi bi-person me-2"></i>Profile</a></li>
-          <li><a class="dropdown-item" href="/users/billing"><i class="bi bi-credit-card me-2"></i>Billing</a></li>
-          <li><hr class="dropdown-divider"></li>
-          <li><a class="dropdown-item" href="/auth/logout"><i class="bi bi-box-arrow-right me-2"></i>Sign Out</a></li>
-        </ul>
+        </button></a>
+    
       </div>
 
       <!-- Sidebar Toggle -->
