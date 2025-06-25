@@ -235,17 +235,20 @@ app.get("/home", (req, res) => {
 });
 app.get("/dashboard", isAuthenticated, async (req, res) => {
   if (!req.session.user) {
-    return res.redirect("/login"); // or /register
+    return res.redirect("/login");
   }
+
   try {
-    const user = await User.findById(req.session.userId).lean();
+    const user = await User.findById(req.session.user?._id || req.session.userId).lean();
+    if (!user) return res.redirect("/login");
+
     const lockersRaw = await Locker.find({});
-    const userPhone = req.user?.phone;
-    const userName = req.user?.username;
+    const userPhone = user.phone;
+    const userName = user.username;
 
     const incomingParcels = await Parcel1.find({
       receiverPhone: userPhone,
-      status: { $in: ["awaiting_drop", "sent", "delivered"] }, // customize statuses
+      status: { $in: ["awaiting_drop", "sent", "delivered"] },
     }).sort({ createdAt: -1 });
 
     const lockers = lockersRaw.map((locker) => ({
@@ -255,7 +258,7 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
     }));
 
     res.render("newDashboard", {
-      user: req.session.user,
+      user,              // ✅ full user object including wallet
       lockers,
       activePage: "home",
       incomingParcels,
@@ -266,6 +269,7 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
+
 
 // -------------------------------------------GOOGLE LOGIN ROUTES---------------------------------------------------
 
@@ -280,7 +284,14 @@ app.get(
   passport.authenticate("google", { failureRedirect: "/login" }),
   (req, res) => {
     // Successful auth
-    req.session.userId = req.user._id; // so your session-based auth also works
+    req.session.user = {
+  _id: req.user._id,
+  uid: req.user.uid,
+  username: req.user.username || null,
+  phone: req.user.phone || null,
+  email: req.user.email || null,
+  wallet: req.user.wallet || { credits: 0 },
+}; // so your session-based auth also works
     res.redirect("/dashboard");
   }
 );
@@ -563,7 +574,7 @@ app.post("/set-username", async (req, res) => {
 
     delete req.session.phone;
     res.redirect("/dashboard");
-  } catch (err) {s
+  } catch (err) {
     res.render("set-username", {
       error: "❌ Failed to save user.",
     });
