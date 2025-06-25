@@ -29,15 +29,11 @@ const MONGO_URI =
 const QRCode = require("qrcode");
 require("dotenv").config();
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
-const {sendOTP} = require("./twilio.js");
+const { sendOTP } = require("./twilio.js");
 const locker = require("./models/locker.js");
 
 require("dotenv").config();
-const twilio = require("twilio");
-const client = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-);
+
 //const { client, serviceSid } = require("./twilio");
 
 // const razorpay = new Razorpay({
@@ -53,7 +49,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
-app.use(express.static('public'));
+app.use(express.static("public"));
 
 mongoose
   .connect(MONGO_URI)
@@ -147,7 +143,7 @@ passport.use(
     {
       clientID:
         "587834679125-34p3obvnjoa9o8qsa4asgrgubneh5atg.apps.googleusercontent.com", // from Google Cloud
-      clientSecret: "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",  // from Google Cloud
+      clientSecret: "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", // from Google Cloud
       callbackURL: process.env.GOOGLE_CALLBACK_URL,
       // callbackURL: "https://virtuallocker.onrender.com/auth/google/callback",
       // callbackURL:"http://localhost:8080/auth/google/callback",
@@ -171,94 +167,100 @@ app.get("/", (req, res) => {
   res.redirect("/dashboard");
 });
 
-app.get("/sendParcel",async(req,res)=>{
+app.get("/sendParcel", async (req, res) => {
   const user = await User.findById(req.session.userId);
   const bookedParcels = await Parcel1.find({
     senderId: user,
     status: { $in: ["awaiting_drop", "awaiting_payment", "sent", "delivered"] },
   }).sort({ createdAt: -1 });
-  res.render("sendParcel",{
+  res.render("sendParcel", {
     user: req.session.user,
     bookedParcels,
   });
-  
-})
-
-app.get("/locations", isAuthenticated, async(req, res) => {
-   const lockersRaw = await Locker.find({});
-    const locations = await DropLocation.find({ status: 'active' });
-
-    // Optional: calculate distance on backend (if user location is available)
-    // Or attach dummy `distance` & rating temporarily
-    const enrichedLocations = locations.map(loc => ({
-      ...loc.toObject(),
-      distance: Math.floor(Math.random() * 20) + 1,  // dummy distance
-      rating: (Math.random() * 2 + 3).toFixed(1),     // dummy rating 3.0–5.0
-    }));
-    const lockers = lockersRaw.map((locker) => ({
-      lockerId: locker.lockerId,  
-      compartments: locker.compartments,
-      location: locker.location || { lat: null, lng: null, address: "" },
-    }));
-  res.render("locations", {lockers,
-    activePage: "locations",
-    locations: enrichedLocations
-  });
-
 });
-app.get("/receive",(req,res)=>{
 
+app.get("/locations", isAuthenticated, async (req, res) => {
+  const lockersRaw = await Locker.find({});
+  const locations = await DropLocation.find({ status: "active" });
 
-res.render("recieve", {
-  activePage: "receive",
-  parcels: [
-    {
-      from: "Mike Chen",
-      desc: "Birthday gift package",
-      location: "Downtown Mall",
-      date: "368d ago",
-      code: "DP–4F8K–9X2M",
-      status: "ready"
-    },
-    {
-      from: "Amazon",
-      desc: "Electronics order #12345",
-      location: "University Campus",
-      date: "370d ago",
-      status: "delivered"
-    }
-  ]
-});});
+  // Optional: calculate distance on backend (if user location is available)
+  // Or attach dummy `distance` & rating temporarily
+  const enrichedLocations = locations.map((loc) => ({
+    ...loc.toObject(),
+    distance: Math.floor(Math.random() * 20) + 1, // dummy distance
+    rating: (Math.random() * 2 + 3).toFixed(1), // dummy rating 3.0–5.0
+  }));
+  const lockers = lockersRaw.map((locker) => ({
+    lockerId: locker.lockerId,
+    compartments: locker.compartments,
+    location: locker.location || { lat: null, lng: null, address: "" },
+  }));
+  res.render("locations", {
+    lockers,
+    activePage: "locations",
+    locations: enrichedLocations,
+  });
+});
+app.get("/receive", (req, res) => {
+  res.render("recieve", {
+    activePage: "receive",
+    parcels: [
+      {
+        from: "Mike Chen",
+        desc: "Birthday gift package",
+        location: "Downtown Mall",
+        date: "368d ago",
+        code: "DP–4F8K–9X2M",
+        status: "ready",
+      },
+      {
+        from: "Amazon",
+        desc: "Electronics order #12345",
+        location: "University Campus",
+        date: "370d ago",
+        status: "delivered",
+      },
+    ],
+  });
+});
 
-app.get("/account",async(req,res)=>{
-   const user = await User.findById(req.session.userId);
-  res.render("account",{user, activePage : "account"});
-})
+app.get("/account", async (req, res) => {
+  const user = await User.findById(req.session.user);
+  res.render("account", { user, activePage: "account" });
+});
 //-------------------------------------USER DASHBOARD ------------------------------------------
 app.get("/home", (req, res) => {
   if (req.isAuthenticated()) return res.render("LandingPage");
   res.redirect("/login");
 });
 app.get("/dashboard", isAuthenticated, async (req, res) => {
+  if (!req.session.user) {
+    return res.redirect("/login"); // or /register
+  }
   try {
-     const user = await User.findById(req.session.userId).lean();
+    const user = await User.findById(req.session.userId).lean();
     const lockersRaw = await Locker.find({});
     const userPhone = req.user?.phone;
-  const userName = req.user?.username;
+    const userName = req.user?.username;
 
-  const incomingParcels = await Parcel1.find({
-    receiverPhone: userPhone,
-    status: { $in: ["awaiting_drop", "sent", "delivered"] }, // customize statuses
-  }).sort({ createdAt: -1 });
-
+    const incomingParcels = await Parcel1.find({
+      receiverPhone: userPhone,
+      status: { $in: ["awaiting_drop", "sent", "delivered"] }, // customize statuses
+    }).sort({ createdAt: -1 });
 
     const lockers = lockersRaw.map((locker) => ({
-      lockerId: locker.lockerId,  
+      lockerId: locker.lockerId,
       compartments: locker.compartments,
       location: locker.location || { lat: null, lng: null, address: "" },
     }));
 
-    res.render("newDashboard", { user, lockers ,activePage:"home", incomingParcels, userName});
+    res.render("newDashboard", {
+      user: req.session.user,
+      lockers,
+      activePage: "home",
+      incomingParcels,
+      userName,
+    });
   } catch (err) {
     console.error("Error loading dashboard:", err);
     res.status(500).send("Internal Server Error");
@@ -337,37 +339,73 @@ app.get("/logout", (req, res) => {
 // -------------------------------------------LOGIN VIA OTP ROUTES---------------------------------------------------
 // REGISTER VIA OTP
 
+// Dependencies
+const twilio = require("twilio");
+const client = twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
+
+// Step 1: Phone Registration - Send OTP via Twilio Verify
 app.post("/register-phone", async (req, res) => {
   const { phone } = req.body;
-  const otp = Math.floor(100000 + Math.random() * 900000); // 6-digit OTP
-
   req.session.phone = phone;
-  req.session.otp = otp;
 
   try {
-    await client.messages.create({
-      body: `Your verification code is ${otp}`,
-      from: process.env.TWILIO_PHONE_NUMBER,
-      to: `+91${phone}`
-    });
+    await client.verify.v2
+      .services(process.env.TWILIO_VERIFY_SERVICE_SID)
+      .verifications.create({
+        to: `+91${phone}`,
+        channel: "sms",
+      });
+    console.log(`OTP sent to +91${phone}`);
     res.redirect("/verify");
   } catch (err) {
-    console.error(err.message);
-    res.render("register", { error: "Failed to send OTP. Check phone number." });
+    console.error("Twilio Verify Error:", err.message);
+    res.render("register", {
+      error: "❌ Failed to send OTP. Check number and try again.",
+    });
   }
 });
 
+// Step 2: OTP Verification Page
 app.get("/verify", (req, res) => {
+  if (!req.session.phone) return res.redirect("/register");
   res.render("verify", { error: null });
 });
 
-app.post("/verify", (req, res) => {
+// Step 3: Check OTP with Twilio Verify
+app.post("/verify", async (req, res) => {
   const { otp } = req.body;
+  const phone = req.session.phone;
 
-  if (otp === String(req.session.otp)) {
-     return res.redirect("/set-username");
-  } else {
-    return res.render("verify", { error: "❌ Incorrect OTP. Try again." });
+  try {
+    const verification = await client.verify.v2
+      .services(process.env.TWILIO_VERIFY_SERVICE_SID)
+      .verificationChecks.create({
+        to: `+91${phone}`,
+        code: otp,
+      });
+
+    if (verification.status === "approved") {
+      const existingUser = await User.findOne({ phone });
+      if (existingUser) {
+        // Already registered, log them in
+        req.session.user = {
+          _id: existingUser._id,
+          uid: existingUser.uid,
+          phone: existingUser.phone,
+          username: existingUser.username,
+        };
+        delete req.session.phone;
+        return res.redirect("/dashboard");
+      }
+
+      // New user - move to username setup
+      return res.redirect("/set-username");
+    } else {
+      res.render("verify", { error: "❌ Incorrect OTP. Try again." });
+    }
+  } catch (err) {
+    console.error("OTP Verification Error:", err.message);
+    res.render("verify", { error: "❌ Could not verify OTP. Try again." });
   }
 });
 
@@ -380,67 +418,69 @@ app.post("/set-username", async (req, res) => {
   const { username } = req.body;
   const phone = req.session.phone;
 
-  if (!phone) {
-    return res.redirect("/register");
-  }
-
   try {
-    // Create new user
+    const existingUsername = await User.findOne({ username });
+    if (existingUsername) {
+      return res.render("set-username", {
+        error: "❌ Username already taken.",
+      });
+    }
+
     const user = new User({
       phone,
       username,
-      uid: "user_" + Math.random().toString(36).substr(2, 9), // generate UID
+      isPhoneVerified: true,
+      uid: "user_" + Math.random().toString(36).substr(2, 9),
     });
 
     await user.save();
 
-    // Store in session manually (no Passport)
     req.session.user = {
       _id: user._id,
-      uid: user.uid,
-      phone: user.phone,
-      username: user.username,
+      uid: user.uid || null,
+      username: user.username || null,
+      phone: user.phone || null,
+      email: user.email || null,
+      wallet: {
+        credits: user.wallet?.credits || 0,
+      },
     };
 
-    // Clear temporary session data
     delete req.session.phone;
-    delete req.session.otp;
-
     res.redirect("/dashboard");
   } catch (err) {
-    console.error("Error saving user:", err);
+    console.error("User Save Error:", err.message);
     res.render("set-username", {
-      error: "❌ Failed to save user. Username or phone may already exist.",
+      error: "❌ Failed to save user. Try again.",
     });
   }
 });
 
-
 app.post("/otpLogin", async (req, res) => {
   const { phone } = req.body;
-  const user = await User.findOne({ phone });
 
+  const user = await User.findOne({ phone });
   if (!user) {
     return res.render("login", { error: "❌ Phone number not registered." });
   }
 
-  const otp = Math.floor(100000 + Math.random() * 900000);
-  req.session.loginOtp = otp;
   req.session.loginPhone = phone;
 
   try {
-    await client.messages.create({
-      body: `Your login OTP is: ${otp}`,
-      from: process.env.TWILIO_PHONE_NUMBER,
-      to: `+91${phone}`,
-    });
+    await client.verify.v2.services(process.env.TWILIO_VERIFY_SERVICE_SID)
+      .verifications.create({
+        to: `+91${phone}`,
+        channel: "sms",
+      });
 
+    console.log("🔐 OTP sent to +91" + phone);
     res.redirect("/verify-login");
   } catch (err) {
-    console.error("OTP sending failed:", err);
+    console.error("OTP sending error:", err.message);
     res.render("login", { error: "❌ Failed to send OTP. Try again." });
   }
 });
+
 
 app.get("/verify-login", (req, res) => {
   if (!req.session.loginPhone) return res.redirect("/login");
@@ -451,42 +491,51 @@ app.post("/verify-login", async (req, res) => {
   const { otp } = req.body;
   const phone = req.session.loginPhone;
 
-  if (!phone || otp !== String(req.session.loginOtp)) {
-    return res.render("verify-login", { error: "❌ Invalid OTP. Try again." });
-  }
+  if (!phone) return res.redirect("/login");
 
   try {
-    const user = await User.findOne({ phone });
+    const verificationCheck = await client.verify.v2.services(process.env.TWILIO_VERIFY_SERVICE_SID)
+      .verificationChecks.create({
+        to: `+91${phone}`,
+        code: otp,
+      });
 
-    if (!user) {
-      return res.redirect("/register");
+    if (verificationCheck.status !== "approved") {
+      return res.render("verify-login", { error: "❌ Incorrect OTP. Try again." });
     }
 
-    // Save user in session
+    const user = await User.findOne({ phone });
+    if (!user) return res.redirect("/register");
+
+    // ✅ Store full session object
     req.session.user = {
       _id: user._id,
-      username: user.username,
-      phone: user.phone,
+      uid: user.uid || null,
+      phone: user.phone || null,
+      username: user.username || null,
+      email: user.email || null,
+      wallet: {
+        credits: user.wallet?.credits || 0
+      }
     };
 
-     req.user = req.session.user;
-    req.session.userId = req.session.user;
-
-
-    // Clean up
-    delete req.session.loginOtp;
     delete req.session.loginPhone;
-
     res.redirect("/dashboard");
+
   } catch (err) {
-    console.error("Login failed:", err);
-    res.render("verify-login", { error: "❌ Something went wrong." });
+    console.error("OTP verification failed:", err.message);
+    res.render("verify-login", { error: "❌ Verification failed. Try again." });
   }
 });
 
 
+app.get("/dashboard", (req, res) => {
+  if (!req.session.user) {
+    return res.redirect("/login"); // or /register
+  }
 
-
+  res.render("newDashboard", { user: req.session.user }); // ✅ fixed
+});
 // =------------------------------------------------CREDIT WALLET SECTION--------------------------------------------------\\
 // GET: View wallet
 app.get("/:id/credits", async (req, res) => {
@@ -529,7 +578,6 @@ app.get("/map", async (req, res) => {
     res.status(500).send("Failed to load lockers.");
   }
 });
-
 
 /// updated locker flow
 
@@ -577,12 +625,17 @@ app.post("/send/step3", isAuthenticated, async (req, res) => {
     unlockUrl,
     qrImage,
     cost,
-    status: draft.paymentOption === "receiver_pays" ? "awaiting_payment" : "awaiting_drop",
-    paymentStatus: draft.paymentOption === "receiver_pays" ? "pending" : "completed",
+    status:
+      draft.paymentOption === "receiver_pays"
+        ? "awaiting_payment"
+        : "awaiting_drop",
+    paymentStatus:
+      draft.paymentOption === "receiver_pays" ? "pending" : "completed",
     droppedAt: draft.paymentOption === "sender_pays" ? new Date() : null,
-    expiresAt: draft.paymentOption === "receiver_pays"
-      ? new Date(Date.now() + 2 * 60 * 60 * 1000) // 2 hours to pay
-      : new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days to drop
+    expiresAt:
+      draft.paymentOption === "receiver_pays"
+        ? new Date(Date.now() + 2 * 60 * 60 * 1000) // 2 hours to pay
+        : new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days to drop
   });
 
   await parcel.save();
@@ -590,7 +643,9 @@ app.post("/send/step3", isAuthenticated, async (req, res) => {
 
   if (draft.paymentOption === "receiver_pays") {
     // Send receiver payment link via SMS
-    const link = `${req.protocol}://${req.get("host")}/payment/receiver/${parcel._id}`;
+    const link = `${req.protocol}://${req.get("host")}/payment/receiver/${
+      parcel._id
+    }`;
 
     return res.render("parcel/waiting-payment", { parcel });
   }
@@ -625,7 +680,6 @@ app.get("/parcel/:id/success", isAuthenticated, async (req, res) => {
   res.render("parcel/success", { parcel });
 });
 
-
 function getEstimatedCost(size) {
   if (size === "small") return 10;
   if (size === "medium") return 20;
@@ -639,7 +693,7 @@ app.get("/parcel/:id/success", isAuthenticated, async (req, res) => {
   // Prepare location for sharing if needed
   parcel.location = {
     lat: 20.5937, // fallback India center or locker zone
-    lng: 78.9629
+    lng: 78.9629,
   };
 
   res.render("parcel/success", { parcel });
@@ -648,7 +702,10 @@ app.get("/parcel/:id/success", isAuthenticated, async (req, res) => {
 /// unlock route
 
 app.get("/drop/:accessCode", async (req, res) => {
-  const parcel = await Parcel1.findOne({ accessCode: req.params.accessCode, status: 'awaiting_drop' });
+  const parcel = await Parcel1.findOne({
+    accessCode: req.params.accessCode,
+    status: "awaiting_drop",
+  });
 
   if (!parcel) return res.status(404).send("Invalid or expired QR");
 
@@ -656,7 +713,7 @@ app.get("/drop/:accessCode", async (req, res) => {
   const locker = await Locker1.findOne({
     size: parcel.size,
     isLocked: false,
-    status: 'available'
+    status: "available",
   });
 
   if (!locker) {
@@ -676,12 +733,9 @@ app.get("/drop/:accessCode", async (req, res) => {
   res.send("✅ Locker opened! Place your parcel inside.");
 });
 
-
-
-
-app.get("/adminDash",(req,res)=>{
+app.get("/adminDash", (req, res) => {
   res.render("adminUpdated/dashboard");
-})
+});
 
 app.get("/admnDash", isAdmin, async (req, res) => {
   const apiKeys = await ApiKey.find();
@@ -696,21 +750,24 @@ const DUMMY_PLANS = [
     name: "Basic Plan",
     price: 49,
     credits: 50,
-    description: "Perfect for occasional users. Get 50 locker credits for light usage."
+    description:
+      "Perfect for occasional users. Get 50 locker credits for light usage.",
   },
   {
     id: "pro",
     name: "Pro Plan",
     price: 99,
     credits: 150,
-    description: "Great for regular users. Includes 150 credits at a discounted rate."
+    description:
+      "Great for regular users. Includes 150 credits at a discounted rate.",
   },
   {
     id: "elite",
     name: "Elite Plan",
     price: 449,
     credits: 500,
-    description: "Best for businesses or heavy users. Unlock maximum value with 500 credits."
+    description:
+      "Best for businesses or heavy users. Unlock maximum value with 500 credits.",
   },
 ];
 
@@ -718,9 +775,8 @@ app.get("/plans", isAuthenticated, (req, res) => {
   res.render("subscription/plans", { plans: DUMMY_PLANS });
 });
 
-
 app.post("/subscribe/select", isAuthenticated, async (req, res) => {
-  const selectedPlan = DUMMY_PLANS.find(p => p.id === req.body.planId);
+  const selectedPlan = DUMMY_PLANS.find((p) => p.id === req.body.planId);
   if (!selectedPlan) return res.status(400).send("Invalid plan selected");
 
   const user = await User.findById(req.user._id);
@@ -738,13 +794,13 @@ app.post("/subscribe/select", isAuthenticated, async (req, res) => {
   user.wallet.credits += selectedPlan.credits;
 
   await user.save();
-  req.flash("success","Subscription added Successfully!");
+  req.flash("success", "Subscription added Successfully!");
   res.redirect("/dashboard");
 });
 
 app.post("/subscribe/cancel", isAuthenticated, async (req, res) => {
-  const user = await User.findById(req.user._id); 
-  
+  const user = await User.findById(req.user._id);
+
   if (!user.subscription?.planId) {
     return res.status(400).send("No active subscription.");
   }
@@ -756,25 +812,18 @@ app.post("/subscribe/cancel", isAuthenticated, async (req, res) => {
     currentPeriodStart: null,
     currentPeriodEnd: null,
     cancelAtPeriodEnd: false,
-    stripeSubscriptionId: null
+    stripeSubscriptionId: null,
   };
 
   await user.save();
   req.flash("success", "Your subscription has been cancelled.");
-res.redirect("/dashboard");
-
+  res.redirect("/dashboard");
 });
-
-
-
-
-
 
 app.get("/newprofile", isAuthenticated, async (req, res) => {
   const user = await User.findById(req.user._id); // req.user is set via session/passport
   res.render("newprofile", { user, messages: req.flash() });
 });
-
 
 app.post("/newprofile", isAuthenticated, async (req, res) => {
   const { username, email } = req.body;
@@ -793,10 +842,6 @@ app.post("/newprofile", isAuthenticated, async (req, res) => {
     res.redirect("/newprofile");
   }
 });
-
-
-
-
 
 //// NEW LOCKER ROUTES
 
@@ -817,7 +862,7 @@ app.post("/send/step1", isAuthenticated, async (req, res) => {
       type: req.body.type,
       size: req.body.size,
       lockerId: req.body.lockerId,
-      lockerBoxId : locker.lockerBoxId,  
+      lockerBoxId: locker.lockerBoxId,
       location_id: req.body.location_id,
       cost: locker.pricePerHour.toString(), // ✅ now defined
     };
@@ -838,7 +883,7 @@ app.post("/send/step2", isAuthenticated, (req, res) => {
 });
 
 app.get("/send/step3", isAuthenticated, (req, res) => {
-    if (!req.session.parcelDraft) return res.redirect("/send/step1");
+  if (!req.session.parcelDraft) return res.redirect("/send/step1");
   res.render("parcel/step3", { draft: req.session.parcelDraft });
 });
 
@@ -1005,7 +1050,6 @@ app.post("/user/book", async (req, res) => {
     comp.bookingInfo = {
       userId,
       bookingTime: new Date(),
-
 
       otp: Math.floor(1000 + Math.random() * 9000).toString(),
     };
