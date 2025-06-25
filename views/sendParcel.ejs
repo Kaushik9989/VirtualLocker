@@ -183,7 +183,7 @@
                   </div>
                   <div class="small text-muted">
                     Status: <%= parcel.status.replace("_", " " ) %><br />
-                      Expires: <%= new Date(parcel.expiresAt).toLocaleString("en-IN") %>
+                      Expires: <%= new Date(parcel.expiresAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) %>
                   </div>
                 </div>
                 <i class="fas fa-chevron-right text-primary"></i>
