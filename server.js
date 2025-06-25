@@ -459,75 +459,116 @@ app.post("/set-username", async (req, res) => {
 app.post("/otpLogin", async (req, res) => {
   const { phone } = req.body;
 
+  // Check if user exists
   const user = await User.findOne({ phone });
-  if (!user) {
-    return res.render("login", { error: "❌ Phone number not registered." });
-  }
 
-  req.session.loginPhone = phone;
+  req.session.phone = phone;
 
+  // Send OTP using Twilio Verify
   try {
-    await client.verify.v2.services(process.env.TWILIO_VERIFY_SERVICE_SID)
+    await client.verify.v2
+      .services(process.env.TWILIO_VERIFY_SERVICE_SID)
       .verifications.create({
         to: `+91${phone}`,
         channel: "sms",
       });
 
-    console.log("🔐 OTP sent to +91" + phone);
+    // If user exists, go to OTP verify page
+    // If user doesn't exist, also go to OTP verify (we'll handle the check after OTP)
     res.redirect("/verify-login");
   } catch (err) {
-    console.error("OTP sending error:", err.message);
+    console.error("OTP send error:", err.message);
     res.render("login", { error: "❌ Failed to send OTP. Try again." });
   }
 });
 
 
 app.get("/verify-login", (req, res) => {
-  if (!req.session.loginPhone) return res.redirect("/login");
+  if (!req.session.phone) return res.redirect("/login");
   res.render("verify-login", { error: null });
 });
 
 app.post("/verify-login", async (req, res) => {
   const { otp } = req.body;
-  const phone = req.session.loginPhone;
-
-  if (!phone) return res.redirect("/login");
+  const phone = req.session.phone;
 
   try {
-    const verificationCheck = await client.verify.v2.services(process.env.TWILIO_VERIFY_SERVICE_SID)
+    const verificationCheck = await client.verify.v2
+      .services(process.env.TWILIO_VERIFY_SERVICE_SID)
       .verificationChecks.create({
         to: `+91${phone}`,
         code: otp,
       });
 
     if (verificationCheck.status !== "approved") {
-      return res.render("verify-login", { error: "❌ Incorrect OTP. Try again." });
+      return res.render("verify-login", { error: "❌ Invalid OTP. Try again." });
     }
 
-    const user = await User.findOne({ phone });
-    if (!user) return res.redirect("/register");
+    let user = await User.findOne({ phone });
 
-    // ✅ Store full session object
+    if (!user) {
+      // 👇 User doesn't exist, redirect to set-username
+      return res.redirect("/set-username");
+    }
+
+    // ✅ Existing user
     req.session.user = {
       _id: user._id,
-      uid: user.uid || null,
-      phone: user.phone || null,
-      username: user.username || null,
+      username: user.username,
+      phone: user.phone,
+      wallet: user.wallet || { credits: 0 },
       email: user.email || null,
-      wallet: {
-        credits: user.wallet?.credits || 0
-      }
     };
 
-    delete req.session.loginPhone;
+    delete req.session.phone;
     res.redirect("/dashboard");
-
   } catch (err) {
-    console.error("OTP verification failed:", err.message);
-    res.render("verify-login", { error: "❌ Verification failed. Try again." });
+    console.error("OTP Verify Error:", err.message);
+    res.render("verify-login", { error: "❌ OTP verification failed." });
   }
 });
 
+app.get("/set-username", (req, res) => {
+  if (!req.session.phone) return res.redirect("/login");
+  res.render("set-username", { error: null });
+});
+
+app.post("/set-username", async (req, res) => {
+  const { username } = req.body;
+  const phone = req.session.phone;
+
+  try {
+    const existingUsername = await User.findOne({ username });
+    if (existingUsername) {
+      return res.render("set-username", {
+        error: "❌ Username already taken.",
+      });
+    }
+
+    const user = new User({
+      phone,
+      username,
+      isPhoneVerified: true,
+    });
+
+    await user.save();
+
+    req.session.user = {
+      _id: user._id,
+      username: user.username,
+      phone: user.phone,
+      wallet: user.wallet || { credits: 0 },
+      email: user.email || null,
+    };
+
+    delete req.session.phone;
+    res.redirect("/dashboard");
+  } catch (err) {s
+    res.render("set-username", {
+      error: "❌ Failed to save user.",
+    });
+  }
+});
 
 app.get("/dashboard", (req, res) => {
   if (!req.session.user) {
