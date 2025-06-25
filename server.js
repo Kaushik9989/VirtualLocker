@@ -80,9 +80,18 @@ app.use((req, res, next) => {
   };
   next();
 });
-
+app.use((req, res, next) => {
+  if (req.session.user) req.user = req.session.user;
+  next();
+});
 app.use((req, res, next) => {
   res.locals.user = req.session.user || null;
+  next();
+});
+app.use((req, res, next) => {
+  if (req.session.user) {
+    req.user = req.session.user;
+  }
   next();
 });
 
@@ -168,7 +177,7 @@ app.get("/", (req, res) => {
 });
 
 app.get("/sendParcel", async (req, res) => {
-  const user = await User.findById(req.session.userId);
+  const user = await User.findById(req.session.user);
   const bookedParcels = await Parcel1.find({
     senderId: user,
     status: { $in: ["awaiting_drop", "awaiting_payment", "sent", "delivered"] },
@@ -239,7 +248,9 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
   }
 
   try {
-    const user = await User.findById(req.session.user?._id || req.session.userId).lean();
+    const user = await User.findById(
+      req.session.user?._id || req.session.userId
+    ).lean();
     if (!user) return res.redirect("/login");
 
     const lockersRaw = await Locker.find({});
@@ -258,7 +269,7 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
     }));
 
     res.render("newDashboard", {
-      user,              // ✅ full user object including wallet
+      user, // ✅ full user object including wallet
       lockers,
       activePage: "home",
       incomingParcels,
@@ -269,7 +280,6 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
-
 
 // -------------------------------------------GOOGLE LOGIN ROUTES---------------------------------------------------
 
@@ -285,13 +295,13 @@ app.get(
   (req, res) => {
     // Successful auth
     req.session.user = {
-  _id: req.user._id,
-  uid: req.user.uid,
-  username: req.user.username || null,
-  phone: req.user.phone || null,
-  email: req.user.email || null,
-  wallet: req.user.wallet || { credits: 0 },
-}; // so your session-based auth also works
+      _id: req.user._id,
+      uid: req.user.uid,
+      username: req.user.username || null,
+      phone: req.user.phone || null,
+      email: req.user.email || null,
+      wallet: req.user.wallet || { credits: 0 },
+    }; // so your session-based auth also works
     res.redirect("/dashboard");
   }
 );
@@ -309,7 +319,7 @@ app.post("/auth/login", (req, res, next) => {
 
     req.logIn(user, (err) => {
       if (err) return next(err);
-      req.session.userId = user._id;
+      req.session.user = user._id;
 
       return res.redirect("/dashboard");
     });
@@ -345,6 +355,13 @@ app.post("/auth/register", async (req, res) => {
 app.get("/logout", (req, res) => {
   req.session.destroy();
   res.redirect("/");
+});
+
+app.use((req, res, next) => {
+  if (req.session.user) {
+    req.user = req.session.user;
+  }
+  next();
 });
 
 // -------------------------------------------LOGIN VIA OTP ROUTES---------------------------------------------------
@@ -447,14 +464,12 @@ app.post("/set-username", async (req, res) => {
     await user.save();
 
     req.session.user = {
-      _id: user._id,
-      uid: user.uid || null,
-      username: user.username || null,
-      phone: user.phone || null,
-      email: user.email || null,
-      wallet: {
-        credits: user.wallet?.credits || 0,
-      },
+      _id: req.user._id,
+      uid: req.user.uid,
+      username: req.user.username || null,
+      phone: req.user.phone || null,
+      email: req.user.email || null,
+      wallet: req.user.wallet || { credits: 0 },
     };
 
     delete req.session.phone;
@@ -493,7 +508,6 @@ app.post("/otpLogin", async (req, res) => {
   }
 });
 
-
 app.get("/verify-login", (req, res) => {
   if (!req.session.phone) return res.redirect("/login");
   res.render("verify-login", { error: null });
@@ -512,7 +526,9 @@ app.post("/verify-login", async (req, res) => {
       });
 
     if (verificationCheck.status !== "approved") {
-      return res.render("verify-login", { error: "❌ Invalid OTP. Try again." });
+      return res.render("verify-login", {
+        error: "❌ Invalid OTP. Try again.",
+      });
     }
 
     let user = await User.findOne({ phone });
@@ -524,11 +540,12 @@ app.post("/verify-login", async (req, res) => {
 
     // ✅ Existing user
     req.session.user = {
-      _id: user._id,
-      username: user.username,
-      phone: user.phone,
-      wallet: user.wallet || { credits: 0 },
-      email: user.email || null,
+      _id: req.user._id,
+      uid: req.user.uid,
+      username: req.user.username || null,
+      phone: req.user.phone || null,
+      email: req.user.email || null,
+      wallet: req.user.wallet || { credits: 0 },
     };
 
     delete req.session.phone;
@@ -566,10 +583,11 @@ app.post("/set-username", async (req, res) => {
 
     req.session.user = {
       _id: user._id,
-      username: user.username,
-      phone: user.phone,
-      wallet: user.wallet || { credits: 0 },
+      uid: user.uid,
+      username: user.username || null,
+      phone: user.phone || null,
       email: user.email || null,
+      wallet: user.wallet || { credits: 0 },
     };
 
     delete req.session.phone;
@@ -671,7 +689,7 @@ app.post("/send/step3", isAuthenticated, async (req, res) => {
   // For receiver_pays → wait for receiver to complete payment first
   const parcel = new Parcel1({
     ...draft,
-    senderId: req.user._id,
+    senderId:req.user._id,
     senderName: req.user.username,
     accessCode,
     unlockUrl,
@@ -1025,9 +1043,9 @@ app.get("/locker/directions/:lockerId/:compartmentId", async (req, res) => {
 });
 app.get("/profile", isAuthenticated, async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.session.user;
 
-    const user = await User.findById(req.session.userId).populate("parcels");
+    const user = await User.findById(req.session.user).populate("parcels");
     const allLockers = await Locker.find({
       "compartments.bookingInfo.userId": userId,
     });
@@ -1088,7 +1106,7 @@ app.get("/locker/:lockerId", async (req, res) => {
 
 app.post("/user/book", async (req, res) => {
   const { lockerId, compartmentId } = req.body;
-  const userId = req.session.userId; // Adjust to your auth logic
+  const userId = req.session.user; // Adjust to your auth logic
 
   try {
     const locker = await Locker.findById(lockerId);
@@ -1133,7 +1151,7 @@ app.post("/locker/book", isAuthenticated, async (req, res) => {
     compartment.isBooked = true;
     compartment.isLocked = true;
     compartment.bookingInfo = {
-      userId: req.session.userId,
+      userId: req.session.user,
       bookingTime: new Date(),
       otp,
     };
