@@ -41,12 +41,12 @@
       color: #065f46;
     }
 
-    .status-delivered {
+    .status-dropped {
       background-color: #e0f2fe;
       color: #0369a1;
     }
 
-    .status-urgent {
+    .status-pending {
       background-color: #fee2e2;
       color: #b91c1c;
     }
@@ -86,91 +86,89 @@
       border-radius: 50%;
     }
   </style>
+  <div class="gradient-card p-4 mb-4 d-flex justify-content-between align-items-center mt-5 mb-5">
+    <% if (messages.error && messages.error.length > 0) { %>
+  <div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <%= messages.error[0] %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+<% } %>
 
-
-  <!-- Flash Messages -->
-  <% if (messages.success && messages.success.length> 0) { %>
-    <div class="alert alert-success alert-dismissible fade show mt-5" role="alert">
-      <%= messages.success[0] %>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+<% if (messages.success && messages.success.length > 0) { %>
+  <div class="alert alert-success alert-dismissible fade show" role="alert">
+    <%= messages.success[0] %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+<% } %>
+    <div>
+      <h5>Welcome back, <%= user.username %></h5>
+      <p class="mb-0">You have <%= incomingParcels.length %> parcels waiting</p>
     </div>
-    <% } %>
-      <% if (messages.error && messages.error.length> 0) { %>
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-          <%= messages.error[0] %>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <h3 class="mb-0 fw-bold">
+      <%= user.wallet.credits %> <small style="font-size: 16px;">Credits</small>
+    </h3>
+  </div>
+
+  <div class="row text-center mb-4">
+    <div class="col-6">
+      <a href="/sendParcel" class="btn gradient-btn btn-send w-100">Send Parcel</a>
+    </div>
+    <div class="col-6">
+      <a href="/locations" class="btn gradient-btn btn-locate w-100">Find Locations</a>
+    </div>
+  </div>
+
+  <h5 class="mb-3">
+    Incoming Parcels
+    <span class="badge bg-secondary">
+      <%= incomingParcels.length %>
+    </span>
+  </h5>
+
+ <% if (incomingParcels.length > 0) { %>
+  <% incomingParcels.forEach(parcel => { %>
+    <div class="card shadow-sm mb-4 border-start rounded-3">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div>
+            <h6 class="fw-bold mb-1">
+              From: <%= parcel.senderName || "Unknown" %>
+            </h6>
+            <p class="mb-1 text-muted small">
+              <%= parcel.metadata?.description || "No description provided" %>
+            </p>
+            <div class="text-muted small">
+              <i class="fas fa-box me-1"></i>
+              <%= parcel.parcelType %> • <%= parcel.size %> • ₹<%= parcel.cost %>
+            </div>
+          </div>
+          <span class="badge text-bg-<%= parcel.status === 'dropped' ? 'success' : parcel.status === 'awaiting_drop' ? 'warning' : 'secondary' %> px-3 py-2 rounded-pill">
+            <%= parcel.status.charAt(0).toUpperCase() + parcel.status.slice(1).replace("_", " ") %>
+          </span>
         </div>
-        <% } %>
-          <!-- Welcome Card -->
-          <div class="gradient-card p-4 mb-4 d-flex justify-content-between align-items-center mt-5 mb-5">
-            <div>
-              <h5>Welcome back, <%= user.username %>
-              </h5>
-              <p class="mb-0">You have 2 parcels waiting</p>
-            </div>
-            <h3 class="mb-0 fw-bold">
-              <%=user.wallet.credits%> <small style="font-size: 16px;">Credits</small>
-            </h3>
-          </div>
 
-          <!-- Action Buttons -->
-          <div class="row text-center mb-4">
-            <div class="col-6">
-              <a href="/sendParcel" class="btn gradient-btn btn-send w-100">Send Parcel</a>
-            </div>
-            <div class="col-6">
-              <a href="/locations" class="btn gradient-btn btn-locate w-100">Find Locations</a>
-            </div>
-          </div>
+        <div class="d-flex justify-content-between align-items-center mt-3">
+          <span class="text-muted small">
+            Access Code: <strong><%= parcel.accessCode %></strong>
+          </span>
 
-          <!-- Incoming Parcels -->
-          <h5 class="mb-3">
-            Incoming Parcels
-            <span class="badge bg-secondary">
-              <%= incomingParcels.length %>
-            </span>
-          </h5>
+          <% if (parcel.status === "dropped") { %>
+            <a href="<%= parcel.qrCodeUrl %>" class="btn btn-sm btn-primary" target="_blank">
+              <i class="fas fa-qrcode me-1"></i> QR Code
+            </a>
+          <% } else { %>
+            <a href="/incoming/<%= parcel._id %>" class="btn btn-sm btn-outline-secondary">
+              <i class="fas fa-info-circle me-1"></i> Details
+            </a>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  <% }) %>
+<% } else { %>
+  <div class="text-center text-muted my-5">
+    <i class="fas fa-inbox fa-3x mb-3"></i>
+    <p class="mb-0">No incoming parcels found.</p>
+  </div>
+<% } %>
 
-          <% if (incomingParcels.length> 0) { %>
-            <% incomingParcels.forEach(parcel=> { %>
-              <div class="incoming-card p-3 mb-3">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                  <div>
-                    <strong>From: <%= parcel.senderName || "Unknown" %></strong>
-                    <p class="mb-0 text-muted">
-                      <%= parcel.description || "—" %>
-                    </p>
-                    <small class="text-muted">
-                      <i class="fas fa-map-marker-alt me-1"></i>
-                      <%= parcel.location_id?.name || "Unknown Location" %> •
-                        <%= Math.floor((Date.now() - new Date(parcel.createdAt)) / (1000 * 60 * 60 * 24)) %>d ago
-                    </small>
-                  </div>
-                  <span class="status-badge status-<%= parcel.status.replace(" _", "-" ) %>">
-                    <%= parcel.status.replace("_", " " ) %>
-                  </span>
-                </div>
-                <div class="d-flex justify-content-between align-items-center">
-                  <span class="text-muted">
-                    <%= parcel.accessCode %>
-                  </span>
-                  <% if (parcel.status==="awaiting_drop" ) { %>
-                    <a href="/parcel/<%= parcel._id %>/qr" class="btn btn-sm btn-primary">View QR</a>
-                    <% } else if (parcel.status==="delivered" ) { %>
-                      <a href="/parcel/<%= parcel._id %>/track" class="btn btn-sm btn-outline-primary">Track</a>
-                      <% } else { %>
-                        <a href="/parcel/<%= parcel._id %>/details" class="btn btn-sm btn-outline-secondary">Details</a>
-                        <% } %>
-                </div>
-              </div>
-              <% }) %>
-                <% } else { %>
-                  <div class="text-center text-muted">
-                    <i class="fas fa-inbox fa-2x mb-2"></i><br />
-                    No incoming parcels found.
-                  </div>
-                  <% } %>
-
-                    </div>
-
-                    <!-- Bottom Nav -->

@@ -17,6 +17,7 @@ const Parcel1 = require("./models/ParcelUpdated.js");
 const User = require("./models/User/UserUpdated.js");
 const Courier = require("./models/Courier.js");
 const Parcel = require("./models/Parcel");
+const incomingParcel = require('./models/incomingParcel.js');
 const app = express();
 const PORT = 8080;
 const Razorpay = require("razorpay");
@@ -31,7 +32,8 @@ require("dotenv").config();
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const { sendOTP } = require("./twilio.js");
 const locker = require("./models/locker.js");
-
+const compression = require("compression");
+app.use(compression());
 require("dotenv").config();
 
 //const { client, serviceSid } = require("./twilio");
@@ -112,13 +114,23 @@ passport.deserializeUser(async (id, done) => {
 });
 
 // MIDDLEWARES
-
+app.use((req, res, next) => {
+  console.log("🌐", req.method, req.originalUrl);
+  console.log("🔐 Session user:", req.session.user);
+  console.log("➡️ redirectTo in session:", req.session.redirectTo);
+  next();
+});
 function isAuthenticated(req, res, next) {
   if (req.session.user) {
     return next();
   }
- 
-  res.redirect("/login");
+    if (!req.session.redirectTo) {
+    console.log("Saving redirectTo:", req.originalUrl);
+    req.session.redirectTo = req.originalUrl;
+  }
+
+
+  return res.redirect("/login");
 }
 
 function isAdmin(req, res, next) {
@@ -181,7 +193,7 @@ app.get("/", (req, res) => {
   res.redirect("/dashboard");
 });
 
-app.get("/sendParcel", async (req, res) => {
+app.get("/sendParcel", isAuthenticated, async (req, res) => {
   const user = await User.findById(req.session.user._id);
   const bookedParcels = await Parcel1.find({
     senderId: user,
@@ -190,6 +202,7 @@ app.get("/sendParcel", async (req, res) => {
   res.render("sendParcel", {
     user: req.session.user,
     bookedParcels,
+    activePage : "send",
   });
 });
 
@@ -215,35 +228,37 @@ app.get("/locations", isAuthenticated, async (req, res) => {
     locations: enrichedLocations,
   });
 });
-app.get("/receive", (req, res) => {
-  res.render("recieve", {
-    activePage: "receive",
-    parcels: [
-      {
-        from: "Mike Chen",
-        desc: "Birthday gift package",
-        location: "Downtown Mall",
-        date: "368d ago",
-        code: "DP–4F8K–9X2M",
-        status: "ready",
-      },
-      {
-        from: "Amazon",
-        desc: "Electronics order #12345",
-        location: "University Campus",
-        date: "370d ago",
-        status: "delivered",
-      },
-    ],
-  });
-});
+app.get("/receive", isAuthenticated, async (req, res) => {
+  try {
+    const incomingParcels = await incomingParcel.find({ receiverPhone: req.user.phone }).sort({ createdAt: -1 });
 
-app.get("/account", async (req, res) => {
+    res.render("recieve", { parcels: incomingParcels });
+  } catch (error) {
+    console.error("Error fetching parcels:", error);
+    res.status(500).send("Server Error");
+  }
+});
+app.get("/account", isAuthenticated, async (req, res) => {
   const user = await User.findById(req.session.user._id);
   res.render("account", { user, activePage: "account" });
 });
+
+async function notifyUserOnLockerBooking( receiverName,receiverPhone,accessCode, timestamp) {
+  try {
+    const message = await client.messages.create({
+      messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID,
+      to: `+91${receiverPhone}`, // e.g. "+919876543210"
+       body: `📦 Hello ${receiverName}, a parcel has been sent to you via SmartLocker.\nAccess Code: ${accessCode}\nSent on: ${timestamp}`,
+     
+    });
+
+    console.log("📤 SMS sent:", message.sid);
+  } catch (err) {
+    console.error("❌ Failed to send SMS:", err.message);
+  }
+}
 //-------------------------------------USER DASHBOARD ------------------------------------------
-app.get("/home", (req, res) => {
+app.get("/home", isAuthenticated, (req, res) => {
   if (req.isAuthenticated()) return res.render("LandingPage");
   res.redirect("/login");
 });
@@ -255,15 +270,18 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
   try {
     const user = await User.findById(req.session.user._id).lean();
     if (!user) return res.redirect("/login");
+     if (!user.phone) {
+    req.flash("error", "⚠️ Please link your phone number to receive parcel updates.");
+  }
 
     const lockersRaw = await Locker.find({});
     const userPhone = user.phone;
     const userName = user.username;
 
-    const incomingParcels = await Parcel1.find({
+    
+     const incomingParcels = await incomingParcel.find({
       receiverPhone: userPhone,
-      status: { $in: ["awaiting_drop", "sent", "delivered"] },
-    }).sort({ createdAt: -1 });
+    }).sort({ createdAt: -1 }); 
 
     const lockers = lockersRaw.map((locker) => ({
       lockerId: locker.lockerId,
@@ -304,10 +322,87 @@ app.get(
       phone: req.user.phone,
       email: req.user.email,
       wallet: req.user.wallet || { credits: 0 },
-    };// so your session-based auth also works
-    res.redirect("/dashboard");
+       phone: req.user.phone || null,
+    };
+    const redirectTo = req.session.redirectTo || "/dashboard";
+    delete req.session.redirectTo;
+     
+    return res.redirect(redirectTo); // so your session-based auth also works 
   }
 );
+
+app.get("/link-phone",(req,res)=>{
+  res.render("link-phone",{error:null});
+})
+app.post("/link-phone", async (req, res) => {
+  const phone = req.body.phone;
+
+  // ❌ Check if this phone is already linked to *any* user
+  const existing = await User.findOne({ phone });
+  if (existing && String(existing._id) !== String(req.session.user._id)) {
+    return res.render("link-phone", { 
+      error: "❌ This phone number is already linked to another account." 
+    });
+  }
+
+  // ✅ Safe to send OTP
+  const otp = Math.floor(100000 + Math.random() * 900000);
+  req.session.linkOtp = otp;
+  req.session.linkPhone = phone;
+
+  try {
+    await client.verify.v2
+      .services(process.env.TWILIO_VERIFY_SERVICE_SID)
+      .verifications.create({
+        to: `+91${phone}`,
+        channel: "sms",
+      });
+    res.redirect("verify-link-phone");
+  } catch (err) {
+    console.error("Failed to send OTP:", err);
+    res.render("link-phone", { error: "❌ Could not send OTP. Try again." });
+  }
+});
+app.get("/verify-link-phone",(req,res)=>{
+  res.render("verify-link-phone",{error: null});
+})
+
+app.post("/verify-link-phone", async (req, res) => {
+  const { otp } = req.body;
+  const phone = req.session.linkPhone;
+
+  try {
+    const verificationCheck = await client.verify.v2
+      .services(process.env.TWILIO_VERIFY_SERVICE_SID)
+      .verificationChecks.create({
+        to: `+91${phone}`,
+        code: otp,
+      });
+
+    if (verificationCheck.status !== "approved") {
+      return res.render("verify-link-phone", { error: "❌ Invalid OTP." });
+    }
+
+    const user = await User.findById(req.session.user._id);
+    user.phone = phone;
+    user.isPhoneVerified = true;
+    await user.save();
+
+    // Update session
+    req.session.phone = phone;
+
+    delete req.session.linkPhone;
+
+    req.flash("success", "✅ Phone linked successfully.");
+    res.redirect("/send/step1");
+
+  } catch (err) {
+    console.error("Error linking phone:", err);
+    res.render("verify-link-phone", { error: "❌ Failed to verify. Try again." });
+  }
+});
+
+
 
 // -------------------------------------------LOGIN ROUTES---------------------------------------------------
 
@@ -419,7 +514,7 @@ app.post("/verify", async (req, res) => {
       const existingUser = await User.findOne({ phone });
       if (existingUser) {
         // Already registered, log them in
-       req.session.user = {
+        req.session.user = {
           _id: existingUser._id,
           uid: existingUser.uid,
           username: existingUser.username,
@@ -428,7 +523,10 @@ app.post("/verify", async (req, res) => {
           wallet: existingUser.wallet || { credits: 0 },
         };
         delete req.session.phone;
-        return res.redirect("/dashboard");
+        const redirectTo = req.session.redirectTo || "/dashboard";
+        delete req.session.redirectTo;
+
+        return res.redirect(redirectTo);
       }
 
       // New user - move to username setup
@@ -468,7 +566,7 @@ app.post("/set-username", async (req, res) => {
 
     await user.save();
 
-     req.session.user = {
+    req.session.user = {
       _id: user._id,
       uid: user.uid,
       username: user.username,
@@ -477,6 +575,9 @@ app.post("/set-username", async (req, res) => {
       wallet: user.wallet || { credits: 0 },
     };
     delete req.session.phone;
+    const redirectTo = req.session.redirectTo || "/dashboard";
+    delete req.session.redirectTo;
+
     res.redirect("/dashboard");
   } catch (err) {
     console.error("User Save Error:", err.message);
@@ -539,15 +640,15 @@ app.post("/verify-login", async (req, res) => {
 
     if (!user) {
       // 👇 User doesn't exist, redirect to set-username
-      return res.redirect("/set-username"); 
+      return res.redirect("/set-username");
     }
 
     // ✅ Existing user
     req.session.user = {
-       _id: user._id,
+      _id: user._id,
       uid: user.uid,
       username: user.username || null,
-      phone:user.phone || null,
+      phone: user.phone || null,
       email: user.email || null,
       wallet: user.wallet || { credits: 0 },
     };
@@ -603,16 +704,9 @@ app.post("/set-username", async (req, res) => {
   }
 });
 
-app.get("/dashboard", (req, res) => {
-  if (!req.session.user) {
-    return res.redirect("/login"); // or /register
-  }
-
-  res.render("newDashboard", { user: req.session.user }); // ✅ fixed
-});
 // =------------------------------------------------CREDIT WALLET SECTION--------------------------------------------------\\
 // GET: View wallet
-app.get("/:id/credits", async (req, res) => {
+app.get("/:id/credits", isAuthenticated, async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("wallet username");
     if (!user) return res.status(404).send("User not found");
@@ -623,7 +717,7 @@ app.get("/:id/credits", async (req, res) => {
 });
 
 // POST: Add credits
-app.post("/:id/credits/add", async (req, res) => {
+app.post("/:id/credits/add", isAuthenticated, async (req, res) => {
   try {
     const { amount } = req.body;
     const user = await User.findById(req.params.id);
@@ -656,7 +750,11 @@ app.get("/map", async (req, res) => {
 /// updated locker flow
 
 app.get("/send/step1", isAuthenticated, (req, res) => {
-  res.render("parcel/step1");
+   if (!req.session.phone) {
+    req.flash("error", "Please verify your phone number to continue sending a parcel.");
+    return res.redirect("/link-phone");
+  }
+  res.render("parcel/step1",{messages: req.flash(),});
 });
 
 app.post("/send/step1", isAuthenticated, (req, res) => {
@@ -684,49 +782,89 @@ app.get("/send/step3", isAuthenticated, (req, res) => {
 app.post("/send/step3", isAuthenticated, async (req, res) => {
   const draft = req.session.parcelDraft;
   draft.paymentOption = req.body.paymentOption;
+ const user = await User.findById(req.session.user._id);
   const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
   const unlockUrl = `${req.protocol}://${req.get("host")}/drop/${accessCode}`;
   const qrImage = await QRCode.toDataURL(unlockUrl);
   const cost = getEstimatedCost(draft.size);
 
-  // For sender_pays → drop allowed immediately
-  // For receiver_pays → wait for receiver to complete payment first
+  const status =
+    draft.paymentOption === "receiver_pays" ? "awaiting_payment" : "awaiting_drop";
+  const paymentStatus =
+    draft.paymentOption === "receiver_pays" ? "pending" : "completed";
+  const droppedAt = draft.paymentOption === "sender_pays" ? new Date() : null;
+  const expiresAt =
+    draft.paymentOption === "receiver_pays"
+      ? new Date(Date.now() + 2 * 60 * 60 * 1000)
+      : new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+
   const parcel = new Parcel1({
     ...draft,
-    senderId:req.user._id,
+    senderId: req.user._id,
     senderName: req.user.username,
     accessCode,
     unlockUrl,
     qrImage,
     cost,
-    status:
-      draft.paymentOption === "receiver_pays"
-        ? "awaiting_payment"
-        : "awaiting_drop",
-    paymentStatus:
-      draft.paymentOption === "receiver_pays" ? "pending" : "completed",
-    droppedAt: draft.paymentOption === "sender_pays" ? new Date() : null,
-    expiresAt:
-      draft.paymentOption === "receiver_pays"
-        ? new Date(Date.now() + 2 * 60 * 60 * 1000) // 2 hours to pay
-        : new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days to drop
+    status,
+    paymentStatus,
+    droppedAt,
+    expiresAt,
   });
 
   await parcel.save();
   delete req.session.parcelDraft;
 
-  if (draft.paymentOption === "receiver_pays") {
-    // Send receiver payment link via SMS
-    const link = `${req.protocol}://${req.get("host")}/payment/receiver/${
-      parcel._id
-    }`;
+  // ✅ Sync with IncomingParcel
+  const updated = await incomingParcel.findOneAndUpdate(
+    {
+      receiverPhone: parcel.receiverPhone,
+      status: "pending",
+    },
+    {
+      receiverName: parcel.receiverName,
+      parcelType: parcel.type,
+      size: parcel.size,
+      cost: parseFloat(parcel.cost.toString()),
+      accessCode: parcel.accessCode,
+      qrCodeUrl: parcel.qrImage,
+      status: "dropped",
+      lockerId: parcel.lockerId?.toString() || "",
+      "metadata.description": parcel.description || "",
+    },
+    { new: true }
+  );
 
+  // ✅ If no matching incoming parcel found, create new
+  if (!updated) {
+    await incomingParcel.create({
+      senderPhone: user.phone || "unknown", // fallback if not stored
+      receiverPhone: parcel.receiverPhone,
+      senderName : user.username,
+      receiverName: parcel.receiverName || "",
+      parcelType: parcel.type,
+      size: parcel.size,
+      cost: parseFloat(parcel.cost.toString()),
+      accessCode: parcel.accessCode,
+      qrCodeUrl: parcel.qrImage,
+      status: "dropped",
+      lockerId: parcel.lockerId?.toString() || "",
+      metadata: {
+        description: parcel.description || "",
+      },
+    });
+  }
+
+  // ✅ Payment redirection
+  if (draft.paymentOption === "receiver_pays") {
+    const link = `${req.protocol}://${req.get("host")}/payment/receiver/${parcel._id}`;
     return res.render("parcel/waiting-payment", { parcel });
   }
 
   res.redirect(`/parcel/${parcel._id}/success`);
 });
-app.post("/payment/receiver/:id/success", async (req, res) => {
+
+app.post("/payment/receiver/:id/success", isAuthenticated, async (req, res) => {
   const parcel = await Parcel1.findById(req.params.id);
   if (!parcel) return res.status(404).send("Parcel not found");
 
@@ -750,7 +888,7 @@ app.get("/parcel/:id/success", isAuthenticated, async (req, res) => {
     lat: 20.5937,
     lng: 78.9629,
   };
-
+  
   res.render("parcel/success", { parcel });
 });
 
@@ -769,13 +907,13 @@ app.get("/parcel/:id/success", isAuthenticated, async (req, res) => {
     lat: 20.5937, // fallback India center or locker zone
     lng: 78.9629,
   };
-
+   await notifyUserOnLockerBooking(parcel.receiverName,parcel.receiverPhone, parcel.accessCode, new Date().toLocaleString());
   res.render("parcel/success", { parcel });
 });
 
 /// unlock route
 
-app.get("/drop/:accessCode", async (req, res) => {
+app.get("/drop/:accessCode", isAuthenticated, async (req, res) => {
   const parcel = await Parcel1.findOne({
     accessCode: req.params.accessCode,
     status: "awaiting_drop",
@@ -1021,7 +1159,7 @@ app.get("/parcel/:id/success", isAuthenticated, async (req, res) => {
   }
 });
 
-app.get("/history", async (req, res) => {
+app.get("/history", isAuthenticated, async (req, res) => {
   try {
     const parcels = await Parcel1.find({ senderId: req.user._id })
       .sort({ createdAt: -1 })
@@ -1036,15 +1174,19 @@ app.get("/history", async (req, res) => {
 });
 
 // -------------------------------------------- USER FUNCTIONS ----------------------------------------------------
-app.get("/locker/directions/:lockerId/:compartmentId", async (req, res) => {
-  const { lockerId, compartmentId } = req.params;
-  const locker = await Locker.findOne({ lockerId });
+app.get(
+  "/locker/directions/:lockerId/:compartmentId",
+  isAuthenticated,
+  async (req, res) => {
+    const { lockerId, compartmentId } = req.params;
+    const locker = await Locker.findOne({ lockerId });
 
-  // For now just redirect to a dummy Google Maps link or custom UI
-  res.redirect(
-    `https://www.google.com/maps/dir/?api=1&destination=${locker.location.lat},${locker.location.lng}`
-  );
-});
+    // For now just redirect to a dummy Google Maps link or custom UI
+    res.redirect(
+      `https://www.google.com/maps/dir/?api=1&destination=${locker.location.lat},${locker.location.lng}`
+    );
+  }
+);
 app.get("/profile", isAuthenticated, async (req, res) => {
   try {
     const userId = req.session.user;
@@ -1099,7 +1241,7 @@ app.get("/locker/qr", isAuthenticated, async (req, res) => {
   }
 });
 
-app.get("/locker/:lockerId", async (req, res) => {
+app.get("/locker/:lockerId", isAuthenticated, async (req, res) => {
   const locker = await Locker.findOne({
     lockerId: req.params.lockerId,
   }).populate("compartments");
@@ -1184,12 +1326,12 @@ app.post("/locker/book", isAuthenticated, async (req, res) => {
 
 // -----------------------------------------------COURIERLOGIN ROUTES ------------------------------------------------
 // GET - Courier Registration Page
-app.get("/courier/register", (req, res) => {
+app.get("/courier/register", isAuthenticated, (req, res) => {
   res.render("courierRegister", { message: req.flash("error") });
 });
 
 // POST - Register New Courier
-app.post("/courier/register", async (req, res) => {
+app.post("/courier/register", isAuthenticated, async (req, res) => {
   const { name, phone } = req.body;
 
   try {
@@ -1211,11 +1353,11 @@ app.post("/courier/register", async (req, res) => {
   }
 });
 
-app.get("/courier/login", (req, res) => {
+app.get("/courier/login", isAuthenticated, (req, res) => {
   res.render("courierLogin", { message: req.flash("error") });
 });
 
-app.post("/courier/login", async (req, res) => {
+app.post("/courier/login", isAuthenticated, async (req, res) => {
   const { phone, otp } = req.body;
   const courier = await Courier.findOne({ phone });
 
@@ -1228,7 +1370,7 @@ app.post("/courier/login", async (req, res) => {
   res.redirect("/courier/dashboard");
 });
 
-app.get("/courier/dashboard", async (req, res) => {
+app.get("/courier/dashboard", isAuthenticated, async (req, res) => {
   const courierId = req.session.courierId;
   const lockers = await Locker.find({
     "compartments.bookingInfo.courierId": courierId,
@@ -1255,7 +1397,7 @@ app.get("/courier/dashboard", async (req, res) => {
   res.render("courierDashboard", { deliveries });
 });
 
-app.post("/courier/deliver", async (req, res) => {
+app.post("/courier/deliver", isAuthenticated, async (req, res) => {
   const { lockerId, compartmentId } = req.body;
   const locker = await Locker.findOne({ lockerId });
 
@@ -1331,7 +1473,7 @@ app.post("/courier/dropoff", isCourierAuthenticated, async (req, res) => {
 
 // ----------------------------------------------- LOCKER EMULATOR ---------------------------------------------------------
 
-app.get("/locker/emulator/:lockerId", async (req, res) => {
+app.get("/locker/emulator/:lockerId", isAuthenticated, async (req, res) => {
   try {
     const locker = await Locker.findOne({ lockerId: req.params.lockerId });
     if (!locker) return res.status(404).json({ message: "Locker not found" });

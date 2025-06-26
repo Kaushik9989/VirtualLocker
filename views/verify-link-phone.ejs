@@ -1,0 +1,25 @@
+<% layout("/layouts/boilerplate") %>
+
+<body class="bg-light min-vh-100 d-flex align-items-center justify-content-center">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-6 col-lg-5">
+        <div class="card shadow border-0 rounded-4 p-4">
+          <h3 class="text-center mb-3">🔐 Verify Your Phone</h3>
+
+          <% if (error) { %>
+            <div class="alert alert-danger"><%= error %></div>
+          <% } %>
+
+          <form method="POST" action="/verify-link-phone">
+            <div class="mb-3">
+              <label for="otp" class="form-label">OTP</label>
+              <input type="text" class="form-control" name="otp" placeholder="6-digit code" required />
+            </div>
+            <button type="submit" class="btn btn-success w-100">Verify & Continue</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>

@@ -131,43 +131,46 @@
   <p class="text-muted mb-4">Track and collect your deliveries</p>
 </div>
 
-<!-- Ready Parcel -->
-<div class="parcel-card">
-  <div class="parcel-header">
-    <span>From: Mike Chen</span>
-    <span class="badge badge-ready">ready</span>
-  </div>
-  <div class="parcel-sub">Birthday gift package</div>
-  <div class="parcel-meta">
-    <span><i class="fas fa-map-marker-alt"></i> Downtown Mall</span>
-    <span><i class="fas fa-clock"></i> 368d ago</span>
-  </div>
+<% if (parcels.length === 0) { %>
+  <div class="text-center text-muted">No parcels yet.</div>
+<% } else { %>
+  <% parcels.forEach(parcel => { %>
+    <div class="parcel-card">
+      <div class="parcel-header">
+        <span>From: <%= parcel.senderName || 'Unknown' %></span>
+        <div class="d-flex gap-2">
+          <% if (parcel.isUrgent) { %>
+            <span class="badge badge-urgent">Urgent</span>
+          <% } %>
+          <span class="badge 
+            <%= parcel.status === 'ready' ? 'badge-ready' : 'badge-delivered' %>">
+            <%= parcel.status %>
+          </span>
+        </div>
+      </div>
+      <div class="parcel-sub"><%= parcel.description || 'No description' %></div>
+      <div class="parcel-meta">
+        <span><i class="fas fa-map-marker-alt"></i> <%= parcel.lockerAddress || 'Unknown location' %></span>
+        <span><i class="fas fa-clock"></i> <%= Math.floor((Date.now() - new Date(parcel.createdAt)) / (1000 * 60 * 60 * 24)) %>d ago</span>
+      </div>
 
-  <div class="pickup-box">
-    <h5><i class="fas fa-check-circle me-1"></i> Ready for pickup</h5>
-    <div class="pickup-code">DP–4F8K–9X2M</div>
-    <small class="text-muted">Show this code at the locker</small>
-    <div class="pickup-buttons">
-      <a href="#" class="btn-green"><i class="fas fa-map-marker-alt me-1"></i> Directions</a>
-      <a href="#" class="btn-outline"><i class="fas fa-qrcode me-1"></i> Show QR</a>
+      <% if (parcel.status === 'ready') { %>
+        <div class="pickup-box">
+          <h5><i class="fas fa-check-circle me-1"></i> Ready for pickup</h5>
+          <div class="pickup-code"><%= parcel.accessCode || 'N/A' %></div>
+          <small class="text-muted">Show this code at the locker</small>
+          <div class="pickup-buttons">
+            <a href="https://www.google.com/maps/search/?api=1&query=<%= parcel.lat %>,<%= parcel.lng %>" class="btn-green" target="_blank">
+              <i class="fas fa-map-marker-alt me-1"></i> Directions
+            </a>
+            <a href="<%= parcel.qrImage || '#' %>" class="btn-outline" target="_blank">
+              <i class="fas fa-qrcode me-1"></i> Show QR
+            </a>
+          </div>
+        </div>
+      <% } %>
     </div>
-  </div>
-</div>
-
-<!-- Delivered Parcel -->
-<div class="parcel-card">
-  <div class="parcel-header">
-    <span>From: Amazon</span>
-    <div class="d-flex gap-2">
-      <span class="badge badge-urgent">Urgent</span>
-      <span class="badge badge-delivered">delivered</span>
-    </div>
-  </div>
-  <div class="parcel-sub">Electronics order #12345</div>
-  <div class="parcel-meta">
-    <span><i class="fas fa-map-marker-alt"></i> University Campus</span>
-    <span><i class="fas fa-clock"></i> 370d ago</span>
-  </div>
-</div>
+  <% }) %>
+<% } %>
 
 
