@@ -577,7 +577,7 @@ app.post("/set-username", async (req, res) => {
     delete req.session.phone;
     const redirectTo = req.session.redirectTo || "/dashboard";
     delete req.session.redirectTo;
-
+    req.user.phone = user.phone
     res.redirect("/dashboard");
   } catch (err) {
     console.error("User Save Error:", err.message);
@@ -749,8 +749,9 @@ app.get("/map", async (req, res) => {
 
 /// updated locker flow
 
-app.get("/send/step1", isAuthenticated, (req, res) => {
-   if (!req.session.phone) {
+app.get("/send/step1", isAuthenticated, async(req, res) => {
+    const user = await User.findById(req.session.user._id);
+   if (!user.phone) {
     req.flash("error", "Please verify your phone number to continue sending a parcel.");
     return res.redirect("/link-phone");
   }
