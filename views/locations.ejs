@@ -249,49 +249,11 @@ body {
         },
         () => alert("Unable to access your location.")
       );
-    } else alert("Geolocation not supported.");
+    } else alert("Geolocation is not supported by your browser.");
   }
 
-  function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
-    const R = 6371;
-    const dLat = deg2rad(lat2 - lat1);
-    const dLon = deg2rad(lon2 - lon1);
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-      Math.sin(dLon / 2) ** 2;
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  }
-
-  function deg2rad(deg) {
-    return deg * (Math.PI / 180);
-  }
-
-  function highlightAndScrollToCard(lockerId) {
-    const card = document.querySelector(`.location-card[data-locker-id="${lockerId}"]`);
-    const sidebar = document.querySelector('.left-sidebar');
-
-    if (card && sidebar) {
-      const sidebarRect = sidebar.getBoundingClientRect();
-      const cardRect = card.getBoundingClientRect();
-      const offset = cardRect.top - sidebarRect.top + sidebar.scrollTop;
-
-      isManualScroll = true;
-      sidebar.scrollTo({
-        top: offset - 12,
-        behavior: 'smooth'
-      });
-
-      card.classList.add('highlighted');
-      setTimeout(() => card.classList.remove('highlighted'), 1500);
-      setTimeout(() => isManualScroll = false, 500);
-    }
-  }
-
-  document.addEventListener("DOMContentLoaded", () => {
+  document.addEventListener("DOMContentLoaded", function () {
     map = L.map('locker-map').setView([20.5937, 78.9629], 5);
-
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18
     }).addTo(map);
@@ -301,11 +263,12 @@ body {
       onAdd: function () {
         const container = L.DomUtil.create('div', 'leaflet-control-recenter');
         container.innerHTML = '<i class="fas fa-crosshairs"></i> Recenter to User';
-        container.onclick = recenterToUser;
+        container.onclick = () => recenterToUser();
         L.DomEvent.disableClickPropagation(container);
         return container;
       }
     });
+
     map.addControl(new RecenterControl());
 
     navigator.geolocation.getCurrentPosition(success, error);
@@ -321,14 +284,17 @@ body {
         popupAnchor: [0, -30],
       });
 
-      L.marker([userLat, userLng], { icon: userIcon })
+      const userMarker = L.marker([userLat, userLng], { icon: userIcon })
         .addTo(map)
         .bindPopup(`<b>📍 You are here</b> <a href="/profile" target="_blank">View Profile</a>`)
         .openPopup();
 
+      userMarker.on("click", () => window.location.href = "/profile");
+
       map.setView([userLat - 0.01, userLng], 14);
       map.invalidateSize();
 
+      // Distance calculation and sorting
       lockers = lockers.map(locker => {
         if (locker.location?.lat && locker.location?.lng) {
           const distance = getDistanceFromLatLonInKm(userLat, userLng, locker.location.lat, locker.location.lng);
@@ -337,7 +303,7 @@ body {
         return { ...locker, distance: Infinity };
       }).sort((a, b) => a.distance - b.distance);
 
-      renderLockerCards();
+      renderSidebar(lockers);
       showNearestLockers(userLat, userLng);
     }
 
@@ -347,62 +313,106 @@ body {
       map.invalidateSize();
     }
 
-    function renderLockerCards() {
+    function renderSidebar(lockers) {
       const sidebar = document.querySelector(".left-sidebar");
-      sidebar.querySelectorAll(".location-card").forEach(c => c.remove());
+      sidebar.innerHTML = `<h5 class="fw-bold mb-3">📍 Nearby Lockers</h5>`; // Clear and keep title
 
       lockers.forEach(locker => {
         const available = locker.compartments.filter(c => !c.isBooked).length;
         const card = document.createElement("div");
         card.className = "location-card";
         card.setAttribute("data-locker-id", locker.lockerId);
+
         card.innerHTML = `
           <div class="location-header">
             <span>${locker.lockerId}</span>
-            <span class="text-success fw-semibold">Available: ${available}/${locker.compartments.length}</span>
+            <span class="text-success fw-semibold">
+              Available: ${available}/${locker.compartments.length}
+            </span>
           </div>
-          <div class="location-sub">${locker.location?.address || 'Address not available'}</div>
+          <div class="location-sub">
+            ${locker.location?.address || 'Address not available'}
+          </div>
           <div class="location-details">
             ${locker.location?.lat && locker.location?.lng ?
               `<span><i class="fas fa-map-marker-alt"></i> ${locker.location.lat.toFixed(5)}, ${locker.location.lng.toFixed(5)}</span>` :
               `<span>No Coordinates</span>`}
           </div>
           <div class="card-actions">
-            <a href="https://www.google.com/maps/dir/?api=1&destination=${locker.location.lat},${locker.location.lng}"
-              target="_blank" class="btn btn-outline-dark">
+            <a href="https://www.google.com/maps/dir/?api=1&destination=${locker.location.lat},${locker.location.lng}" target="_blank" class="btn btn-outline-dark">
               <i class="fas fa-location-arrow"></i> Directions
             </a>
             <a href="/locker/${locker.lockerId}" class="btn btn-warning">
               <i class="fas fa-check-circle"></i> Select Locker
             </a>
-          </div>`;
+          </div>
+        `;
         sidebar.appendChild(card);
       });
+
+      // Scroll to top on render
+      sidebar.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function showNearestLockers(userLat, userLng) {
       const radiusInKm = 80;
 
       lockers.forEach(locker => {
-        if (locker.location.lat && locker.location.lng) {
-          const lat = locker.location.lat;
-          const lng = locker.location.lng;
+        if (locker.location?.lat && locker.location?.lng) {
+          const { lat, lng } = locker.location;
           const distance = getDistanceFromLatLonInKm(userLat, userLng, lat, lng);
-
           if (distance <= radiusInKm) {
             const marker = L.marker([lat, lng]).addTo(map);
             markerMap[locker.lockerId] = marker;
 
             marker.on("click", () => {
-              highlightAndScrollToCard(locker.lockerId);
+              highlightCard(locker.lockerId);
+              map.panTo([lat, lng]);
             });
           }
         }
       });
     }
 
-    // ➤ Map to Card Scroll Sync
-    map.on('moveend', () => {
+    function highlightCard(lockerId) {
+      const card = document.querySelector(`.location-card[data-locker-id="${lockerId}"]`);
+      const sidebar = document.querySelector(".left-sidebar");
+      if (card && sidebar) {
+        const offset = card.offsetTop;
+        isManualScroll = true;
+        sidebar.scrollTo({ top: offset - 12, behavior: 'smooth' });
+        card.classList.add('highlighted');
+        setTimeout(() => card.classList.remove('highlighted'), 1500);
+        setTimeout(() => isManualScroll = false, 500);
+      }
+    }
+
+    function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = deg2rad(lat2 - lat1);
+      const dLon = deg2rad(lon2 - lon1);
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+        Math.sin(dLon / 2) ** 2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    function deg2rad(deg) {
+      return deg * (Math.PI / 180);
+    }
+
+    function debounce(func, delay) {
+      let timeout;
+      return function (...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), delay);
+      };
+    }
+
+    // ➤ Map → Sidebar Sync
+    map.on('moveend', debounce(() => {
       if (isManualScroll) return;
 
       const center = map.getCenter();
@@ -411,12 +421,7 @@ body {
 
       lockers.forEach(locker => {
         if (locker.location?.lat && locker.location?.lng) {
-          const dist = getDistanceFromLatLonInKm(
-            center.lat,
-            center.lng,
-            locker.location.lat,
-            locker.location.lng
-          );
+          const dist = getDistanceFromLatLonInKm(center.lat, center.lng, locker.location.lat, locker.location.lng);
           if (dist < minDistance) {
             minDistance = dist;
             closestLocker = locker;
@@ -424,15 +429,13 @@ body {
         }
       });
 
-      if (closestLocker) {
-        highlightAndScrollToCard(closestLocker.lockerId);
-      }
+      if (closestLocker) highlightCard(closestLocker.lockerId);
 
       map.invalidateSize();
-    });
+    }, 300));
 
-    // ➤ Card to Map Sync on Scroll
-    document.querySelector(".left-sidebar").addEventListener("scroll", () => {
+    // ➤ Sidebar Scroll → Map Sync
+    document.querySelector(".left-sidebar").addEventListener("scroll", debounce(() => {
       if (isManualScroll) return;
 
       const sidebar = document.querySelector(".left-sidebar");
@@ -460,21 +463,6 @@ body {
           setTimeout(() => isManualScroll = false, 300);
         }
       }
-    });
-
-    // Fix sidebar position
-    function adjustSidebar() {
-      const sidebar = document.querySelector('.left-sidebar');
-      if (window.innerWidth <= 768) {
-        sidebar.style.top = 'auto';
-        sidebar.style.bottom = '70px';
-      } else {
-        sidebar.style.top = '70px';
-        sidebar.style.bottom = 'auto';
-      }
-    }
-
-    setTimeout(adjustSidebar, 100);
-    window.addEventListener('resize', adjustSidebar);
+    }, 200));
   });
 </script>

@@ -87,26 +87,27 @@
     }
   </style>
   <div class="gradient-card p-4 mb-4 d-flex justify-content-between align-items-center mt-5 mb-5">
-    <% if (messages.error && messages.error.length > 0) { %>
-  <div class="alert alert-danger alert-dismissible fade show" role="alert">
-    <%= messages.error[0] %>
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-  </div>
-<% } %>
+    <% if (messages.error && messages.error.length> 0) { %>
+      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <%= messages.error[0] %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      <% } %>
 
-<% if (messages.success && messages.success.length > 0) { %>
-  <div class="alert alert-success alert-dismissible fade show" role="alert">
-    <%= messages.success[0] %>
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-  </div>
-<% } %>
-    <div>
-      <h5>Welcome back, <%= user.username %></h5>
-      <p class="mb-0">You have <%= incomingParcels.length %> parcels waiting</p>
-    </div>
-    <h3 class="mb-0 fw-bold">
-      <%= user.wallet.credits %> <small style="font-size: 16px;">Credits</small>
-    </h3>
+        <% if (messages.success && messages.success.length> 0) { %>
+          <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <%= messages.success[0] %>
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+          <% } %>
+            <div>
+              <h5>Welcome back, <%= user.username %>
+              </h5>
+              <p class="mb-0">You have <%= incomingParcels.length %> parcels waiting</p>
+            </div>
+            <h3 class="mb-0 fw-bold">
+              <%= user.wallet.credits %> <small style="font-size: 16px;">Credits</small>
+            </h3>
   </div>
 
   <div class="row text-center mb-4">
@@ -125,50 +126,53 @@
     </span>
   </h5>
 
- <% if (incomingParcels.length > 0) { %>
-  <% incomingParcels.forEach(parcel => { %>
-    <div class="card shadow-sm mb-4 border-start rounded-3">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-start mb-2">
-          <div>
-            <h6 class="fw-bold mb-1">
-              From: <%= parcel.senderName || "Unknown" %>
-            </h6>
-            <p class="mb-1 text-muted small">
-              <%= parcel.metadata?.description || "No description provided" %>
-            </p>
-            <div class="text-muted small">
-              <i class="fas fa-box me-1"></i>
-              <%= parcel.parcelType %> • <%= parcel.size %> • ₹<%= parcel.cost %>
+  <% if (incomingParcels.length> 0) { %>
+    <% incomingParcels.forEach(parcel=> { %>
+      <div class="card shadow-sm mb-4 border-start rounded-3">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <h6 class="fw-bold mb-1">
+                From: <%= parcel.senderName || "Unknown" %>
+              </h6>
+              <p class="mb-1 text-muted small">
+                <%= parcel.metadata?.description || "No description provided" %>
+              </p>
+              <div class="text-muted small">
+                <i class="fas fa-box me-1"></i>
+                <%= parcel.parcelType %> • <%= parcel.size %> • ₹<%= parcel.cost %>
+              </div>
             </div>
+            <span
+              class="badge text-bg-<%= parcel.status === 'dropped' ? 'success' : parcel.status === 'awaiting_drop' ? 'warning' : 'secondary' %> px-3 py-2 rounded-pill">
+              <%= parcel.status.charAt(0).toUpperCase() + parcel.status.slice(1).replace("_", " " ) %>
+            </span>
           </div>
-          <span class="badge text-bg-<%= parcel.status === 'dropped' ? 'success' : parcel.status === 'awaiting_drop' ? 'warning' : 'secondary' %> px-3 py-2 rounded-pill">
-            <%= parcel.status.charAt(0).toUpperCase() + parcel.status.slice(1).replace("_", " ") %>
-          </span>
-        </div>
 
-        <div class="d-flex justify-content-between align-items-center mt-3">
-          <span class="text-muted small">
-            Access Code: <strong><%= parcel.accessCode %></strong>
-          </span>
+          <div class="d-flex justify-content-between align-items-center mt-3">
+            <span class="text-muted small">
+              Access Code: <strong>
+                <%= parcel.accessCode %>
+              </strong>
+            </span>
 
-          <% if (parcel.status === "dropped") { %>
-            <a href="<%= parcel.qrCodeUrl %>" class="btn btn-sm btn-primary" target="_blank">
-              <i class="fas fa-qrcode me-1"></i> QR Code
-            </a>
-          <% } else { %>
-            <a href="/incoming/<%= parcel._id %>" class="btn btn-sm btn-outline-secondary">
-              <i class="fas fa-info-circle me-1"></i> Details
-            </a>
-          <% } %>
+            <% if (parcel.status==="dropped" ) { %>
+              <a href="<%= parcel.qrCodeUrl %>" class="btn btn-sm btn-primary" target="_blank">
+                <i class="fas fa-qrcode me-1"></i> QR Code
+              </a>
+              <% } else { %>
+                <a href="/incoming/<%= parcel._id %>" class="btn btn-sm btn-outline-secondary">
+                  <i class="fas fa-info-circle me-1"></i> Details
+                </a>
+                <% } %>
+          </div>
         </div>
       </div>
-    </div>
-  <% }) %>
-<% } else { %>
-  <div class="text-center text-muted my-5">
-    <i class="fas fa-inbox fa-3x mb-3"></i>
-    <p class="mb-0">No incoming parcels found.</p>
-  </div>
-<% } %>
-
+      <% }) %>
+        <% } else { %>
+          <div class="text-center text-muted my-5">
+            <i class="fas fa-inbox fa-3x mb-3"></i>
+            <p class="mb-0">No incoming parcels found.</p>
+          </div>
+          <% } %>
+        </div>
