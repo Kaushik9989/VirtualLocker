@@ -13,7 +13,7 @@ const dashboardCache = new LRU.LRUCache({
   ttl: 1000 * 60 * 5, // Cache for 5 min
 });
 
-const sendParcelCache = new LRU.LRUCache({
+const parcelCache = new LRU.LRUCache({
   max: 500,
   ttl: 1000 * 60 * 5, // Cache for 5 min
 });
@@ -240,11 +240,11 @@ app.get("/api/sent-parcels", isAuthenticated, async (req, res) => {
 });
 
 app.get("/sendParcel", isAuthenticated, async (req, res) => {
-  console.log("Current cache size:", sendParcelCache.size);
+  console.log("Current cache size:", parcelCache.size);
   const cacheKey = "sendParcel:" + req.session.user._id;
 
   // Check cache first
-  const cachedHtml = sendParcelCache.get(cacheKey);
+  const cachedHtml = parcelCache.get(cacheKey);
   if (cachedHtml) {
     console.log("✅ Served sendParcel from cache");
     return res.send(cachedHtml);
@@ -269,7 +269,7 @@ app.get("/sendParcel", isAuthenticated, async (req, res) => {
       }
 
       // Store in cache
-      sendParcelCache.set(cacheKey, html);
+      parcelCache.set(cacheKey, html);
 
       res.send(html);
     });
@@ -449,26 +449,26 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
       req.flash("error", "⚠️ Please link your phone number to receive parcel updates.");
     }
 
-    const lockersRaw = await Locker.find({});
+    // const lockersRaw = await Locker.find({});
     const userPhone = user.phone;
     const userName = user.username;
 
-    const incomingParcels = await incomingParcel.find({
-      receiverPhone: userPhone,
-    }).sort({ createdAt: -1 });
+    // const incomingParcels = await incomingParcel.find({
+    //   receiverPhone: userPhone,
+    // }).sort({ createdAt: -1 });
 
-    const lockers = lockersRaw.map((locker) => ({
-      lockerId: locker.lockerId,
-      compartments: locker.compartments,
-      location: locker.location || { lat: null, lng: null, address: "" },
-    }));
+    // const lockers = lockersRaw.map((locker) => ({
+    //   lockerId: locker.lockerId,
+    //   compartments: locker.compartments,
+    //   location: locker.location || { lat: null, lng: null, address: "" },
+    // }));
 
     // Render the EJS template to HTML string instead of sending immediately
     res.render("newDashboard", {
       user,
-      lockers,
+     
       activePage: "home",
-      incomingParcels,
+     
       userName,
     }, (err, html) => {
       if (err) {
@@ -488,9 +488,22 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
+
+
 app.get("/api/incoming-parcels", isAuthenticated, async (req, res) => {
   try {
-    const user = await User.findById(req.session.user._id).lean();
+    const userId = req.session.user._id;
+    const cacheKey = `incomingParcels:${userId}`;
+
+    // Check cache first
+    const cachedParcels = parcelCache.get(cacheKey);
+    if (cachedParcels) {
+      console.log("✅ Served incoming parcels from cache");
+      return res.json({ parcels: cachedParcels });
+    }
+
+    // No cache, fetch from DB
+    const user = await User.findById(userId).lean();
     if (!user) return res.status(401).json({ error: "Unauthorized" });
 
     const parcels = await incomingParcel.find({
@@ -499,12 +512,32 @@ app.get("/api/incoming-parcels", isAuthenticated, async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
+    // Save to cache
+    parcelCache.set(cacheKey, parcels);
+
+    console.log("✅ Served incoming parcels from DB and cached");
     res.json({ parcels });
   } catch (err) {
     console.error("API parcels error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+app.get("/api/lockers", isAuthenticated, async (req, res) => {
+  try {
+    const lockersRaw = await Locker.find({});
+    const lockers = lockersRaw.map(locker => ({
+      lockerId: locker.lockerId,
+      compartments: locker.compartments,
+      location: locker.location || { lat: null, lng: null, address: "" },
+    }));
+    res.json({ lockers });
+  } catch (err) {
+    console.error("API lockers error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 
 
 
