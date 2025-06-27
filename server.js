@@ -219,6 +219,25 @@ passport.use(
 app.get("/", (req, res) => {
   res.redirect("/dashboard");
 });
+// /api/sent-parcels
+app.get("/api/sent-parcels", isAuthenticated, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.user._id).lean();
+    if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+    const bookedParcels = await Parcel1.find({
+      senderId: user._id,
+      status: { $in: ["awaiting_drop", "awaiting_payment", "sent", "delivered"] },
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.json({ bookedParcels });
+  } catch (err) {
+    console.error("API sent parcels error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 app.get("/sendParcel", isAuthenticated, async (req, res) => {
   console.log("Current cache size:", sendParcelCache.size);
@@ -257,6 +276,30 @@ app.get("/sendParcel", isAuthenticated, async (req, res) => {
   } catch (err) {
     console.error("Error loading sendParcel:", err);
     res.status(500).send("Internal Server Error");
+  }
+});
+// /api/locations
+app.get("/api/locations", isAuthenticated, async (req, res) => {
+  try {
+    const lockersRaw = await Locker.find({}).lean();
+    const locations = await DropLocation.find({ status: "active" }).lean();
+
+    const enrichedLocations = locations.map(loc => ({
+      ...loc,
+      distance: Math.floor(Math.random() * 20) + 1,
+      rating: (Math.random() * 2 + 3).toFixed(1),
+    }));
+
+    const lockers = lockersRaw.map(locker => ({
+      lockerId: locker.lockerId,
+      compartments: locker.compartments,
+      location: locker.location || { lat: null, lng: null, address: "" },
+    }));
+    console.log("LOCKERSLCOATIONS SAVED TO LOCAL STORAGE");
+    res.json({ lockers, enrichedLocations });
+  } catch (err) {
+    console.error("API locations error:", err);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -445,6 +488,24 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
+app.get("/api/incoming-parcels", isAuthenticated, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.user._id).lean();
+    if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+    const parcels = await incomingParcel.find({
+      receiverPhone: user.phone,
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.json({ parcels });
+  } catch (err) {
+    console.error("API parcels error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 
 
 // -------------------------------------------GOOGLE LOGIN ROUTES---------------------------------------------------

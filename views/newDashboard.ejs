@@ -125,54 +125,110 @@
       <%= incomingParcels.length %>
     </span>
   </h5>
+  <div id="parcelList">Loading your parcels...</div>
+  
 
-  <% if (incomingParcels.length> 0) { %>
-    <% incomingParcels.forEach(parcel=> { %>
+<script>
+  const parcelContainer = document.getElementById("parcelList");
+
+  // Load cached parcels
+  const cached = localStorage.getItem("incomingParcels");
+  if (cached) {
+    try {
+      const data = JSON.parse(cached);
+      renderParcels(data);
+      console.log("✅ Loaded parcels from cache");
+    } catch (e) {
+      console.error("Cache parse error:", e);
+    }
+  }
+
+  // Always fetch fresh parcels in background
+  fetch("/api/incoming-parcels")
+    .then(res => res.json())
+    .then(data => {
+      if (data.parcels) {
+        // Update cache
+        localStorage.setItem("incomingParcels", JSON.stringify(data.parcels));
+        // Re-render
+        renderParcels(data.parcels);
+        console.log("✅ Refreshed parcels from server");
+      }
+    })
+    .catch(err => {
+      console.error("Parcel fetch error:", err);
+    });
+
+  // Render parcels to HTML
+  function renderParcels(parcels) {
+  if (parcels.length === 0) {
+    parcelContainer.innerHTML = `
+      <div class="text-center text-muted my-5">
+        <i class="fas fa-inbox fa-3x mb-3"></i>
+        <p class="mb-0">No incoming parcels found.</p>
+      </div>
+    `;
+    return;
+  }
+
+  parcelContainer.innerHTML = parcels.map(parcel => {
+    const status = parcel.status || "unknown";
+    const badgeColor = 
+      status === "dropped"
+        ? "success"
+        : status === "awaiting_drop"
+        ? "warning"
+        : "secondary";
+
+    const statusText = 
+      status.charAt(0).toUpperCase() +
+      status.slice(1).replace("_", " ");
+
+    return `
       <div class="card shadow-sm mb-4 border-start rounded-3">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-start mb-2">
             <div>
               <h6 class="fw-bold mb-1">
-                From: <%= parcel.senderName || "Unknown" %>
+                From: ${parcel.senderName || "Unknown"}
               </h6>
               <p class="mb-1 text-muted small">
-                <%= parcel.metadata?.description || "No description provided" %>
+                ${parcel.metadata?.description || "No description provided"}
               </p>
               <div class="text-muted small">
                 <i class="fas fa-box me-1"></i>
-                <%= parcel.parcelType %> • <%= parcel.size %> • ₹<%= parcel.cost %>
+                ${parcel.parcelType} • ${parcel.size} • ₹${parcel.cost}
               </div>
             </div>
             <span
-              class="badge text-bg-<%= parcel.status === 'dropped' ? 'success' : parcel.status === 'awaiting_drop' ? 'warning' : 'secondary' %> px-3 py-2 rounded-pill">
-              <%= parcel.status.charAt(0).toUpperCase() + parcel.status.slice(1).replace("_", " " ) %>
+              class="badge text-bg-${badgeColor} px-3 py-2 rounded-pill">
+              ${statusText}
             </span>
           </div>
 
           <div class="d-flex justify-content-between align-items-center mt-3">
             <span class="text-muted small">
-              Access Code: <strong>
-                <%= parcel.accessCode %>
-              </strong>
+              Access Code: <strong>${parcel.accessCode}</strong>
             </span>
 
-            <% if (parcel.status==="dropped" ) { %>
-              <a href="/incoming/<%= parcel._id %>/qr" class="btn btn-sm btn-primary" target="_blank">
+            ${
+              status === "dropped"
+                ? `
+              <a href="/incoming/${parcel._id}/qr" class="btn btn-sm btn-primary" target="_blank">
                 <i class="fas fa-qrcode me-1"></i> QR Code
               </a>
-              <% } else { %>
-                <a href="/incoming/<%= parcel._id %>" class="btn btn-sm btn-outline-secondary">
-                  <i class="fas fa-info-circle me-1"></i> Details
-                </a>
-                <% } %>
+              `
+                : `
+              <a href="/incoming/${parcel._id}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-info-circle me-1"></i> Details
+              </a>
+              `
+            }
           </div>
         </div>
       </div>
-      <% }) %>
-        <% } else { %>
-          <div class="text-center text-muted my-5">
-            <i class="fas fa-inbox fa-3x mb-3"></i>
-            <p class="mb-0">No incoming parcels found.</p>
-          </div>
-          <% } %>
-            </div>
+    `;
+  }).join("");
+}
+
+</script>

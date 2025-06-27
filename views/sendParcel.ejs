@@ -161,7 +161,8 @@
         <li><strong>Recipient gets notified</strong> <br />They'll receive pickup instructions</li>
       </ol>
     </div>
-    <% if (bookedParcels && bookedParcels.length> 0) { %>
+    <div id="sentParcelsList">Loading your bookings...</div>
+    <!-- <% if (bookedParcels && bookedParcels.length> 0) { %>
       <div class="mt-4">
         <h6 class="text-start fw-semibold">Your Booked Parcels</h6>
         <div class="d-flex flex-column gap-3 mt-3">
@@ -197,11 +198,96 @@
           <i class="fas fa-box-open fa-2x mb-2"></i><br />
           You don’t have any active bookings.
         </div>
-        <% } %>
+        <% } %> -->
 
 
 
 
   </div>
+<script>
+  const sentContainer = document.getElementById("sentParcelsList");
+
+  const cachedSent = localStorage.getItem("sentParcels");
+  if (cachedSent) {
+    try {
+      const data = JSON.parse(cachedSent);
+      renderSentParcels(data);
+      console.log("✅ Loaded sent parcels from cache");
+    } catch (e) {
+      console.error("Cache parse error:", e);
+    }
+  }
+
+  fetch("/api/sent-parcels")
+    .then(res => res.json())
+    .then(data => {
+      if (data.bookedParcels) {
+        localStorage.setItem("sentParcels", JSON.stringify(data.bookedParcels));
+        renderSentParcels(data.bookedParcels);
+        console.log("✅ Refreshed sent parcels from server");
+      }
+    })
+    .catch(err => {
+      console.error("Sent parcels fetch error:", err);
+    });
+
+ function renderSentParcels(parcels) {
+  if (!parcels || parcels.length === 0) {
+    sentContainer.innerHTML = `
+      <div class="text-center mt-4 text-muted">
+        <i class="fas fa-box-open fa-2x mb-2"></i><br />
+        You don’t have any active bookings.
+      </div>
+    `;
+    return;
+  }
+
+  sentContainer.innerHTML = `
+    <div class="mt-4">
+      <h6 class="text-start fw-semibold">Your Booked Parcels</h6>
+      <div class="d-flex flex-column gap-3 mt-3">
+        ${parcels.map(parcel => {
+          // Choose icon based on type
+          let iconClass = "fas fa-question-circle text-secondary";
+          if (parcel.type === "document") iconClass = "fas fa-file-alt text-info";
+          else if (parcel.type === "package") iconClass = "fas fa-box text-primary";
+          else if (parcel.type === "gift") iconClass = "fas fa-gift text-danger";
+
+          const typeLabel = parcel.type
+            ? parcel.type.charAt(0).toUpperCase() + parcel.type.slice(1)
+            : "Unknown";
+
+          const statusLabel = parcel.status
+            ? parcel.status.replace("_", " ")
+            : "Unknown";
+
+          const expiresAt = parcel.expiresAt
+            ? new Date(parcel.expiresAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
+            : "N/A";
+
+          return `
+            <a href="/parcel/${parcel._id}/success" class="text-decoration-none">
+              <div class="border rounded p-3 d-flex justify-content-between align-items-center shadow-sm">
+                <div>
+                  <div class="d-flex align-items-center gap-2 fw-semibold text-dark">
+                    <i class="${iconClass}"></i>
+                    ${typeLabel} Parcel
+                  </div>
+                  <div class="small text-muted">
+                    Status: ${statusLabel}<br/>
+                    Expires: ${expiresAt}
+                  </div>
+                </div>
+                <i class="fas fa-chevron-right text-primary"></i>
+              </div>
+            </a>
+          `;
+        }).join("")}
+      </div>
+    </div>
+  `;
+}
+
+</script>
 
   <!-- Bottom Navigation -->

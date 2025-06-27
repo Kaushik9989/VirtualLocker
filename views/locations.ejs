@@ -231,11 +231,32 @@ body {
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-1A4e1S43i+rpymzKQ8CE2Y8GABZ1p26b0gShmYPQHsg=" crossorigin=""></script>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-1A4e1S43i+rpymzKQ8CE2Y8GABZ1p26b0gShmYPQHsg=" crossorigin=""></script>
+
 <script>
   let map;
   const markerMap = {};
-  let lockers = <%- JSON.stringify(lockers) %>;
   let isManualScroll = false;
+
+  const CACHE_KEY = "lockerCache";
+  const CACHE_TTL_MS = 5 * 60 * 1000; // 5 min
+
+  // Try loading cached lockers
+  let lockers = [];
+  const cached = localStorage.getItem(CACHE_KEY);
+  if (cached) {
+    const { data, timestamp } = JSON.parse(cached);
+    if (Date.now() - timestamp < CACHE_TTL_MS) {
+      lockers = data;
+    } else {
+      localStorage.removeItem(CACHE_KEY);
+    }
+  }
+
+  // Fallback to server data
+  if (!lockers || lockers.length === 0) {
+    lockers = <%- JSON.stringify(lockers) %>;
+  }
 
   function recenterToUser() {
     if (navigator.geolocation) {
@@ -258,6 +279,7 @@ body {
       maxZoom: 18
     }).addTo(map);
 
+    // Add recenter control
     const RecenterControl = L.Control.extend({
       options: { position: 'topright' },
       onAdd: function () {
@@ -268,8 +290,17 @@ body {
         return container;
       }
     });
-
     map.addControl(new RecenterControl());
+
+    const sidebar = document.querySelector(".left-sidebar");
+
+    // Show loading spinner
+    sidebar.innerHTML = `
+      <div class="text-center text-muted my-5">
+        <div class="spinner-border text-primary mb-3"></div>
+        <div>Loading nearby lockers...</div>
+      </div>
+    `;
 
     navigator.geolocation.getCurrentPosition(success, error);
 
@@ -294,7 +325,7 @@ body {
       map.setView([userLat - 0.01, userLng], 14);
       map.invalidateSize();
 
-      // Distance calculation and sorting
+      // Calculate distances and sort
       lockers = lockers.map(locker => {
         if (locker.location?.lat && locker.location?.lng) {
           const distance = getDistanceFromLatLonInKm(userLat, userLng, locker.location.lat, locker.location.lng);
@@ -302,6 +333,12 @@ body {
         }
         return { ...locker, distance: Infinity };
       }).sort((a, b) => a.distance - b.distance);
+
+      // Save fresh data to cache
+      localStorage.setItem(CACHE_KEY, JSON.stringify({
+        data: lockers,
+        timestamp: Date.now()
+      }));
 
       renderSidebar(lockers);
       showNearestLockers(userLat, userLng);
@@ -311,18 +348,17 @@ body {
       alert("Could not get your location.");
       map.setView([20.5937, 78.9629], 5);
       map.invalidateSize();
+      renderSidebar(lockers);
+      showNearestLockers(null, null);
     }
 
     function renderSidebar(lockers) {
-      const sidebar = document.querySelector(".left-sidebar");
-      sidebar.innerHTML = `<h5 class="fw-bold mb-3">📍 Nearby Lockers</h5>`; // Clear and keep title
-
+      sidebar.innerHTML = `<h5 class="fw-bold mb-3">📍 Nearby Lockers</h5>`;
       lockers.forEach(locker => {
         const available = locker.compartments.filter(c => !c.isBooked).length;
         const card = document.createElement("div");
         card.className = "location-card";
         card.setAttribute("data-locker-id", locker.lockerId);
-
         card.innerHTML = `
           <div class="location-header">
             <span>${locker.lockerId}</span>
@@ -339,7 +375,7 @@ body {
               `<span>No Coordinates</span>`}
           </div>
           <div class="card-actions">
-            <a href="https://www.google.com/maps/dir/?api=1&destination=${locker.location.lat},${locker.location.lng}" target="_blank" class="btn btn-outline-dark">
+            <a href="https://www.google.com/maps/dir/?api=1&destination=${locker.location?.lat},${locker.location?.lng}" target="_blank" class="btn btn-outline-dark">
               <i class="fas fa-location-arrow"></i> Directions
             </a>
             <a href="/locker/${locker.lockerId}" class="btn btn-warning">
@@ -349,35 +385,28 @@ body {
         `;
         sidebar.appendChild(card);
       });
-
-      // Scroll to top on render
-      sidebar.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function showNearestLockers(userLat, userLng) {
       const radiusInKm = 80;
-
       lockers.forEach(locker => {
         if (locker.location?.lat && locker.location?.lng) {
-          const { lat, lng } = locker.location;
-          const distance = getDistanceFromLatLonInKm(userLat, userLng, lat, lng);
-          if (distance <= radiusInKm) {
-            const marker = L.marker([lat, lng]).addTo(map);
-            markerMap[locker.lockerId] = marker;
+          const lat = locker.location.lat;
+          const lng = locker.location.lng;
+          const marker = L.marker([lat, lng]).addTo(map);
+          markerMap[locker.lockerId] = marker;
 
-            marker.on("click", () => {
-              highlightCard(locker.lockerId);
-              map.panTo([lat, lng]);
-            });
-          }
+          marker.on("click", () => {
+            highlightCard(locker.lockerId);
+            map.panTo([lat, lng]);
+          });
         }
       });
     }
 
     function highlightCard(lockerId) {
       const card = document.querySelector(`.location-card[data-locker-id="${lockerId}"]`);
-      const sidebar = document.querySelector(".left-sidebar");
-      if (card && sidebar) {
+      if (card) {
         const offset = card.offsetTop;
         isManualScroll = true;
         sidebar.scrollTo({ top: offset - 12, behavior: 'smooth' });
@@ -411,14 +440,11 @@ body {
       };
     }
 
-    // ➤ Map → Sidebar Sync
     map.on('moveend', debounce(() => {
       if (isManualScroll) return;
-
       const center = map.getCenter();
       let closestLocker = null;
       let minDistance = Infinity;
-
       lockers.forEach(locker => {
         if (locker.location?.lat && locker.location?.lng) {
           const dist = getDistanceFromLatLonInKm(center.lat, center.lng, locker.location.lat, locker.location.lng);
@@ -428,32 +454,23 @@ body {
           }
         }
       });
-
       if (closestLocker) highlightCard(closestLocker.lockerId);
-
       map.invalidateSize();
     }, 300));
 
-    // ➤ Sidebar Scroll → Map Sync
-    document.querySelector(".left-sidebar").addEventListener("scroll", debounce(() => {
+    sidebar.addEventListener("scroll", debounce(() => {
       if (isManualScroll) return;
-
-      const sidebar = document.querySelector(".left-sidebar");
       const cards = Array.from(document.querySelectorAll(".location-card"));
       const sidebarTop = sidebar.getBoundingClientRect().top;
-
       let closestCard = null;
       let minOffset = Infinity;
-
       cards.forEach(card => {
-        const rect = card.getBoundingClientRect();
-        const offset = Math.abs(rect.top - sidebarTop);
+        const offset = Math.abs(card.getBoundingClientRect().top - sidebarTop);
         if (offset < minOffset) {
           minOffset = offset;
           closestCard = card;
         }
       });
-
       if (closestCard) {
         const lockerId = closestCard.getAttribute("data-locker-id");
         const locker = lockers.find(l => l.lockerId === lockerId);
