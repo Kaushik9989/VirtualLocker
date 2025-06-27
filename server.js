@@ -257,6 +257,15 @@ async function notifyUserOnLockerBooking( receiverName,receiverPhone,accessCode,
     console.error("❌ Failed to send SMS:", err.message);
   }
 }
+
+app.get("/incoming/:id/qr", async (req, res) => {
+  const parcel = await incomingParcel.findById(req.params.id).lean();
+  if (!parcel) return res.status(404).send("Parcel not found");
+  if (!parcel.qrCodeUrl) return res.status(400).send("No QR code saved for this parcel");
+
+  res.render("qrPage", { parcel });
+});
+
 //-------------------------------------USER DASHBOARD ------------------------------------------
 app.get("/home", isAuthenticated, (req, res) => {
   if (req.isAuthenticated()) return res.render("LandingPage");
