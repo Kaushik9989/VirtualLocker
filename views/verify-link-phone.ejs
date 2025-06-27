@@ -1,25 +1,66 @@
 <% layout("/layouts/boilerplate") %>
 
-<body class="bg-light min-vh-100 d-flex align-items-center justify-content-center">
-  <div class="container">
-    <div class="row justify-content-center">
-      <div class="col-md-6 col-lg-5">
-        <div class="card shadow border-0 rounded-4 p-4">
-          <h3 class="text-center mb-3">🔐 Verify Your Phone</h3>
+<style>
+  .verify-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: #f8fafc;
+  }
 
-          <% if (error) { %>
-            <div class="alert alert-danger"><%= error %></div>
-          <% } %>
+  .verify-card {
+    background: white;
+    border-radius: 1rem;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    width: 100%;
+    max-width: 420px;
+  }
 
-          <form method="POST" action="/verify-link-phone">
-            <div class="mb-3">
-              <label for="otp" class="form-label">OTP</label>
-              <input type="text" class="form-control" name="otp" placeholder="6-digit code" required />
-            </div>
-            <button type="submit" class="btn btn-success w-100">Verify & Continue</button>
-          </form>
-        </div>
+  .verify-btn {
+    background: #28a745;
+    border: none;
+    font-weight: 500;
+    transition: background 0.2s ease;
+  }
+
+  .verify-btn:hover {
+    background: #218838;
+  }
+
+  .verify-input {
+    height: 48px;
+    font-size: 1rem;
+  }
+</style>
+
+<div class="verify-container">
+  <div class="verify-card">
+    <h4 class="text-center mb-4">🔐 Verify Your Phone</h4>
+
+    <% if (error) { %>
+      <div class="alert alert-danger text-center small">
+        <%= error %>
       </div>
-    </div>
+    <% } %>
+
+    <form method="POST" action="/verify-link-phone">
+      <div class="mb-3">
+        <label for="otp" class="form-label">Enter OTP</label>
+        <input
+          type="text"
+          class="form-control verify-input"
+          name="otp"
+          maxlength="6"
+          placeholder="6-digit code"
+          required
+        />
+      </div>
+      <button type="submit" class="btn verify-btn w-100 py-2">
+        ✅ Verify & Continue
+      </button>
+    </form>
   </div>
-</body>
+</div>

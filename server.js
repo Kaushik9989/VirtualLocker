@@ -598,7 +598,7 @@ app.post("/verify-link-phone", async (req, res) => {
     req.session.phone = phone;
 
     delete req.session.linkPhone;
-
+    accountCache.delete("account:" + req.session.user._id);
     req.flash("success", "✅ Phone linked successfully.");
     res.redirect("/send/step1");
 
@@ -791,7 +791,7 @@ app.post("/set-username", async (req, res) => {
 
     // 🚫 REMOVE this line - it is causing the error
     // req.user.phone = user.phone;
-
+    accountCache.delete("account:" + req.session.user._id);
     res.redirect(redirectTo);
   } catch (err) {
     console.error("User Save Error:", err.message);
