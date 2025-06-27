@@ -1,17 +1,28 @@
 <% layout("/layouts/boilerplate") %>
+
 <div class="container py-5">
   <div class="row justify-content-center">
     <div class="col-lg-7">
       <h3 class="mb-4 fw-bold">👤 Step 2: Recipient Info</h3>
-      <form action="/send/step2" method="POST">
+
+      <form action="/send/step2" method="POST" id="recipientForm">
         <div class="mb-3">
           <label class="form-label">Recipient Name</label>
-          <input type="text" name="receiverName" class="form-control" required />
+          <input type="text" name="receiverName" id="receiverName" class="form-control" required />
         </div>
 
         <div class="mb-3">
           <label class="form-label">Recipient Phone</label>
-          <input type="tel" name="receiverPhone" class="form-control" required />
+          <div class="input-group">
+            <input type="tel" name="receiverPhone" id="receiverPhone" class="form-control" required />
+            <button
+              class="btn btn-outline-secondary"
+              type="button"
+              id="pickContactBtn"
+            >
+              <i class="fas fa-address-book"></i> Pick Contact
+            </button>
+          </div>
         </div>
 
         <button class="btn btn-primary w-100">Next</button>
@@ -19,3 +30,36 @@
     </div>
   </div>
 </div>
+
+<script>
+  // Check if Contact Picker API is available
+  if ("contacts" in navigator && "ContactsManager" in window) {
+    const pickButton = document.getElementById("pickContactBtn");
+    const nameInput = document.getElementById("receiverName");
+    const phoneInput = document.getElementById("receiverPhone");
+
+    pickButton.addEventListener("click", async () => {
+      try {
+        const props = ["name", "tel"];
+        const opts = { multiple: false };
+        const contacts = await navigator.contacts.select(props, opts);
+        if (contacts.length === 0) return;
+
+        const contact = contacts[0];
+
+        if (contact.name && contact.name.length > 0) {
+          nameInput.value = contact.name[0];
+        }
+
+        if (contact.tel && contact.tel.length > 0) {
+          phoneInput.value = contact.tel[0];
+        }
+      } catch (err) {
+        console.error("Contact picker error:", err);
+      }
+    });
+  } else {
+    // Hide the pick button if not supported
+    document.getElementById("pickContactBtn").style.display = "none";
+  }
+</script>
