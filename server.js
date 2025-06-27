@@ -3,6 +3,30 @@ const mongoose = require("mongoose");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
+
+const LRU = require('lru-cache');
+
+
+
+const dashboardCache = new LRU.LRUCache({
+  max: 500,
+  ttl: 1000 * 60 * 5, // Cache for 5 min
+});
+
+const sendParcelCache = new LRU.LRUCache({
+  max: 500,
+  ttl: 1000 * 60 * 5, // Cache for 5 min
+});
+
+const locationsCache = new LRU.LRUCache({
+  max: 10,
+  ttl: 1000 * 60 * 5, // 5 min
+});
+
+const accountCache = new LRU.LRUCache({
+  max: 500,
+  ttl: 1000 * 60 * 2, // 2 min cache (you can adjust)
+});
 const session = require("express-session");
 const MongoStore = require("connect-mongo");
 const passport = require("passport");
@@ -35,6 +59,9 @@ const locker = require("./models/locker.js");
 const compression = require("compression");
 app.use(compression());
 require("dotenv").config();
+
+
+// Set up a cache for rendered HTML
 
 //const { client, serviceSid } = require("./twilio");
 
@@ -113,13 +140,13 @@ passport.deserializeUser(async (id, done) => {
   done(null, user);
 });
 
-// MIDDLEWARES
-app.use((req, res, next) => {
-  console.log("🌐", req.method, req.originalUrl);
-  console.log("🔐 Session user:", req.session.user);
-  console.log("➡️ redirectTo in session:", req.session.redirectTo);
-  next();
-});
+// // MIDDLEWARES
+// app.use((req, res, next) => {
+//   console.log("🌐", req.method, req.originalUrl);
+//   console.log("🔐 Session user:", req.session.user);
+//   console.log("➡️ redirectTo in session:", req.session.redirectTo);
+//   next();
+// });
 function isAuthenticated(req, res, next) {
   if (req.session.user) {
     return next();
@@ -194,40 +221,99 @@ app.get("/", (req, res) => {
 });
 
 app.get("/sendParcel", isAuthenticated, async (req, res) => {
-  const user = await User.findById(req.session.user._id);
-  const bookedParcels = await Parcel1.find({
-    senderId: user,
-    status: { $in: ["awaiting_drop", "awaiting_payment", "sent", "delivered"] },
-  }).sort({ createdAt: -1 });
-  res.render("sendParcel", {
-    user: req.session.user,
-    bookedParcels,
-    activePage : "send",
-  });
+  console.log("Current cache size:", sendParcelCache.size);
+  const cacheKey = "sendParcel:" + req.session.user._id;
+
+  // Check cache first
+  const cachedHtml = sendParcelCache.get(cacheKey);
+  if (cachedHtml) {
+    console.log("✅ Served sendParcel from cache");
+    return res.send(cachedHtml);
+  }
+
+  try {
+    const user = await User.findById(req.session.user._id);
+
+    const bookedParcels = await Parcel1.find({
+      senderId: user,
+      status: { $in: ["awaiting_drop", "awaiting_payment", "sent", "delivered"] },
+    }).sort({ createdAt: -1 });
+
+    res.render("sendParcel", {
+      user: req.session.user,
+      bookedParcels,
+      activePage: "send",
+    }, (err, html) => {
+      if (err) {
+        console.error("Error rendering sendParcel:", err);
+        return res.status(500).send("Internal Server Error");
+      }
+
+      // Store in cache
+      sendParcelCache.set(cacheKey, html);
+
+      res.send(html);
+    });
+  } catch (err) {
+    console.error("Error loading sendParcel:", err);
+    res.status(500).send("Internal Server Error");
+  }
 });
+
 
 app.get("/locations", isAuthenticated, async (req, res) => {
-  const lockersRaw = await Locker.find({});
-  const locations = await DropLocation.find({ status: "active" });
+  const cacheKey = "locationsPage";
+  console.log("location cache size: ",locationsCache.size);
+  // Check cache
+  const cachedHtml = locationsCache.get(cacheKey);
+  if (cachedHtml) {
+    console.log("✅ Served /locations from cache");
+    return res.send(cachedHtml);
+  }
 
-  // Optional: calculate distance on backend (if user location is available)
-  // Or attach dummy `distance` & rating temporarily
-  const enrichedLocations = locations.map((loc) => ({
-    ...loc.toObject(),
-    distance: Math.floor(Math.random() * 20) + 1, // dummy distance
-    rating: (Math.random() * 2 + 3).toFixed(1), // dummy rating 3.0–5.0
-  }));
-  const lockers = lockersRaw.map((locker) => ({
-    lockerId: locker.lockerId,
-    compartments: locker.compartments,
-    location: locker.location || { lat: null, lng: null, address: "" },
-  }));
-  res.render("locations", {
-    lockers,
-    activePage: "locations",
-    locations: enrichedLocations,
-  });
+  try {
+    const lockersRaw = await Locker.find({}).lean();
+    const locationsRaw = await DropLocation.find({ status: "active" }).lean();
+
+    // Precompute enriched data only once
+    const enrichedLocations = locationsRaw.map((loc) => ({
+      ...loc,
+      distance: Math.floor(Math.random() * 20) + 1,
+      rating: (Math.random() * 2 + 3).toFixed(1),
+    }));
+
+    const lockers = lockersRaw.map((locker) => ({
+      lockerId: locker.lockerId,
+      compartments: locker.compartments,
+      location: locker.location || { lat: null, lng: null, address: "" },
+    }));
+
+    res.render(
+      "locations",
+      {
+        lockers,
+        activePage: "locations",
+        locations: enrichedLocations,
+      },
+      (err, html) => {
+        if (err) {
+          console.error("Error rendering locations:", err);
+          return res.status(500).send("Internal Server Error");
+        }
+
+        // Cache HTML
+        locationsCache.set(cacheKey, html);
+        console.log("✅ Cached /locations HTML");
+
+        res.send(html);
+      }
+    );
+  } catch (err) {
+    console.error("Error loading locations:", err);
+    res.status(500).send("Internal Server Error");
+  }
 });
+
 app.get("/receive", isAuthenticated, async (req, res) => {
   try {
     const incomingParcels = await incomingParcel.find({ receiverPhone: req.user.phone }).sort({ createdAt: -1 });
@@ -238,9 +324,36 @@ app.get("/receive", isAuthenticated, async (req, res) => {
     res.status(500).send("Server Error");
   }
 });
+
+/// accountCache.delete("account:" + req.session.user._id);
 app.get("/account", isAuthenticated, async (req, res) => {
-  const user = await User.findById(req.session.user._id);
-  res.render("account", { user, activePage: "account" });
+  const cacheKey = "account:" + req.session.user._id;
+
+  // Check cache
+  const cachedHtml = accountCache.get(cacheKey);
+  if (cachedHtml) {
+    console.log("✅ Served /account from cache for user", req.session.user._id);
+    return res.send(cachedHtml);
+  }
+
+  try {
+    const user = await User.findById(req.session.user._id).lean();
+
+    res.render("account", { user, activePage: "account" }, (err, html) => {
+      if (err) {
+        console.error("Error rendering /account:", err);
+        return res.status(500).send("Internal Server Error");
+      }
+
+      accountCache.set(cacheKey, html);
+      console.log("✅ Cached /account HTML for user", req.session.user._id);
+
+      res.send(html);
+    });
+  } catch (err) {
+    console.error("Error loading /account:", err);
+    res.status(500).send("Internal Server Error");
+  }
 });
 
 async function notifyUserOnLockerBooking( receiverName,receiverPhone,accessCode, timestamp) {
@@ -276,21 +389,30 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
     return res.redirect("/login");
   }
 
+  const cacheKey = "dashboard:" + req.session.user._id;
+
+  // Check cache first
+  const cachedHtml = dashboardCache.get(cacheKey);
+  if (cachedHtml) {
+    console.log("✅ Served dashboard from cache");
+    return res.send(cachedHtml);
+  }
+
   try {
     const user = await User.findById(req.session.user._id).lean();
     if (!user) return res.redirect("/login");
-     if (!user.phone) {
-    req.flash("error", "⚠️ Please link your phone number to receive parcel updates.");
-  }
+
+    if (!user.phone) {
+      req.flash("error", "⚠️ Please link your phone number to receive parcel updates.");
+    }
 
     const lockersRaw = await Locker.find({});
     const userPhone = user.phone;
     const userName = user.username;
 
-    
-     const incomingParcels = await incomingParcel.find({
+    const incomingParcels = await incomingParcel.find({
       receiverPhone: userPhone,
-    }).sort({ createdAt: -1 }); 
+    }).sort({ createdAt: -1 });
 
     const lockers = lockersRaw.map((locker) => ({
       lockerId: locker.lockerId,
@@ -298,18 +420,32 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
       location: locker.location || { lat: null, lng: null, address: "" },
     }));
 
+    // Render the EJS template to HTML string instead of sending immediately
     res.render("newDashboard", {
-      user, // ✅ full user object including wallet
+      user,
       lockers,
       activePage: "home",
       incomingParcels,
       userName,
+    }, (err, html) => {
+      if (err) {
+        console.error("Error rendering dashboard:", err);
+        return res.status(500).send("Internal Server Error");
+      }
+
+      // Save HTML to cache
+      dashboardCache.set(cacheKey, html);
+
+      // Send the response
+      res.send(html);
     });
+
   } catch (err) {
     console.error("Error loading dashboard:", err);
     res.status(500).send("Internal Server Error");
   }
 });
+
 
 // -------------------------------------------GOOGLE LOGIN ROUTES---------------------------------------------------
 
@@ -878,6 +1014,8 @@ app.post("/send/step3", isAuthenticated, async (req, res) => {
     const link = `${req.protocol}://${req.get("host")}/payment/receiver/${parcel._id}`;
     return res.render("parcel/waiting-payment", { parcel });
   }
+  dashboardCache.delete("dashboard:" + req.session.user._id);
+  sendParcelCache.delete("sendParcel:" + req.session.user._id);
 
   res.redirect(`/parcel/${parcel._id}/success`);
 });
