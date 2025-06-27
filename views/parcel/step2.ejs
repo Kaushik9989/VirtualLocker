@@ -33,6 +33,10 @@
 
 <script>
   // Check if Contact Picker API is available
+  if (!("contacts" in navigator && "ContactsManager" in window)) {
+  alert("This browser does not support the Contact Picker API.");
+}
+
   if ("contacts" in navigator && "ContactsManager" in window) {
     const pickButton = document.getElementById("pickContactBtn");
     const nameInput = document.getElementById("receiverName");
