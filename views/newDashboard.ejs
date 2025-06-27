@@ -115,6 +115,39 @@
 </div>
 
 <script>
+  
+  // Prefetch data
+  Promise.all([
+    fetch("/api/incoming-parcels").then(res => res.json()).catch(err => {
+      console.error("Error fetching incoming parcels:", err);
+      return {};
+    }),
+    fetch("/api/sent-parcels").then(res => res.json()).catch(err => {
+      console.error("Error fetching sent parcels:", err);
+      return {};
+    }),
+    fetch("/api/locations").then(res => res.json()).catch(err => {
+      console.error("Error fetching locations:", err);
+      return {};
+    }),
+  ]).then(([incomingData, sentData, locationData]) => {
+    if (incomingData.parcels) {
+      localStorage.setItem("incomingParcels", JSON.stringify(incomingData.parcels));
+      console.log("✅ Cached incoming parcels");
+    }
+    if (sentData.parcels) {
+      localStorage.setItem("sentParcels", JSON.stringify(sentData.parcels));
+      console.log("✅ Cached sent parcels");
+    }
+    if (locationData.lockers) {
+      localStorage.setItem("locations", JSON.stringify(locationData.lockers));
+      console.log("✅ Cached locations");
+    }
+  }).catch(err => {
+    console.error("Error prefetching dashboard data:", err);
+  });
+
+
   const parcelContainer = document.getElementById("parcelList");
   const badge = document.getElementById("parcelCountBadge");
 

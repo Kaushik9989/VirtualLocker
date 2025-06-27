@@ -1109,7 +1109,7 @@ app.post("/send/step3", isAuthenticated, async (req, res) => {
     return res.render("parcel/waiting-payment", { parcel });
   }
   dashboardCache.delete("dashboard:" + req.session.user._id);
-  sendParcelCache.delete("sendParcel:" + req.session.user._id);
+  parcelCache.delete("sendParcel:" + req.session.user._id);
 
   res.redirect(`/parcel/${parcel._id}/success`);
 });
