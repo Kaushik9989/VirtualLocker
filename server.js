@@ -550,6 +550,7 @@ app.post("/set-username", async (req, res) => {
   const phone = req.session.phone;
 
   try {
+    // Check if username already exists
     const existingUsername = await User.findOne({ username });
     if (existingUsername) {
       return res.render("set-username", {
@@ -557,6 +558,7 @@ app.post("/set-username", async (req, res) => {
       });
     }
 
+    // Create new user
     const user = new User({
       phone,
       username,
@@ -566,6 +568,7 @@ app.post("/set-username", async (req, res) => {
 
     await user.save();
 
+    // Set session user
     req.session.user = {
       _id: user._id,
       uid: user.uid,
@@ -574,11 +577,16 @@ app.post("/set-username", async (req, res) => {
       email: user.email || null,
       wallet: user.wallet || { credits: 0 },
     };
+
+    // Clean up session
     delete req.session.phone;
     const redirectTo = req.session.redirectTo || "/dashboard";
     delete req.session.redirectTo;
-    req.user.phone = user.phone
-    res.redirect("/dashboard");
+
+    // 🚫 REMOVE this line - it is causing the error
+    // req.user.phone = user.phone;
+
+    res.redirect(redirectTo);
   } catch (err) {
     console.error("User Save Error:", err.message);
     res.render("set-username", {
