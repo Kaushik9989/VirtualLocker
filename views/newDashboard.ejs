@@ -1,213 +1,242 @@
 <% layout("/layouts/boilerplate") %>
 
-<style>
-  .gradient-card {
-    background: linear-gradient(90deg, #4e54c8, #ff6a00);
-    border-radius: 16px;
-    color: white;
-  }
-
-  .gradient-btn {
-    border-radius: 12px;
-    color: white;
-    font-weight: 500;
-    padding: 14px 0;
-  }
-
-  .btn-send {
-    background-color: #16c784;
-  }
-
-  .btn-locate {
-    background-color: #7e22ce;
-  }
-
-  .incoming-card {
-    border-radius: 14px;
-    background-color: #fff;
-    border: 1px solid #eee;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-  }
-
-  .status-badge {
-    font-size: 0.75rem;
-    font-weight: 500;
-    padding: 3px 10px;
-    border-radius: 12px;
-  }
-
-  .bottom-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    border-top: 1px solid #eee;
-    background-color: #fff;
-    padding: 10px 0;
-    display: flex;
-    justify-content: space-around;
-    z-index: 999;
-  }
-
-  .nav-item {
-    text-align: center;
-    font-size: 0.85rem;
-    color: #6b7280;
-  }
-
-  .nav-item.active {
-    color: #4e54c8;
-    font-weight: 600;
-  }
-
-  .notification-dot {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    background: red;
-    color: white;
-    font-size: 10px;
-    padding: 2px 6px;
-    border-radius: 50%;
-  }
-</style>
-
-<div class="gradient-card p-4 mb-4 d-flex justify-content-between align-items-center mt-5 mb-5">
-  <% if (messages.error && messages.error.length > 0) { %>
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-      <%= messages.error[0] %>
-      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-  <% } %>
-
-  <% if (messages.success && messages.success.length > 0) { %>
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-      <%= messages.success[0] %>
-      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-  <% } %>
-
-  <div>
-    <h5>Welcome back, <%= user.username %></h5>
-    <p class="mb-0">Loading your parcels...</p>
-  </div>
-  <h3 class="mb-0 fw-bold">
-    <%= user.wallet.credits %> <small style="font-size: 16px;">Credits</small>
-  </h3>
-</div>
-
-<div class="row text-center mb-4">
-  <div class="col-6">
-    <a href="/sendParcel" class="btn gradient-btn btn-send w-100">Send Parcel</a>
-  </div>
-  <div class="col-6">
-    <a href="/locations" class="btn gradient-btn btn-locate w-100">Find Locations</a>
-  </div>
-</div>
-
-<h5 class="mb-3">
-  Incoming Parcels
-  <span id="parcelCountBadge" class="badge bg-secondary">0</span>
-</h5>
-
-<div id="parcelList">
-  <div class="text-muted text-center my-4">Loading your parcels...</div>
-</div>
-
-<script>
-  const parcelContainer = document.getElementById("parcelList");
-  const badge = document.getElementById("parcelCountBadge");
-
-  // Load cached parcels
-  const cached = localStorage.getItem("incomingParcels");
-  if (cached) {
-    try {
-      const data = JSON.parse(cached);
-      renderParcels(data);
-      console.log("✅ Loaded parcels from cache");
-    } catch (e) {
-      console.error("Cache parse error:", e);
+  <style>
+    .gradient-card {
+      background: linear-gradient(90deg, #4e54c8, #ff6a00);
+      border-radius: 16px;
+      color: white;
     }
-  }
 
-  // Always fetch fresh parcels from /api/incoming-parcels
-  fetch("/api/incoming-parcels")
-    .then(res => res.json())
-    .then(data => {
-      if (data.parcels) {
-        localStorage.setItem("incomingParcels", JSON.stringify(data.parcels));
-        renderParcels(data.parcels);
-        console.log("✅ Refreshed parcels from server");
+    .gradient-btn {
+      border-radius: 12px;
+      color: white;
+      font-weight: 500;
+      padding: 14px 0;
+    }
+
+    .btn-send {
+      background-color: #16c784;
+    }
+
+    .btn-locate {
+      background-color: #7e22ce;
+    }
+
+    .incoming-card {
+      border-radius: 14px;
+      background-color: #fff;
+      border: 1px solid #eee;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+    }
+
+    .status-badge {
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 12px;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      border-top: 1px solid #eee;
+      background-color: #fff;
+      padding: 10px 0;
+      display: flex;
+      justify-content: space-around;
+      z-index: 999;
+    }
+
+    .nav-item {
+      text-align: center;
+      font-size: 0.85rem;
+      color: #6b7280;
+    }
+
+    .nav-item.active {
+      color: #4e54c8;
+      font-weight: 600;
+    }
+
+    .notification-dot {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background: red;
+      color: white;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 50%;
+    }
+  </style>
+
+  <div class="gradient-card p-4 mb-4 d-flex justify-content-between align-items-center mt-5 mb-5">
+    <% if (messages.error && messages.error.length> 0) { %>
+      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <%= messages.error[0] %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      <% } %>
+
+        <% if (messages.success && messages.success.length> 0) { %>
+          <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <%= messages.success[0] %>
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+          <% } %>
+
+            <div>
+              <h5>Welcome back, <%= user.username %>
+              </h5>
+              <p id="parcelCountText" class="mb-0">Loading your parcels...</p>
+            </div>
+            <h3 class="mb-0 fw-bold">
+              <%= user.wallet.credits %> <small style="font-size: 16px;">Credits</small>
+            </h3>
+  </div>
+
+  <div class="row text-center mb-4">
+    <div class="col-6">
+      <a href="/sendParcel" class="btn gradient-btn btn-send w-100">Send Parcel</a>
+    </div>
+    <div class="col-6">
+      <a href="/locations" class="btn gradient-btn btn-locate w-100">Find Locations</a>
+    </div>
+  </div>
+
+  <h5 class="mb-3">
+    Incoming Parcels
+    <span id="parcelCountBadge" class="badge bg-secondary">0</span>
+  </h5>
+
+  <div id="parcelList">
+    <div class="text-muted text-center my-4">Loading your parcels...</div>
+  </div>
+
+  <script>
+    const parcelContainer = document.getElementById("parcelList");
+    const badge = document.getElementById("parcelCountBadge");
+
+    // Load cached parcels
+    const cached = localStorage.getItem("incomingParcels");
+    if (cached) {
+      try {
+        const data = JSON.parse(cached);
+        renderParcels(data);
+        console.log("✅ Loaded parcels from cache");
+      } catch (e) {
+        console.error("Cache parse error:", e);
       }
-    })
-    .catch(err => {
-      console.error("Parcel fetch error:", err);
-    });
-
-  function renderParcels(parcels) {
-    badge.textContent = parcels.length;
-
-    if (parcels.length === 0) {
-      parcelContainer.innerHTML = `
-        <div class="text-center text-muted my-5">
-          <i class="fas fa-inbox fa-3x mb-3"></i>
-          <p class="mb-0">No incoming parcels found.</p>
-        </div>
-      `;
-      return;
     }
 
-    parcelContainer.innerHTML = parcels.map(parcel => {
-      const status = parcel.status || "unknown";
-      const badgeColor =
-        status === "dropped"
-          ? "success"
-          : status === "awaiting_drop"
+    // Always fetch fresh parcels from /api/incoming-parcels
+    fetch("/api/incoming-parcels")
+      .then(res => res.json())
+      .then(data => {
+        if (data.parcels) {
+          localStorage.setItem("incomingParcels", JSON.stringify(data.parcels));
+          renderParcels(data.parcels);
+          console.log("✅ Refreshed parcels from server");
+        } else {
+          console.warn("API returned no parcels field, rendering empty list.");
+          renderParcels([]);
+        }
+      })
+      .catch(err => {
+        console.error("Parcel fetch error:", err);
+        // Even on error, clear the loading state
+        renderParcels([]);
+      });
+
+
+
+    function renderParcels(parcels) {
+  badge.textContent = parcels.length;
+
+  const countText = document.getElementById("parcelCountText");
+  countText.textContent = `You have ${parcels.length} parcels waiting`;
+
+  if (parcels.length === 0) {
+    parcelContainer.innerHTML = `
+      <div class="text-center text-muted my-5">
+        <i class="fas fa-inbox fa-3x mb-3"></i>
+        <p class="mb-0">No incoming parcels found.</p>
+      </div>
+    `;
+    return;
+  }
+
+  parcelContainer.innerHTML = parcels.map(parcel => {
+    const status = parcel.status || "unknown";
+    const badgeColor =
+      status === "dropped"
+        ? "success" 
+        : status === "awaiting_drop"
           ? "warning"
-          : "secondary";
+          : "danger";
 
-      const statusText =
-        status.charAt(0).toUpperCase() +
-        status.slice(1).replace("_", " ");
+    const statusText =
+      status.charAt(0).toUpperCase() +
+      status.slice(1).replace("_", " ");
 
-      return `
-        <div class="card shadow-sm mb-4 border-start rounded-3">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-start mb-2">
-              <div>
-                <h6 class="fw-bold mb-1">
-                  From: ${parcel.senderName || "Unknown"}
-                </h6>
-                <p class="mb-1 text-muted small">
-                  ${parcel.metadata?.description || "No description provided"}
-                </p>
-                <div class="text-muted small">
-                  <i class="fas fa-box me-1"></i>
-                  ${parcel.parcelType} • ${parcel.size} • ₹${parcel.cost}
-                </div>
+    const expiresAt = parcel.expiresAt
+      ? new Date(parcel.expiresAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
+      : "N/A";
+
+    return `
+      <div class="card shadow-sm mb-4 border-start rounded-3">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <h6 class="fw-bold mb-1">
+                From: ${parcel.senderName || "Unknown"}
+              </h6>
+              <p class="mb-1 text-muted small">
+                ${parcel.metadata?.description || "No description provided"}
+              </p>
+              <div class="text-muted small mb-1">
+                <i class="fas fa-box me-1"></i>
+                ${parcel.type || "N/A"} • ${parcel.size || "N/A"} • ₹${parcel.cost || "N/A"}
               </div>
-              <span class="badge text-bg-${badgeColor} px-3 py-2 rounded-pill">
-                ${statusText}
-              </span>
+              <div class="text-muted small">
+                Locker: <strong>${parcel.lockerId || "N/A"}</strong>
+                &nbsp;|&nbsp;
+                Compartment: <strong>${parcel.compartmentId || "N/A"}</strong>
+                <br/>
+                Expires: <strong>${expiresAt}</strong>
+              </div>
             </div>
+            <span class="badge text-bg-${badgeColor} px-3 py-2 rounded-pill">
+              ${statusText}
+            </span>
+          </div>
 
-            <div class="d-flex justify-content-between align-items-center mt-3">
-              <span class="text-muted small">
-                Access Code: <strong>${parcel.accessCode}</strong>
-              </span>
-              ${
-                status === "dropped"
-                  ? `<a href="/incoming/${parcel._id}/qr" class="btn btn-sm btn-primary" target="_blank">
-                      <i class="fas fa-qrcode me-1"></i> QR Code
-                    </a>`
-                  : `<a href="/incoming/${parcel._id}" class="btn btn-sm btn-outline-secondary">
-                      <i class="fas fa-info-circle me-1"></i> Details
-                    </a>`
-              }
-            </div>
+          <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+            <span class="text-muted small">
+              Access Code: <strong>${parcel.accessCode}</strong>
+            </span>
+            ${parcel.qrCodeUrl
+              ? `<a href="${parcel.qrCodeUrl}" class="btn btn-sm btn-primary" target="_blank">
+                    <i class="fas fa-qrcode me-1"></i> View QR
+                 </a>`
+              : ""
+            }
+            ${status === "awaiting_pick"
+              ? `<a href="/incoming/${parcel._id}/qr" class="btn btn-sm btn-outline-primary" target="_blank">
+                    <i class="fas fa-qrcode me-1"></i> QR Code
+                 </a>`
+              : `<a href="/incoming/${parcel._id}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-info-circle me-1"></i> Details
+                 </a>`
+            }
           </div>
         </div>
-      `;
-    }).join("");
-  }
-</script>
+      </div>
+    `;
+  }).join("");
+}
+
+
+  </script>

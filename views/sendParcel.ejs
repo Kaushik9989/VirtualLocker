@@ -162,43 +162,6 @@
       </ol>
     </div>
     <div id="sentParcelsList">Loading your bookings...</div>
-    <!-- <% if (bookedParcels && bookedParcels.length> 0) { %>
-      <div class="mt-4">
-        <h6 class="text-start fw-semibold">Your Booked Parcels</h6>
-        <div class="d-flex flex-column gap-3 mt-3">
-          <% bookedParcels.forEach(parcel=> { %>
-            <a href="/parcel/<%= parcel._id %>/success" class="text-decoration-none">
-              <div class="border rounded p-3 d-flex justify-content-between align-items-center shadow-sm">
-                <div>
-                  <div class="d-flex align-items-center gap-2 fw-semibold text-dark">
-                    <% if (parcel.type==='document' ) { %>
-                      <i class="fas fa-file-alt text-info"></i>
-                      <% } else if (parcel.type==='package' ) { %>
-                        <i class="fas fa-box text-primary"></i>
-                        <% } else if (parcel.type==='gift' ) { %>
-                          <i class="fas fa-gift text-danger"></i>
-                          <% } else { %>
-                            <i class="fas fa-question-circle text-secondary"></i>
-                            <% } %>
-                              <%= parcel.type.charAt(0).toUpperCase() + parcel.type.slice(1) %> Parcel
-                  </div>
-                  <div class="small text-muted">
-                    Status: <%= parcel.status.replace("_", " " ) %><br />
-                      Expires: <%= new Date(parcel.expiresAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) %>
-                  </div>
-                </div>
-                <i class="fas fa-chevron-right text-primary"></i>
-              </div>
-            </a>
-            <% }) %>
-        </div>
-      </div>
-      <% } else { %>
-        <div class="text-center mt-4 text-muted">
-          <i class="fas fa-box-open fa-2x mb-2"></i><br />
-          You don’t have any active bookings.
-        </div>
-        <% } %> -->
 
 
 

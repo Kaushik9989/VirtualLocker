@@ -123,6 +123,9 @@
   }
 </style>
 
+
+
+
 <div class="receive-header">
   <div class="icon-circle">
     <i class="fas fa-box"></i>
@@ -134,43 +137,48 @@
 <% if (parcels.length === 0) { %>
   <div class="text-center text-muted">No parcels yet.</div>
 <% } else { %>
-  <% parcels.forEach(parcel => { %>
+  <% parcels.forEach(parcel => { 
+       const daysAgo = Math.floor((Date.now() - new Date(parcel.createdAt)) / (1000 * 60 * 60 * 24));
+       const status = parcel.status || 'unknown';
+  %>
     <div class="parcel-card">
       <div class="parcel-header">
         <span>From: <%= parcel.senderName || 'Unknown' %></span>
-        <div class="d-flex gap-2">
-          <% if (parcel.isUrgent) { %>
-            <span class="badge badge-urgent">Urgent</span>
-          <% } %>
+        <div>
           <span class="badge 
-            <%= parcel.status === 'ready' ? 'badge-ready' : 'badge-delivered' %>">
-            <%= parcel.status %>
+            <%= status === 'awaiting_pick' ? 'badge-ready' : status === 'delivered' ? 'badge-delivered' : 'badge-urgent' %>">
+            <%= status.replace('_',' ') %>
           </span>
         </div>
       </div>
-      <div class="parcel-sub"><%= parcel.description || 'No description' %></div>
+      <div class="parcel-sub"><%= parcel.metadata?.description || 'No description' %></div>
       <div class="parcel-meta">
-        <span><i class="fas fa-map-marker-alt"></i> <%= parcel.lockerAddress || 'Unknown location' %></span>
-        <span><i class="fas fa-clock"></i> <%= Math.floor((Date.now() - new Date(parcel.createdAt)) / (1000 * 60 * 60 * 24)) %>d ago</span>
+        <span><%=parcel.type%></span>
+        <span><i class="fas fa-clock"></i> <%= parcel.expiresAt %></span>
       </div>
 
-      <% if (parcel.status === 'ready') { %>
+      <% if (status === 'awaiting_pick') { %>
         <div class="pickup-box">
           <h5><i class="fas fa-check-circle me-1"></i> Ready for pickup</h5>
           <div class="pickup-code"><%= parcel.accessCode || 'N/A' %></div>
           <small class="text-muted">Show this code at the locker</small>
           <div class="pickup-buttons">
-            <a href="https://www.google.com/maps/search/?api=1&query=<%= parcel.lat %>,<%= parcel.lng %>" class="btn-green" target="_blank">
-              <i class="fas fa-map-marker-alt me-1"></i> Directions
-            </a>
-            <a href="<%= parcel.qrImage || '#' %>" class="btn-outline" target="_blank">
-              <i class="fas fa-qrcode me-1"></i> Show QR
-            </a>
+            <% if (parcel.lockerLat && parcel.lockerLng) { %>
+              <a href="https://www.google.com/maps/search/?api=1&query=<%= parcel.lockerLat %>,<%= parcel.lockerLng %>" class="btn-green" target="_blank">
+                <i class="fas fa-map-marker-alt me-1"></i> Directions
+              </a>
+            <% } %>
+            <% if (parcel.qrImage) { %>
+              <a href="/incoming/<%=parcel._id%>/qr" class="btn-outline" target="_blank">
+                <i class="fas fa-qrcode me-1"></i> Show QR
+              </a>
+            <% } %>
           </div>
         </div>
       <% } %>
     </div>
   <% }) %>
 <% } %>
+
 
 

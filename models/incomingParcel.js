@@ -9,8 +9,8 @@ const incomingParcelSchema = new mongoose.Schema({
 
   status: {
     type: String,
-    enum: ["pending", "dropped", "picked"],
-    default: "pending",
+   enum: ["awaiting_drop", "awaiting_pick", "picked", "expired"],
+    default: "awaiting_drop",
   },
 
   accessCode: { type: String, default: "" }, // for pickup

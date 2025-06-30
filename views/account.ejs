@@ -128,6 +128,7 @@
       <% if (user.isPhoneVerified) { %>
         <div>
           <i class="bi bi-phone-fill me-1 text-success"></i>Phone Verified
+          <p><%= user.phone %></p>
         </div>
       <% } else { %>
         <div>
@@ -138,6 +139,7 @@
       <% if (user.googleId) { %>
         <div>
           <i class="bi bi-google me-1 text-danger"></i>Google Linked
+          <p><%= user.email%></p>
         </div>
       <% } else { %>
         <div>

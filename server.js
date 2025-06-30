@@ -38,6 +38,7 @@ const Locker = require("./models/locker.js");
 const Locker1 = require("./models/Locker/LockerUpdated.js");
 const DropLocation = require("./models/Locker/DropLocation.js");
 const Parcel1 = require("./models/ParcelUpdated.js");
+const Parcel2 = require("./models/parcel2Updated.js");
 const User = require("./models/User/UserUpdated.js");
 const Courier = require("./models/Courier.js");
 const Parcel = require("./models/Parcel");
@@ -225,9 +226,9 @@ app.get("/api/sent-parcels", isAuthenticated, async (req, res) => {
     const user = await User.findById(req.session.user._id).lean();
     if (!user) return res.status(401).json({ error: "Unauthorized" });
 
-    const bookedParcels = await Parcel1.find({
-      senderId: user._id,
-      status: { $in: ["awaiting_drop", "awaiting_payment", "sent", "delivered"] },
+    const bookedParcels = await Parcel2.find({
+      senderId: req.session.user._id,
+     
     })
       .sort({ createdAt: -1 })
       .lean();
@@ -253,9 +254,9 @@ app.get("/sendParcel", isAuthenticated, async (req, res) => {
   try {
     const user = await User.findById(req.session.user._id);
 
-    const bookedParcels = await Parcel1.find({
-      senderId: user,
-      status: { $in: ["awaiting_drop", "awaiting_payment", "sent", "delivered"] },
+    const bookedParcels = await Parcel2.find({
+      senderId: req.session.user._id,
+      
     }).sort({ createdAt: -1 });
 
     res.render("sendParcel", {
@@ -277,7 +278,22 @@ app.get("/sendParcel", isAuthenticated, async (req, res) => {
     console.error("Error loading sendParcel:", err);
     res.status(500).send("Internal Server Error");
   }
+});// routes/api.js
+
+
+// GET /api/lockers - Fetch all lockers and compartments
+app.get("/lockers", async (req, res) => {
+  try {
+    const lockers = await Locker.find({});
+    res.render("lockersNew", { lockers });
+  } catch (err) {
+    console.error("Error fetching lockers:", err);
+    res.status(500).send("Error fetching lockers");
+  }
 });
+
+
+
 // /api/locations
 app.get("/api/locations", isAuthenticated, async (req, res) => {
   try {
@@ -359,9 +375,9 @@ app.get("/locations", isAuthenticated, async (req, res) => {
 
 app.get("/receive", isAuthenticated, async (req, res) => {
   try {
-    const incomingParcels = await incomingParcel.find({ receiverPhone: req.user.phone }).sort({ createdAt: -1 });
+    const incomingParcels = await Parcel2.find({ receiverPhone: req.user.phone }).sort({ createdAt: -1 });
 
-    res.render("recieve", { parcels: incomingParcels });
+    res.render("recieve", { parcels: incomingParcels, activePage: "receive",parcelCount: incomingParcels.length });
   } catch (error) {
     console.error("Error fetching parcels:", error);
     res.status(500).send("Server Error");
@@ -415,9 +431,9 @@ async function notifyUserOnLockerBooking( receiverName,receiverPhone,accessCode,
 }
 
 app.get("/incoming/:id/qr", async (req, res) => {
-  const parcel = await incomingParcel.findById(req.params.id).lean();
+  const parcel = await Parcel2.findById(req.params.id).lean();
   if (!parcel) return res.status(404).send("Parcel not found");
-  if (!parcel.qrCodeUrl) return res.status(400).send("No QR code saved for this parcel");
+  if (!parcel.qrImage) return res.status(400).send("No QR code saved for this parcel");
 
   res.render("qrPage", { parcel });
 });
@@ -490,38 +506,38 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
 });
 
 
-app.get("/api/incoming-parcels", isAuthenticated, async (req, res) => {
-  try {
-    const userId = req.session.user._id;
-    const cacheKey = `incomingParcels:${userId}`;
+// app.get("/api/incoming-parcels", isAuthenticated, async (req, res) => {
+//   try {
+//     const userId = req.session.user._id;
+//     const cacheKey = `incomingParcels:${userId}`;
 
-    // Check cache first
-    const cachedParcels = parcelCache.get(cacheKey);
-    if (cachedParcels) {
-      console.log("✅ Served incoming parcels from cache");
-      return res.json({ parcels: cachedParcels });
-    }
+//     // Check cache first
+//     const cachedParcels = parcelCache.get(cacheKey);
+//     if (cachedParcels) {
+//       console.log("✅ Served incoming parcels from cache");
+//       return res.json({ parcels: cachedParcels });
+//     }
 
-    // No cache, fetch from DB
-    const user = await User.findById(userId).lean();
-    if (!user) return res.status(401).json({ error: "Unauthorized" });
+//     // No cache, fetch from DB
+//     const user = await User.findById(userId).lean();
+//     if (!user) return res.status(401).json({ error: "Unauthorized" });
 
-    const parcels = await incomingParcel.find({
-      receiverPhone: user.phone,
-    })
-      .sort({ createdAt: -1 })
-      .lean();
+//     const parcels = await incomingParcel.find({
+//       receiverPhone: user.phone,
+//     })
+//       .sort({ createdAt: -1 })
+//       .lean();
 
-    // Save to cache
-    parcelCache.set(cacheKey, parcels);
+//     // Save to cache
+//     parcelCache.set(cacheKey, parcels);
 
-    console.log("✅ Served incoming parcels from DB and cached");
-    res.json({ parcels });
-  } catch (err) {
-    console.error("API parcels error:", err);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
+//     console.log("✅ Served incoming parcels from DB and cached");
+//     res.json({ parcels });
+//   } catch (err) {
+//     console.error("API parcels error:", err);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// });
 
 app.get("/api/lockers", isAuthenticated, async (req, res) => {
   try {
@@ -726,6 +742,47 @@ app.post("/register-phone", async (req, res) => {
     console.error("Twilio Verify Error:", err.message);
     res.render("register", {
       error: "❌ Failed to send OTP. Check number and try again.",
+    });
+  }
+});
+app.get("/api/incoming-parcels", isAuthenticated, async (req, res) => {
+  try {
+    const parcelsRaw = await Parcel2.find({
+      receiverPhone: req.session.user.phone
+    })
+      .sort({ createdAt: -1 })
+      .select(
+        "_id senderName metadata description type parcelType size cost accessCode status lockerId compartmentId qrCodeUrl expiresAt"
+      );
+
+    // Transform parcels to clean objects
+    const parcels = parcelsRaw.map(p => ({
+      _id: p._id,
+      senderName: p.senderName,
+      metadata: p.metadata,
+      description: p.description,
+      type: p.type,
+      parcelType: p.parcelType,
+      size: p.size,
+      // convert cost to string
+      cost: p.cost?.toString() ?? null,
+      accessCode: p.accessCode,
+      status: p.status,
+      lockerId: p.lockerId,
+      compartmentId: p.compartmentId,
+      qrCodeUrl: p.qrCodeUrl,
+      expiresAt: p.expiresAt
+    }));
+
+    res.json({
+      success: true,
+      parcels
+    });
+  } catch (err) {
+    console.error("Error fetching incoming parcels:", err);
+    res.status(500).json({
+      success: false,
+      message: "Server error"
     });
   }
 });
@@ -1026,82 +1083,89 @@ app.post("/send/step2", isAuthenticated, (req, res) => {
 app.get("/send/step3", isAuthenticated, (req, res) => {
   res.render("parcel/step3");
 });
-
+function getEstimatedCost(size) {
+  if (size === "small") return 10;
+  if (size === "medium") return 20;
+  return 30;
+}
 app.post("/send/step3", isAuthenticated, async (req, res) => {
   const draft = req.session.parcelDraft;
   draft.paymentOption = req.body.paymentOption;
  const user = await User.findById(req.session.user._id);
   const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
-  const unlockUrl = `${req.protocol}://${req.get("host")}/drop/${accessCode}`;
-  const qrImage = await QRCode.toDataURL(unlockUrl);
-  const cost = getEstimatedCost(draft.size);
-
+  const cost = getEstimatedCost(draft.size).toString();
+  const qrPayload = JSON.stringify({
+  accessCode: accessCode
+});
+const qrImage = await QRCode.toDataURL(qrPayload);
   const status =
     draft.paymentOption === "receiver_pays" ? "awaiting_payment" : "awaiting_drop";
   const paymentStatus =
     draft.paymentOption === "receiver_pays" ? "pending" : "completed";
-  const droppedAt = draft.paymentOption === "sender_pays" ? new Date() : null;
+  const droppedAt =  null;
   const expiresAt =
     draft.paymentOption === "receiver_pays"
       ? new Date(Date.now() + 2 * 60 * 60 * 1000)
       : new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
 
-  const parcel = new Parcel1({
-    ...draft,
-    senderId: req.user._id,
-    senderName: req.user.username,
-    accessCode,
-    unlockUrl,
-    qrImage,
-    cost,
-    status,
-    paymentStatus,
-    droppedAt,
-    expiresAt,
-  });
+  const parcel = new Parcel2({
+  ...draft,
+  senderId: req.user._id,
+  senderName: req.user.username,
+  accessCode,
+  unlockUrl : null,
+  qrImage,
+  cost,
+  status,
+  paymentStatus,
+  droppedAt,
+  expiresAt,
+  lockerId: null,
+  compartmentId: null
+});
 
   await parcel.save();
   delete req.session.parcelDraft;
 
   // ✅ Sync with IncomingParcel
-  const updated = await incomingParcel.findOneAndUpdate(
-    {
-      receiverPhone: parcel.receiverPhone,
-      status: "pending",
-    },
-    {
-      receiverName: parcel.receiverName,
-      parcelType: parcel.type,
-      size: parcel.size,
-      cost: parseFloat(parcel.cost.toString()),
-      accessCode: parcel.accessCode,
-      qrCodeUrl: parcel.qrImage,
-      status: "dropped",
-      lockerId: parcel.lockerId?.toString() || "",
-      "metadata.description": parcel.description || "",
-    },
-    { new: true }
-  );
+ const updated = await incomingParcel.findOneAndUpdate(
+  {
+    receiverPhone: parcel.receiverPhone,
+    status: "pending",
+  },
+  {
+    receiverName: parcel.receiverName,
+    parcelType: parcel.type,
+    size: parcel.size,
+    cost: parseFloat(parcel.cost.toString()),
+    accessCode: parcel.accessCode,
+    qrCodeUrl: parcel.qrImage,
+    status: "awaiting_drop",  // Corrected
+    lockerId: parcel.lockerId?.toString() || "",
+    "metadata.description": parcel.description || "",
+  },
+  { new: true }
+);
 
-  // ✅ If no matching incoming parcel found, create new
-  if (!updated) {
-    await incomingParcel.create({
-      senderPhone: user.phone || "unknown", // fallback if not stored
-      receiverPhone: parcel.receiverPhone,
-      senderName : user.username,
-      receiverName: parcel.receiverName || "",
-      parcelType: parcel.type,
-      size: parcel.size,
-      cost: parseFloat(parcel.cost.toString()),
-      accessCode: parcel.accessCode,
-      qrCodeUrl: parcel.qrImage,
-      status: "dropped",
-      lockerId: parcel.lockerId?.toString() || "",
-      metadata: {
-        description: parcel.description || "",
-      },
-    });
-  }
+// ✅ If no matching incoming parcel found, create new
+if (!updated) {
+  await incomingParcel.create({
+    senderPhone: user.phone || "unknown",
+    receiverPhone: parcel.receiverPhone,
+    senderName: user.username,
+    receiverName: parcel.receiverName || "",
+    parcelType: parcel.type,
+    size: parcel.size,
+    cost: parseFloat(parcel.cost.toString()),
+    accessCode: parcel.accessCode,
+    qrCodeUrl: parcel.qrImage,
+    status: "awaiting_drop",  // Corrected
+    lockerId: parcel.lockerId?.toString() || "",
+    metadata: {
+      description: parcel.description || "",
+    },
+  });
+}
 
   // ✅ Payment redirection
   if (draft.paymentOption === "receiver_pays") {
@@ -1131,7 +1195,7 @@ app.post("/payment/receiver/:id/success", isAuthenticated, async (req, res) => {
   res.redirect(`/parcel/${parcel._id}/success`);
 });
 app.get("/parcel/:id/success", isAuthenticated, async (req, res) => {
-  const parcel = await Parcel1.findById(req.params.id);
+  const parcel = await Parcel2.findById(req.params.id);
   if (!parcel) return res.status(404).send("Parcel not found");
 
   parcel.location = {
@@ -1159,6 +1223,108 @@ app.get("/parcel/:id/success", isAuthenticated, async (req, res) => {
   };
    await notifyUserOnLockerBooking(parcel.receiverName,parcel.receiverPhone, parcel.accessCode, new Date().toLocaleString());
   res.render("parcel/success", { parcel });
+});
+app.post("/api/locker/scan", async (req, res) => {
+  const { accessCode } = req.body;
+
+  if (!accessCode) {
+    return res.status(400).json({ success: false, message: "Access code is required." });
+  }
+
+  // Find the parcel by accessCode
+  const parcel = await Parcel2.findOne({ accessCode });
+
+  if (!parcel) {
+    return res.status(404).json({ success: false, message: "Parcel not found." });
+  }
+
+  if (parcel.status === "picked_up") {
+    return res.status(400).json({ success: false, message: "Parcel has already been picked up." });
+  }
+
+  if (parcel.status === "awaiting_drop") {
+    // This is a drop-off
+    // Find an available locker with free compartments
+    const locker = await Locker.findOne({ "compartments.isBooked": false });
+
+    if (!locker) {
+      return res.status(503).json({ success: false, message: "No available compartments for drop-off." });
+    }
+
+    // Pick the first free compartment
+    const compartment = locker.compartments.find(c => !c.isBooked);
+
+    if (!compartment) {
+      return res.status(503).json({ success: false, message: "No available compartments." });
+    }
+
+    // Lock the compartment
+    compartment.isLocked = true;
+    compartment.isBooked = true;
+    compartment.currentParcelId = parcel._id;
+
+    // Save locker state
+    await locker.save();
+
+    // Update parcel
+    parcel.status = "awaiting_pick";
+    parcel.lockerId = locker.lockerId;
+    parcel.compartmentId = compartment.compartmentId;
+    parcel.droppedAt = new Date();
+    await parcel.save();
+      dashboardCache.delete("dashboard:" + req.session.user._id);
+  parcelCache.delete("sendParcel:" + req.session.user._id);
+    return res.json({
+      success: true,
+      message: `Parcel dropped successfully. Compartment ${compartment.compartmentId} locked.`,
+      compartmentId: compartment.compartmentId,
+      lockerId: locker._id
+    });
+  }
+
+  if (parcel.status === "awaiting_pick" || parcel.status === "in_locker") {
+    // This is a pickup
+    if (!parcel.lockerId || !parcel.compartmentId) {
+      return res.status(400).json({ success: false, message: "Parcel is not assigned to any locker." });
+    }
+
+    // Find locker and compartment
+   const locker = await Locker.findOne({ lockerId: parcel.lockerId });
+
+    if (!locker) {
+      return res.status(404).json({ success: false, message: "Locker not found." });
+    }
+
+    const compartment = locker.compartments.find(c => c.compartmentId === parcel.compartmentId);
+    if (!compartment) {
+      return res.status(404).json({ success: false, message: "Compartment not found." });
+    }
+
+    if (!compartment.isLocked) {
+      return res.status(400).json({ success: false, message: "Compartment is already unlocked." });
+    }
+
+    // Unlock compartment
+    compartment.isLocked = false;
+    compartment.isBooked = false;
+    compartment.currentParcelId = null;
+    await locker.save();
+
+    // Update parcel
+    parcel.status = "picked";
+    parcel.pickedUpAt = new Date();
+    await parcel.save();
+
+    return res.json({
+      success: true,
+      message: `Parcel picked up successfully. Compartment ${compartment.compartmentId} unlocked.`,
+      compartmentId: compartment.compartmentId,
+      lockerId: locker._id
+    });
+  }
+
+  // If status is something else
+  return res.status(400).json({ success: false, message: `Parcel is in status: ${parcel.status}` });
 });
 
 /// unlock route

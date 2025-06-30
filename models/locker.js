@@ -4,6 +4,7 @@ const CompartmentSchema = new mongoose.Schema({
   compartmentId: String,
   isLocked: { type: Boolean, default: true },
   isBooked: { type: Boolean, default: false },
+  currentParcelId : {type: String, default : null},
   size: {
     type: String,
     enum: ['small', 'medium', 'large'], // ✅ Restricts to valid sizes
