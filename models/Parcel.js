@@ -1,6 +1,8 @@
 const mongoose = require("mongoose");
 const ParcelSchema = new mongoose.Schema({
   senderId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  lat : Number,
+  lng : Number,
   senderName: String,
   receiverName: String,
   receiverPhone: String,

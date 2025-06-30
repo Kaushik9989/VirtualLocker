@@ -126,7 +126,7 @@
 
 
 
-<div class="receive-header">
+<div class="receive-header mt-5">
   <div class="icon-circle">
     <i class="fas fa-box"></i>
   </div>
@@ -162,14 +162,15 @@
           <h5><i class="fas fa-check-circle me-1"></i> Ready for pickup</h5>
           <div class="pickup-code"><%= parcel.accessCode || 'N/A' %></div>
           <small class="text-muted">Show this code at the locker</small>
+
           <div class="pickup-buttons">
             <% if (parcel.lockerLat && parcel.lockerLng) { %>
-              <a href="https://www.google.com/maps/search/?api=1&query=<%= parcel.lockerLat %>,<%= parcel.lockerLng %>" class="btn-green" target="_blank">
+              <a href="https://www.google.com/maps/dir/?api=1&destination=<%= parcel.lockerLat %>,<%= parcel.lockerLng %>" class="btn-green" target="_blank" style="text-decoration: none;">
                 <i class="fas fa-map-marker-alt me-1"></i> Directions
               </a>
             <% } %>
             <% if (parcel.qrImage) { %>
-              <a href="/incoming/<%=parcel._id%>/qr" class="btn-outline" target="_blank">
+              <a href="/incoming/<%=parcel._id%>/qr" class="btn-outline" target="_blank" style="text-decoration: none;">
                 <i class="fas fa-qrcode me-1"></i> Show QR
               </a>
             <% } %>

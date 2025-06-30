@@ -590,34 +590,54 @@ app.get("/link-phone",(req,res)=>{
   res.render("link-phone",{error:null});
 })
 app.post("/link-phone", async (req, res) => {
-  const phone = req.body.phone;
+  let rawPhone = req.body.phone || "";
+  rawPhone = rawPhone.trim();
 
-  // ❌ Check if this phone is already linked to *any* user
-  const existing = await User.findOne({ phone });
+  // Normalize
+  let phone = rawPhone;
+  if (phone.startsWith("+91")) {
+    phone = phone.slice(3);
+  } else if (phone.startsWith("91")) {
+    phone = phone.slice(2);
+  } else if (phone.startsWith("0")) {
+    phone = phone.slice(1);
+  }
+
+  // Now phone = "9123456789" (10-digit)
+  if (phone.length !== 10) {
+    return res.render("link-phone", { 
+      error: "❌ Please enter a valid 10-digit phone number." 
+    });
+  }
+
+  // Store in canonical format: +91xxxxxxxxxx
+  const canonicalPhone = "+91" + phone;
+
+  // Check if already linked
+  const existing = await User.findOne({ phone: canonicalPhone });
   if (existing && String(existing._id) !== String(req.session.user._id)) {
     return res.render("link-phone", { 
       error: "❌ This phone number is already linked to another account." 
     });
   }
 
-  // ✅ Safe to send OTP
-  const otp = Math.floor(100000 + Math.random() * 900000);
-  req.session.linkOtp = otp;
-  req.session.linkPhone = phone;
-
   try {
     await client.verify.v2
       .services(process.env.TWILIO_VERIFY_SERVICE_SID)
       .verifications.create({
-        to: `+91${phone}`,
+        to: canonicalPhone,
         channel: "sms",
       });
-    res.redirect("verify-link-phone");
+
+    // Save to session
+    req.session.linkPhone = canonicalPhone;
+    res.redirect("/verify-link-phone");
   } catch (err) {
     console.error("Failed to send OTP:", err);
     res.render("link-phone", { error: "❌ Could not send OTP. Try again." });
   }
 });
+
 app.get("/verify-link-phone",(req,res)=>{
   res.render("verify-link-phone",{error: null});
 })
@@ -1267,6 +1287,8 @@ app.post("/api/locker/scan", async (req, res) => {
     await locker.save();
 
     // Update parcel
+    parcel.lockerLat = locker.location.lat,
+    parcel.lockerLng = locker.location.lng,
     parcel.status = "awaiting_pick";
     parcel.lockerId = locker.lockerId;
     parcel.compartmentId = compartment.compartmentId;

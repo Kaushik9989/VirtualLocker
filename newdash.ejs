@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Parcel Locker Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+    .sidebar {
+      min-height: 100vh;
+      background: #343a40;
+      color: white;
+    }
+    .sidebar a {
+      color: white;
+      text-decoration: none;
+      display: block;
+      padding: 0.75rem 1rem;
+    }
+    .sidebar a:hover {
+      background: #495057;
+    }
+    .parcel-card {
+      border: 1px solid #ddd;
+      border-radius: .5rem;
+      background: white;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+  </style>
+</head>
+<body>
+<div class="container-fluid">
+  <div class="row">
+    <!-- Sidebar -->
+    <nav class="col-md-2 d-none d-md-block sidebar">
+      <div class="pt-3">
+        <h4 class="text-center mb-4">DropPoint</h4>
+        <a href="#">🏠 Home</a>
+        <a href="#">✈️ Send Parcel</a>
+        <a href="#">📦 Incoming</a>
+        <a href="#">📍 Locations</a>
+        <a href="#">👤 Account</a>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="col-md-10 ms-sm-auto px-4">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mt-4">
+        <h2>Welcome back, Vivek Kaushik</h2>
+        <div class="badge bg-warning text-dark fs-6">0 Credits</div>
+      </div>
+
+      <!-- Summary Stats -->
+      <div class="row mt-4">
+        <div class="col-md-4">
+          <div class="card text-center">
+            <div class="card-body">
+              <h5 class="card-title">📦 Incoming Parcels</h5>
+              <p class="display-6">5</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card text-center">
+            <div class="card-body">
+              <h5 class="card-title">✅ Picked Parcels</h5>
+              <p class="display-6">3</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card text-center">
+            <div class="card-body">
+              <h5 class="card-title">⏳ Awaiting Pick</h5>
+              <p class="display-6">2</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="mt-4 d-flex gap-3">
+        <a href="#" class="btn btn-success">Send Parcel</a>
+        <a href="#" class="btn btn-primary">Find Locations</a>
+      </div>
+
+      <!-- Parcel Cards -->
+      <h4 class="mt-5">Incoming Parcels</h4>
+      <div class="row mt-3">
+        <% for(let i = 1; i <= 5; i++) { %>
+        <div class="col-md-4">
+          <div class="parcel-card">
+            <h5>From: Vivek Kaushik</h5>
+            <p>No description provided</p>
+            <p>📦 Medium Package - ₹20</p>
+            <p>Locker: L0<%= i %> | Compartment: C<%= i %></p>
+            <p>Expires: 2/7/2025, 1:37 pm</p>
+            <p><strong>Access Code: 3327<%= i %></strong></p>
+            <div class="d-flex justify-content-between">
+              <span class="badge bg-danger">Awaiting Pick</span>
+              <a href="#" class="btn btn-outline-primary btn-sm">QR Code</a>
+            </div>
+          </div>
+        </div>
+        <% } %>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
