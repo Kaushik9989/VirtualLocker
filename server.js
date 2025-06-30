@@ -1900,6 +1900,24 @@ app.get("/locker/emulator/:lockerId", isAuthenticated, async (req, res) => {
     res.status(500).json({ message: "Server error", error: err });
   }
 });
+app.get("/incomingdetails/:id", isAuthenticated, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const parcel = await Parcel2.findById(id);
+    if (!parcel) {
+      return res.status(404).render("errorpage", {
+        errorMessage: "Parcel not found."
+      });
+    }
+
+    res.render("incomingDetails", { parcel });
+  } catch (err) {
+    console.error("Error fetching parcel details:", err);
+    res.status(500).render("errorpage", {
+      errorMessage: "Server error fetching parcel details."
+    });
+  }
+});
 
 // Lock compartment
 app.post("/locker/lock", async (req, res) => {
