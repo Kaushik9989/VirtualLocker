@@ -1,11 +1,4 @@
-<% layout("/layouts/boilerplate") %>
 
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  integrity="sha256-Vt4yZf+0dsN0I4WIEzYf7Y9mHAX9rKkRQ06uO42L5bI="
-  crossorigin=""
-/>
 
 <% layout("/layouts/boilerplate") %>
 
@@ -22,7 +15,7 @@
   transition: outline 0.3s ease;
 }
 
- html, body {
+html, body {
   margin: 0 !important;
   padding: 0 !important;
   height: 100%;
@@ -30,6 +23,7 @@
   overflow: hidden;
   box-sizing: border-box;
 }
+
 
 .main-layout {
   position: relative;
@@ -40,14 +34,15 @@ body {
   overflow-x: hidden;
 }
 #locker-map {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
-   width: 100vw !important; /* ✅ Fixed */
+  right: 0;
+  bottom: 0;
+  width: 100vw;
   height: 100vh;
   z-index: 0;
 }
-
   .left-sidebar {
     position: fixed;
     margin-top: 8px;
@@ -152,10 +147,10 @@ body {
       padding-bottom: 80px;
     }
 
-    .leaflet-control-recenter {
-  top: auto;
-  bottom: 200px; /* moved higher so not covered */
+  .leaflet-control-recenter {
+  bottom: 90px; /* Just above the sidebar */
   right: 20px;
+  top: unset;
 }
     .location-card {
       padding: 0.75rem;

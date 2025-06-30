@@ -2,11 +2,10 @@ const express = require("express");
 const mongoose = require("mongoose");
 const http = require("http");
 const { Server } = require("socket.io");
+
 const cors = require("cors");
 
-const LRU = require('lru-cache');
-
-
+const LRU = require("lru-cache");
 
 const dashboardCache = new LRU.LRUCache({
   max: 500,
@@ -42,7 +41,7 @@ const Parcel2 = require("./models/parcel2Updated.js");
 const User = require("./models/User/UserUpdated.js");
 const Courier = require("./models/Courier.js");
 const Parcel = require("./models/Parcel");
-const incomingParcel = require('./models/incomingParcel.js');
+const incomingParcel = require("./models/incomingParcel.js");
 const app = express();
 const PORT = 8080;
 const Razorpay = require("razorpay");
@@ -61,6 +60,8 @@ const compression = require("compression");
 app.use(compression());
 require("dotenv").config();
 
+const server = http.createServer(app);
+const io = new Server(server);
 
 // Set up a cache for rendered HTML
 
@@ -152,11 +153,10 @@ function isAuthenticated(req, res, next) {
   if (req.session.user) {
     return next();
   }
-    if (!req.session.redirectTo) {
+  if (!req.session.redirectTo) {
     console.log("Saving redirectTo:", req.originalUrl);
     req.session.redirectTo = req.originalUrl;
   }
-
 
   return res.redirect("/login");
 }
@@ -228,7 +228,6 @@ app.get("/api/sent-parcels", isAuthenticated, async (req, res) => {
 
     const bookedParcels = await Parcel2.find({
       senderId: req.session.user._id,
-     
     })
       .sort({ createdAt: -1 })
       .lean();
@@ -256,30 +255,32 @@ app.get("/sendParcel", isAuthenticated, async (req, res) => {
 
     const bookedParcels = await Parcel2.find({
       senderId: req.session.user._id,
-      
     }).sort({ createdAt: -1 });
 
-    res.render("sendParcel", {
-      user: req.session.user,
-      bookedParcels,
-      activePage: "send",
-    }, (err, html) => {
-      if (err) {
-        console.error("Error rendering sendParcel:", err);
-        return res.status(500).send("Internal Server Error");
+    res.render(
+      "sendParcel",
+      {
+        user: req.session.user,
+        bookedParcels,
+        activePage: "send",
+      },
+      (err, html) => {
+        if (err) {
+          console.error("Error rendering sendParcel:", err);
+          return res.status(500).send("Internal Server Error");
+        }
+
+        // Store in cache
+        parcelCache.set(cacheKey, html);
+
+        res.send(html);
       }
-
-      // Store in cache
-      parcelCache.set(cacheKey, html);
-
-      res.send(html);
-    });
+    );
   } catch (err) {
     console.error("Error loading sendParcel:", err);
     res.status(500).send("Internal Server Error");
   }
-});// routes/api.js
-
+}); // routes/api.js
 
 // GET /api/lockers - Fetch all lockers and compartments
 app.get("/lockers", async (req, res) => {
@@ -292,21 +293,19 @@ app.get("/lockers", async (req, res) => {
   }
 });
 
-
-
 // /api/locations
 app.get("/api/locations", isAuthenticated, async (req, res) => {
   try {
     const lockersRaw = await Locker.find({}).lean();
     const locations = await DropLocation.find({ status: "active" }).lean();
 
-    const enrichedLocations = locations.map(loc => ({
+    const enrichedLocations = locations.map((loc) => ({
       ...loc,
       distance: Math.floor(Math.random() * 20) + 1,
       rating: (Math.random() * 2 + 3).toFixed(1),
     }));
 
-    const lockers = lockersRaw.map(locker => ({
+    const lockers = lockersRaw.map((locker) => ({
       lockerId: locker.lockerId,
       compartments: locker.compartments,
       location: locker.location || { lat: null, lng: null, address: "" },
@@ -319,10 +318,9 @@ app.get("/api/locations", isAuthenticated, async (req, res) => {
   }
 });
 
-
 app.get("/locations", isAuthenticated, async (req, res) => {
   const cacheKey = "locationsPage";
-  console.log("location cache size: ",locationsCache.size);
+  console.log("location cache size: ", locationsCache.size);
   // Check cache
   const cachedHtml = locationsCache.get(cacheKey);
   if (cachedHtml) {
@@ -375,9 +373,15 @@ app.get("/locations", isAuthenticated, async (req, res) => {
 
 app.get("/receive", isAuthenticated, async (req, res) => {
   try {
-    const incomingParcels = await Parcel2.find({ receiverPhone: req.user.phone }).sort({ createdAt: -1 });
+    const incomingParcels = await Parcel2.find({
+      receiverPhone: req.user.phone,
+    }).sort({ createdAt: -1 });
 
-    res.render("recieve", { parcels: incomingParcels, activePage: "receive",parcelCount: incomingParcels.length });
+    res.render("recieve", {
+      parcels: incomingParcels,
+      activePage: "receive",
+      parcelCount: incomingParcels.length,
+    });
   } catch (error) {
     console.error("Error fetching parcels:", error);
     res.status(500).send("Server Error");
@@ -415,13 +419,17 @@ app.get("/account", isAuthenticated, async (req, res) => {
   }
 });
 
-async function notifyUserOnLockerBooking( receiverName,receiverPhone,accessCode, timestamp) {
+async function notifyUserOnLockerBooking(
+  receiverName,
+  receiverPhone,
+  accessCode,
+  timestamp
+) {
   try {
     const message = await client.messages.create({
       messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID,
       to: `+91${receiverPhone}`, // e.g. "+919876543210"
-       body: `📦 Hello ${receiverName}, a parcel has been sent to you via SmartLocker.\nAccess Code: ${accessCode}\nSent on: ${timestamp}`,
-     
+      body: `📦 Hello ${receiverName}, a parcel has been sent to you via SmartLocker.\nAccess Code: ${accessCode}\nSent on: ${timestamp}`,
     });
 
     console.log("📤 SMS sent:", message.sid);
@@ -433,7 +441,8 @@ async function notifyUserOnLockerBooking( receiverName,receiverPhone,accessCode,
 app.get("/incoming/:id/qr", async (req, res) => {
   const parcel = await Parcel2.findById(req.params.id).lean();
   if (!parcel) return res.status(404).send("Parcel not found");
-  if (!parcel.qrImage) return res.status(400).send("No QR code saved for this parcel");
+  if (!parcel.qrImage)
+    return res.status(400).send("No QR code saved for this parcel");
 
   res.render("qrPage", { parcel });
 });
@@ -462,7 +471,10 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
     if (!user) return res.redirect("/login");
 
     if (!user.phone) {
-      req.flash("error", "⚠️ Please link your phone number to receive parcel updates.");
+      req.flash(
+        "error",
+        "⚠️ Please link your phone number to receive parcel updates."
+      );
     }
 
     // const lockersRaw = await Locker.find({});
@@ -480,31 +492,33 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
     // }));
 
     // Render the EJS template to HTML string instead of sending immediately
-    res.render("newDashboard", {
-      user,
-     
-      activePage: "home",
-     
-      userName,
-    }, (err, html) => {
-      if (err) {
-        console.error("Error rendering dashboard:", err);
-        return res.status(500).send("Internal Server Error");
+    res.render(
+      "newDashboard",
+      {
+        user,
+
+        activePage: "home",
+
+        userName,
+      },
+      (err, html) => {
+        if (err) {
+          console.error("Error rendering dashboard:", err);
+          return res.status(500).send("Internal Server Error");
+        }
+
+        // Save HTML to cache
+        dashboardCache.set(cacheKey, html);
+
+        // Send the response
+        res.send(html);
       }
-
-      // Save HTML to cache
-      dashboardCache.set(cacheKey, html);
-
-      // Send the response
-      res.send(html);
-    });
-
+    );
   } catch (err) {
     console.error("Error loading dashboard:", err);
     res.status(500).send("Internal Server Error");
   }
 });
-
 
 // app.get("/api/incoming-parcels", isAuthenticated, async (req, res) => {
 //   try {
@@ -542,7 +556,7 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
 app.get("/api/lockers", isAuthenticated, async (req, res) => {
   try {
     const lockersRaw = await Locker.find({});
-    const lockers = lockersRaw.map(locker => ({
+    const lockers = lockersRaw.map((locker) => ({
       lockerId: locker.lockerId,
       compartments: locker.compartments,
       location: locker.location || { lat: null, lng: null, address: "" },
@@ -553,9 +567,6 @@ app.get("/api/lockers", isAuthenticated, async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
-
-
-
 
 // -------------------------------------------GOOGLE LOGIN ROUTES---------------------------------------------------
 
@@ -577,18 +588,18 @@ app.get(
       phone: req.user.phone,
       email: req.user.email,
       wallet: req.user.wallet || { credits: 0 },
-       phone: req.user.phone || null,
+      phone: req.user.phone || null,
     };
     const redirectTo = req.session.redirectTo || "/dashboard";
     delete req.session.redirectTo;
-     
-    return res.redirect(redirectTo); // so your session-based auth also works 
+
+    return res.redirect(redirectTo); // so your session-based auth also works
   }
 );
 
-app.get("/link-phone",(req,res)=>{
-  res.render("link-phone",{error:null});
-})
+app.get("/link-phone", (req, res) => {
+  res.render("link-phone", { error: null });
+});
 app.post("/link-phone", async (req, res) => {
   let rawPhone = req.body.phone || "";
   rawPhone = rawPhone.trim();
@@ -605,8 +616,8 @@ app.post("/link-phone", async (req, res) => {
 
   // Now phone = "9123456789" (10-digit)
   if (phone.length !== 10) {
-    return res.render("link-phone", { 
-      error: "❌ Please enter a valid 10-digit phone number." 
+    return res.render("link-phone", {
+      error: "❌ Please enter a valid 10-digit phone number.",
     });
   }
 
@@ -616,8 +627,8 @@ app.post("/link-phone", async (req, res) => {
   // Check if already linked
   const existing = await User.findOne({ phone: canonicalPhone });
   if (existing && String(existing._id) !== String(req.session.user._id)) {
-    return res.render("link-phone", { 
-      error: "❌ This phone number is already linked to another account." 
+    return res.render("link-phone", {
+      error: "❌ This phone number is already linked to another account.",
     });
   }
 
@@ -638,9 +649,9 @@ app.post("/link-phone", async (req, res) => {
   }
 });
 
-app.get("/verify-link-phone",(req,res)=>{
-  res.render("verify-link-phone",{error: null});
-})
+app.get("/verify-link-phone", (req, res) => {
+  res.render("verify-link-phone", { error: null });
+});
 
 app.post("/verify-link-phone", async (req, res) => {
   const { otp } = req.body;
@@ -670,14 +681,13 @@ app.post("/verify-link-phone", async (req, res) => {
     accountCache.delete("account:" + req.session.user._id);
     req.flash("success", "✅ Phone linked successfully.");
     res.redirect("/send/step1");
-
   } catch (err) {
     console.error("Error linking phone:", err);
-    res.render("verify-link-phone", { error: "❌ Failed to verify. Try again." });
+    res.render("verify-link-phone", {
+      error: "❌ Failed to verify. Try again.",
+    });
   }
 });
-
-
 
 // -------------------------------------------LOGIN ROUTES---------------------------------------------------
 
@@ -768,7 +778,7 @@ app.post("/register-phone", async (req, res) => {
 app.get("/api/incoming-parcels", isAuthenticated, async (req, res) => {
   try {
     const parcelsRaw = await Parcel2.find({
-      receiverPhone: req.session.user.phone
+      receiverPhone: req.session.user.phone,
     })
       .sort({ createdAt: -1 })
       .select(
@@ -776,7 +786,7 @@ app.get("/api/incoming-parcels", isAuthenticated, async (req, res) => {
       );
 
     // Transform parcels to clean objects
-    const parcels = parcelsRaw.map(p => ({
+    const parcels = parcelsRaw.map((p) => ({
       _id: p._id,
       senderName: p.senderName,
       metadata: p.metadata,
@@ -791,18 +801,18 @@ app.get("/api/incoming-parcels", isAuthenticated, async (req, res) => {
       lockerId: p.lockerId,
       compartmentId: p.compartmentId,
       qrCodeUrl: p.qrCodeUrl,
-      expiresAt: p.expiresAt
+      expiresAt: p.expiresAt,
     }));
 
     res.json({
       success: true,
-      parcels
+      parcels,
     });
   } catch (err) {
     console.error("Error fetching incoming parcels:", err);
     res.status(500).json({
       success: false,
-      message: "Server error"
+      message: "Server error",
     });
   }
 });
@@ -1073,13 +1083,16 @@ app.get("/map", async (req, res) => {
 
 /// updated locker flow
 
-app.get("/send/step1", isAuthenticated, async(req, res) => {
-    const user = await User.findById(req.session.user._id);
-   if (!user.phone) {
-    req.flash("error", "Please verify your phone number to continue sending a parcel.");
+app.get("/send/step1", isAuthenticated, async (req, res) => {
+  const user = await User.findById(req.session.user._id);
+  if (!user.phone) {
+    req.flash(
+      "error",
+      "Please verify your phone number to continue sending a parcel."
+    );
     return res.redirect("/link-phone");
   }
-  res.render("parcel/step1",{messages: req.flash(),});
+  res.render("parcel/step1", { messages: req.flash() });
 });
 
 app.post("/send/step1", isAuthenticated, (req, res) => {
@@ -1111,85 +1124,89 @@ function getEstimatedCost(size) {
 app.post("/send/step3", isAuthenticated, async (req, res) => {
   const draft = req.session.parcelDraft;
   draft.paymentOption = req.body.paymentOption;
- const user = await User.findById(req.session.user._id);
+  const user = await User.findById(req.session.user._id);
   const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
   const cost = getEstimatedCost(draft.size).toString();
   const qrPayload = JSON.stringify({
-  accessCode: accessCode
-});
-const qrImage = await QRCode.toDataURL(qrPayload);
+    accessCode: accessCode,
+  });
+  const qrImage = await QRCode.toDataURL(qrPayload);
   const status =
-    draft.paymentOption === "receiver_pays" ? "awaiting_payment" : "awaiting_drop";
+    draft.paymentOption === "receiver_pays"
+      ? "awaiting_payment"
+      : "awaiting_drop";
   const paymentStatus =
     draft.paymentOption === "receiver_pays" ? "pending" : "completed";
-  const droppedAt =  null;
+  const droppedAt = null;
   const expiresAt =
     draft.paymentOption === "receiver_pays"
       ? new Date(Date.now() + 2 * 60 * 60 * 1000)
       : new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
 
   const parcel = new Parcel2({
-  ...draft,
-  senderId: req.user._id,
-  senderName: req.user.username,
-  accessCode,
-  unlockUrl : null,
-  qrImage,
-  cost,
-  status,
-  paymentStatus,
-  droppedAt,
-  expiresAt,
-  lockerId: null,
-  compartmentId: null
-});
+    ...draft,
+    senderId: req.user._id,
+    senderName: req.user.username,
+    accessCode,
+    unlockUrl: null,
+    qrImage,
+    cost,
+    status,
+    paymentStatus,
+    droppedAt,
+    expiresAt,
+    lockerId: null,
+    compartmentId: null,
+  });
 
   await parcel.save();
   delete req.session.parcelDraft;
 
   // ✅ Sync with IncomingParcel
- const updated = await incomingParcel.findOneAndUpdate(
-  {
-    receiverPhone: parcel.receiverPhone,
-    status: "pending",
-  },
-  {
-    receiverName: parcel.receiverName,
-    parcelType: parcel.type,
-    size: parcel.size,
-    cost: parseFloat(parcel.cost.toString()),
-    accessCode: parcel.accessCode,
-    qrCodeUrl: parcel.qrImage,
-    status: "awaiting_drop",  // Corrected
-    lockerId: parcel.lockerId?.toString() || "",
-    "metadata.description": parcel.description || "",
-  },
-  { new: true }
-);
-
-// ✅ If no matching incoming parcel found, create new
-if (!updated) {
-  await incomingParcel.create({
-    senderPhone: user.phone || "unknown",
-    receiverPhone: parcel.receiverPhone,
-    senderName: user.username,
-    receiverName: parcel.receiverName || "",
-    parcelType: parcel.type,
-    size: parcel.size,
-    cost: parseFloat(parcel.cost.toString()),
-    accessCode: parcel.accessCode,
-    qrCodeUrl: parcel.qrImage,
-    status: "awaiting_drop",  // Corrected
-    lockerId: parcel.lockerId?.toString() || "",
-    metadata: {
-      description: parcel.description || "",
+  const updated = await incomingParcel.findOneAndUpdate(
+    {
+      receiverPhone: parcel.receiverPhone,
+      status: "pending",
     },
-  });
-}
+    {
+      receiverName: parcel.receiverName,
+      parcelType: parcel.type,
+      size: parcel.size,
+      cost: parseFloat(parcel.cost.toString()),
+      accessCode: parcel.accessCode,
+      qrCodeUrl: parcel.qrImage,
+      status: "awaiting_drop", // Corrected
+      lockerId: parcel.lockerId?.toString() || "",
+      "metadata.description": parcel.description || "",
+    },
+    { new: true }
+  );
+
+  // ✅ If no matching incoming parcel found, create new
+  if (!updated) {
+    await incomingParcel.create({
+      senderPhone: user.phone || "unknown",
+      receiverPhone: parcel.receiverPhone,
+      senderName: user.username,
+      receiverName: parcel.receiverName || "",
+      parcelType: parcel.type,
+      size: parcel.size,
+      cost: parseFloat(parcel.cost.toString()),
+      accessCode: parcel.accessCode,
+      qrCodeUrl: parcel.qrImage,
+      status: "awaiting_drop", // Corrected
+      lockerId: parcel.lockerId?.toString() || "",
+      metadata: {
+        description: parcel.description || "",
+      },
+    });
+  }
 
   // ✅ Payment redirection
   if (draft.paymentOption === "receiver_pays") {
-    const link = `${req.protocol}://${req.get("host")}/payment/receiver/${parcel._id}`;
+    const link = `${req.protocol}://${req.get("host")}/payment/receiver/${
+      parcel._id
+    }`;
     return res.render("parcel/waiting-payment", { parcel });
   }
   dashboardCache.delete("dashboard:" + req.session.user._id);
@@ -1222,7 +1239,7 @@ app.get("/parcel/:id/success", isAuthenticated, async (req, res) => {
     lat: 20.5937,
     lng: 78.9629,
   };
-  
+
   res.render("parcel/success", { parcel });
 });
 
@@ -1241,25 +1258,36 @@ app.get("/parcel/:id/success", isAuthenticated, async (req, res) => {
     lat: 20.5937, // fallback India center or locker zone
     lng: 78.9629,
   };
-   await notifyUserOnLockerBooking(parcel.receiverName,parcel.receiverPhone, parcel.accessCode, new Date().toLocaleString());
+  await notifyUserOnLockerBooking(
+    parcel.receiverName,
+    parcel.receiverPhone,
+    parcel.accessCode,
+    new Date().toLocaleString()
+  );
   res.render("parcel/success", { parcel });
 });
 app.post("/api/locker/scan", async (req, res) => {
   const { accessCode } = req.body;
 
   if (!accessCode) {
-    return res.status(400).json({ success: false, message: "Access code is required." });
+    return res
+      .status(400)
+      .json({ success: false, message: "Access code is required." });
   }
 
   // Find the parcel by accessCode
   const parcel = await Parcel2.findOne({ accessCode });
 
   if (!parcel) {
-    return res.status(404).json({ success: false, message: "Parcel not found." });
+    return res
+      .status(404)
+      .json({ success: false, message: "Parcel not found." });
   }
 
   if (parcel.status === "picked_up") {
-    return res.status(400).json({ success: false, message: "Parcel has already been picked up." });
+    return res
+      .status(400)
+      .json({ success: false, message: "Parcel has already been picked up." });
   }
 
   if (parcel.status === "awaiting_drop") {
@@ -1268,14 +1296,21 @@ app.post("/api/locker/scan", async (req, res) => {
     const locker = await Locker.findOne({ "compartments.isBooked": false });
 
     if (!locker) {
-      return res.status(503).json({ success: false, message: "No available compartments for drop-off." });
+      return res
+        .status(503)
+        .json({
+          success: false,
+          message: "No available compartments for drop-off.",
+        });
     }
 
     // Pick the first free compartment
-    const compartment = locker.compartments.find(c => !c.isBooked);
+    const compartment = locker.compartments.find((c) => !c.isBooked);
 
     if (!compartment) {
-      return res.status(503).json({ success: false, message: "No available compartments." });
+      return res
+        .status(503)
+        .json({ success: false, message: "No available compartments." });
     }
 
     // Lock the compartment
@@ -1285,45 +1320,66 @@ app.post("/api/locker/scan", async (req, res) => {
 
     // Save locker state
     await locker.save();
-
+    
     // Update parcel
-    parcel.lockerLat = locker.location.lat,
-    parcel.lockerLng = locker.location.lng,
-    parcel.status = "awaiting_pick";
+    (parcel.lockerLat = locker.location.lat),
+      (parcel.lockerLng = locker.location.lng),
+      (parcel.status = "awaiting_pick");
     parcel.lockerId = locker.lockerId;
     parcel.compartmentId = compartment.compartmentId;
     parcel.droppedAt = new Date();
     await parcel.save();
-      dashboardCache.delete("dashboard:" + req.session.user._id);
-  parcelCache.delete("sendParcel:" + req.session.user._id);
+     io.emit("parcelUpdated", {
+    parcelId: parcel._id,
+    status: parcel.status,
+    lockerId: parcel.lockerId,
+    compartmentId: parcel.compartmentId,
+    pickedUpAt: parcel.pickedUpAt,
+    droppedAt: parcel.droppedAt,
+  });
+    dashboardCache.delete("dashboard:" + req.session.user._id);
+    parcelCache.delete("sendParcel:" + req.session.user._id);
     return res.json({
       success: true,
       message: `Parcel dropped successfully. Compartment ${compartment.compartmentId} locked.`,
       compartmentId: compartment.compartmentId,
-      lockerId: locker._id
+      lockerId: locker._id,
     });
   }
 
   if (parcel.status === "awaiting_pick" || parcel.status === "in_locker") {
     // This is a pickup
     if (!parcel.lockerId || !parcel.compartmentId) {
-      return res.status(400).json({ success: false, message: "Parcel is not assigned to any locker." });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Parcel is not assigned to any locker.",
+        });
     }
 
     // Find locker and compartment
-   const locker = await Locker.findOne({ lockerId: parcel.lockerId });
+    const locker = await Locker.findOne({ lockerId: parcel.lockerId });
 
     if (!locker) {
-      return res.status(404).json({ success: false, message: "Locker not found." });
+      return res
+        .status(404)
+        .json({ success: false, message: "Locker not found." });
     }
 
-    const compartment = locker.compartments.find(c => c.compartmentId === parcel.compartmentId);
+    const compartment = locker.compartments.find(
+      (c) => c.compartmentId === parcel.compartmentId
+    );
     if (!compartment) {
-      return res.status(404).json({ success: false, message: "Compartment not found." });
+      return res
+        .status(404)
+        .json({ success: false, message: "Compartment not found." });
     }
 
     if (!compartment.isLocked) {
-      return res.status(400).json({ success: false, message: "Compartment is already unlocked." });
+      return res
+        .status(400)
+        .json({ success: false, message: "Compartment is already unlocked." });
     }
 
     // Unlock compartment
@@ -1331,22 +1387,30 @@ app.post("/api/locker/scan", async (req, res) => {
     compartment.isBooked = false;
     compartment.currentParcelId = null;
     await locker.save();
-
     // Update parcel
     parcel.status = "picked";
     parcel.pickedUpAt = new Date();
     await parcel.save();
-
+      io.emit("parcelUpdated", {
+    parcelId: parcel._id,
+    status: parcel.status,
+    lockerId: parcel.lockerId,
+    compartmentId: parcel.compartmentId,
+    pickedUpAt: parcel.pickedUpAt,
+    droppedAt: parcel.droppedAt,
+  });
     return res.json({
       success: true,
       message: `Parcel picked up successfully. Compartment ${compartment.compartmentId} unlocked.`,
       compartmentId: compartment.compartmentId,
-      lockerId: locker._id
+      lockerId: locker._id,
     });
   }
 
   // If status is something else
-  return res.status(400).json({ success: false, message: `Parcel is in status: ${parcel.status}` });
+  return res
+    .status(400)
+    .json({ success: false, message: `Parcel is in status: ${parcel.status}` });
 });
 
 /// unlock route
@@ -1928,7 +1992,7 @@ app.get("/incomingdetails/:id", isAuthenticated, async (req, res) => {
     const parcel = await Parcel2.findById(id);
     if (!parcel) {
       return res.status(404).render("errorpage", {
-        errorMessage: "Parcel not found."
+        errorMessage: "Parcel not found.",
       });
     }
 
@@ -1936,7 +2000,7 @@ app.get("/incomingdetails/:id", isAuthenticated, async (req, res) => {
   } catch (err) {
     console.error("Error fetching parcel details:", err);
     res.status(500).render("errorpage", {
-      errorMessage: "Server error fetching parcel details."
+      errorMessage: "Server error fetching parcel details.",
     });
   }
 });
@@ -2767,6 +2831,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });

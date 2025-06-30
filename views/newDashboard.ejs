@@ -114,7 +114,11 @@
   <div id="parcelList">
     <div class="text-muted text-center my-4">Loading your parcels...</div>
   </div>
-
+  <script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+  socket.on("connect", () => console.log("✅ Connected to Socket.IO"));
+</script>
   <script>
     const parcelContainer = document.getElementById("parcelList");
     const badge = document.getElementById("parcelCountBadge");
@@ -149,6 +153,32 @@
         // Even on error, clear the loading state
         renderParcels([]);
       });
+      socket.on("parcelUpdated", (update) => {
+  console.log("🔄 Parcel update received:", update);
+
+  // Get cached parcels from localStorage
+  const cachedParcels = JSON.parse(localStorage.getItem("incomingParcels") || "[]");
+
+  // Find the index of the updated parcel
+  const idx = cachedParcels.findIndex(p => p._id === update.parcelId);
+
+  if (idx !== -1) {
+    // Update the parcel status
+    cachedParcels[idx].status = update.status;
+    cachedParcels[idx].lockerId = update.lockerId;
+    cachedParcels[idx].compartmentId = update.compartmentId;
+    cachedParcels[idx].pickedUpAt = update.pickedUpAt;
+    cachedParcels[idx].droppedAt = update.droppedAt;
+
+    // Save back to localStorage
+    localStorage.setItem("incomingParcels", JSON.stringify(cachedParcels));
+
+    // Re-render the parcels
+    renderParcels(cachedParcels);
+  } else {
+    console.warn("Parcel not found in cache; skipping update.");
+  }
+});
 
 
 
