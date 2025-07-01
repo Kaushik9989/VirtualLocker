@@ -87,7 +87,9 @@
       <% }) %>
     </div>
   </div>
-
+<script>
+  const lockerId = "<%= lockerId %>";
+</script>
   <!-- QR Scan Script -->
  <script>
 const html5QrCode = new Html5Qrcode("qr-reader");
@@ -135,7 +137,7 @@ async function onScanSuccess(decodedText) {
     const response = await fetch("/api/locker/scan", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ accessCode })
+      body: JSON.stringify({ accessCode, lockerId })
     });
 
     const result = await response.json();

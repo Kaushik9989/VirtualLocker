@@ -752,6 +752,7 @@ app.use((req, res, next) => {
 
 // Dependencies
 const twilio = require("twilio");
+
 const client = twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
 
 // Step 1: Phone Registration - Send OTP via Twilio Verify
@@ -1197,8 +1198,10 @@ app.post("/send/step3", isAuthenticated, async (req, res) => {
       status: "awaiting_drop", // Corrected
       lockerId: parcel.lockerId?.toString() || "",
       metadata: {
-        description: parcel.description || "",
+      description: parcel.description || "",
       },
+      lockerLat :parcel.lockerLat ,
+      lockerLng :parcel.lockerLng
     });
   }
 
@@ -1267,6 +1270,7 @@ app.get("/parcel/:id/success", isAuthenticated, async (req, res) => {
   res.render("parcel/success", { parcel });
 });
 app.post("/api/locker/scan", async (req, res) => {
+  
   const { accessCode } = req.body;
 
   if (!accessCode) {
@@ -1277,7 +1281,7 @@ app.post("/api/locker/scan", async (req, res) => {
 
   // Find the parcel by accessCode
   const parcel = await Parcel2.findOne({ accessCode });
-
+  const parcelU = await incomingParcel.findOne({accessCode});
   if (!parcel) {
     return res
       .status(404)
@@ -1290,46 +1294,60 @@ app.post("/api/locker/scan", async (req, res) => {
       .json({ success: false, message: "Parcel has already been picked up." });
   }
 
-  if (parcel.status === "awaiting_drop") {
-    // This is a drop-off
-    // Find an available locker with free compartments
-    const locker = await Locker.findOne({ "compartments.isBooked": false });
+ if (parcel.status === "awaiting_drop") {
+  // Get lockerId from request (where the user scanned)
+  const { lockerId } = req.body;
 
-    if (!locker) {
-      return res
-        .status(503)
-        .json({
-          success: false,
-          message: "No available compartments for drop-off.",
-        });
-    }
+  if (!lockerId) {
+    return res.status(400).json({
+      success: false,
+      message: "Locker ID is required for drop-off.",
+    });
+  }
 
-    // Pick the first free compartment
-    const compartment = locker.compartments.find((c) => !c.isBooked);
+  // Find that specific locker
+  const locker = await Locker.findOne({ lockerId });
 
-    if (!compartment) {
-      return res
-        .status(503)
-        .json({ success: false, message: "No available compartments." });
-    }
+  if (!locker) {
+    return res.status(404).json({
+      success: false,
+      message: "Specified locker not found.",
+    });
+  }
 
-    // Lock the compartment
-    compartment.isLocked = true;
-    compartment.isBooked = true;
-    compartment.currentParcelId = parcel._id;
+  // Look for a free compartment in that locker
+  const compartment = locker.compartments.find((c) => !c.isBooked);
 
-    // Save locker state
-    await locker.save();
-    
-    // Update parcel
-    (parcel.lockerLat = locker.location.lat),
-      (parcel.lockerLng = locker.location.lng),
-      (parcel.status = "awaiting_pick");
-    parcel.lockerId = locker.lockerId;
-    parcel.compartmentId = compartment.compartmentId;
-    parcel.droppedAt = new Date();
-    await parcel.save();
-     io.emit("parcelUpdated", {
+  if (!compartment) {
+    return res.status(503).json({
+      success: false,
+      message: "No available compartments in this locker.",
+    });
+  }
+
+  // Lock the compartment
+  compartment.isLocked = true;
+  compartment.isBooked = true;
+  compartment.currentParcelId = parcel._id;
+  await locker.save();
+
+  // Update parcel
+  parcel.status = "awaiting_pick";
+  parcel.lockerLat = locker.location.lat;
+  parcel.lockerLng = locker.location.lng;
+  parcel.lockerId = locker.lockerId;
+  parcel.compartmentId = compartment.compartmentId;
+  parcel.droppedAt = new Date();
+  await parcel.save();
+
+  // Update any secondary parcel collection if needed
+  if (parcelU) {
+    parcelU.lockerLat = locker.location.lat;
+    parcelU.lockerLng = locker.location.lng;
+    await parcelU.save();
+  }
+
+  io.emit("parcelUpdated", {
     parcelId: parcel._id,
     status: parcel.status,
     lockerId: parcel.lockerId,
@@ -1337,61 +1355,69 @@ app.post("/api/locker/scan", async (req, res) => {
     pickedUpAt: parcel.pickedUpAt,
     droppedAt: parcel.droppedAt,
   });
-    dashboardCache.delete("dashboard:" + req.session.user._id);
-    parcelCache.delete("sendParcel:" + req.session.user._id);
-    return res.json({
-      success: true,
-      message: `Parcel dropped successfully. Compartment ${compartment.compartmentId} locked.`,
-      compartmentId: compartment.compartmentId,
-      lockerId: locker._id,
-    });
-  }
+
+  dashboardCache.delete("dashboard:" + req.session.user._id);
+  parcelCache.delete("sendParcel:" + req.session.user._id);
+
+  return res.json({
+    success: true,
+    message: `Parcel dropped successfully. Compartment ${compartment.compartmentId} locked.`,
+    compartmentId: compartment.compartmentId,
+    lockerId: locker._id,
+  });
+}
+
 
   if (parcel.status === "awaiting_pick" || parcel.status === "in_locker") {
-    // This is a pickup
-    if (!parcel.lockerId || !parcel.compartmentId) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Parcel is not assigned to any locker.",
-        });
-    }
+  // This is a pickup
 
-    // Find locker and compartment
-    const locker = await Locker.findOne({ lockerId: parcel.lockerId });
+  const { lockerId } = req.body;
 
-    if (!locker) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Locker not found." });
-    }
+  if (!parcel.lockerId || !parcel.compartmentId) {
+    return res.status(400).json({
+      success: false,
+      message: "Parcel is not assigned to any locker.",
+    });
+  }
 
-    const compartment = locker.compartments.find(
-      (c) => c.compartmentId === parcel.compartmentId
-    );
-    if (!compartment) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Compartment not found." });
-    }
+  // Check that the scanned locker matches the parcel's locker
+  if (lockerId !== parcel.lockerId) {
+    return res.status(400).json({
+      success: false,
+      message: `This parcel belongs to locker ${parcel.lockerId}. Please scan it at the correct locker.`,
+    });
+  }
 
-    if (!compartment.isLocked) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Compartment is already unlocked." });
-    }
+  // Find locker and compartment
+  const locker = await Locker.findOne({ lockerId: parcel.lockerId });
 
-    // Unlock compartment
-    compartment.isLocked = false;
-    compartment.isBooked = false;
-    compartment.currentParcelId = null;
-    await locker.save();
-    // Update parcel
-    parcel.status = "picked";
-    parcel.pickedUpAt = new Date();
-    await parcel.save();
-      io.emit("parcelUpdated", {
+  if (!locker) {
+    return res.status(404).json({ success: false, message: "Locker not found." });
+  }
+
+  const compartment = locker.compartments.find(
+    (c) => c.compartmentId === parcel.compartmentId
+  );
+  if (!compartment) {
+    return res.status(404).json({ success: false, message: "Compartment not found." });
+  }
+
+  if (!compartment.isLocked) {
+    return res.status(400).json({ success: false, message: "Compartment is already unlocked." });
+  }
+
+  // Unlock compartment
+  compartment.isLocked = false;
+  compartment.isBooked = false;
+  compartment.currentParcelId = null;
+  await locker.save();
+
+  // Update parcel
+  parcel.status = "picked";
+  parcel.pickedUpAt = new Date();
+  await parcel.save();
+
+  io.emit("parcelUpdated", {
     parcelId: parcel._id,
     status: parcel.status,
     lockerId: parcel.lockerId,
@@ -1399,13 +1425,15 @@ app.post("/api/locker/scan", async (req, res) => {
     pickedUpAt: parcel.pickedUpAt,
     droppedAt: parcel.droppedAt,
   });
-    return res.json({
-      success: true,
-      message: `Parcel picked up successfully. Compartment ${compartment.compartmentId} unlocked.`,
-      compartmentId: compartment.compartmentId,
-      lockerId: locker._id,
-    });
-  }
+
+  return res.json({
+    success: true,
+    message: `Parcel picked up successfully. Compartment ${compartment.compartmentId} unlocked.`,
+    compartmentId: compartment.compartmentId,
+    lockerId: locker._id,
+  });
+}
+
 
   // If status is something else
   return res

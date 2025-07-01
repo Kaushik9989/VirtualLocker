@@ -106,6 +106,10 @@ body {
   }
 
   .leaflet-control-recenter {
+     position: fixed;
+  top: 80px;    /* desktop */
+  right: 20px;
+  z-index: 2000 !important;  /* <- bumped */
     background: #007bff;
     color: white;
     border: none;
@@ -126,6 +130,14 @@ body {
   .leaflet-control-recenter:hover {
     background: #0056b3;
   }
+  
+@media (max-width: 768px) {
+  .leaflet-control-recenter {
+    top: 78px !important;    /* just below header */
+    right: 16px !important;
+    bottom: auto !important;
+  }
+}
 
   .leaflet-marker-bounce {
     animation: bounce 0.6s infinite alternate;
@@ -147,11 +159,7 @@ body {
       padding-bottom: 80px;
     }
 
-  .leaflet-control-recenter {
-  bottom: 90px; /* Just above the sidebar */
-  right: 20px;
-  top: unset;
-}
+
     .location-card {
       padding: 0.75rem;
     }
@@ -184,7 +192,7 @@ body {
 </style>
 
 
-<div class="main-layout">
+<div class="main-layout ">
   <div id="locker-map"></div>
 
   <div class="left-sidebar">

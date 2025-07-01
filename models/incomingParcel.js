@@ -12,7 +12,8 @@ const incomingParcelSchema = new mongoose.Schema({
    enum: ["awaiting_drop", "awaiting_pick", "picked", "expired"],
     default: "awaiting_drop",
   },
-
+  lockerLat : {type :Number},
+  lockerLng :{ type :Number},
   accessCode: { type: String, default: "" }, // for pickup
   qrCodeUrl: { type: String, default: "" },
 

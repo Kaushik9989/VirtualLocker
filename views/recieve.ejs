@@ -146,7 +146,7 @@
         <span>From: <%= parcel.senderName || 'Unknown' %></span>
         <div>
           <span class="badge 
-            <%= status === 'awaiting_pick' ? 'badge-ready' : status === 'delivered' ? 'badge-delivered' : 'badge-urgent' %>">
+            <%= status === 'awaiting_pick' ? 'badge-ready' : status === 'picked' ? 'badge-delivered' : 'badge-urgent' %>">
             <%= status.replace('_',' ') %>
           </span>
         </div>
@@ -154,7 +154,7 @@
       <div class="parcel-sub"><%= parcel.metadata?.description || 'No description' %></div>
       <div class="parcel-meta">
         <span><%=parcel.type%></span>
-        <span><i class="fas fa-clock"></i> <%= parcel.expiresAt %></span>
+        <span><i class="fas fa-clock"></i> <%= new Date(parcel.expiresAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) %></span>
       </div>
 
       <% if (status === 'awaiting_pick') { %>

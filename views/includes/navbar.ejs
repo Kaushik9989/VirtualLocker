@@ -126,6 +126,42 @@
         margin-left: 100px;
       }
     }
+
+    @media (max-width: 368px) {
+  /* Make the top‐level container more compact */
+  .navbar .container {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  /* Shrink the mobile logo a bit */
+  .navbar-brand.d-block.d-md-none img {
+    height: 48px;
+    width: 36px;
+  }
+
+  /* Remove the hard margin on your center links */
+  .a-def {
+    margin-left: 0 !important;
+  }
+
+  /* Tighter gaps between center nav items */
+  .navbar .d-flex.gap-4 {
+    gap: 0.5rem !important;
+  }
+
+  /* Word‑wrap the “Parcels to PickUp” text */
+  .navbar .nav-item {
+    white-space: normal;
+    font-size: 0.85rem;
+  }
+
+  /* Force the right‐hand icons to stay in view */
+  .navbar .d-flex.align-items-center.gap-3 {
+    gap: 0.5rem;
+  }
+}
+
   </style>
 </head>
 
