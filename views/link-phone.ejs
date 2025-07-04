@@ -76,7 +76,10 @@
     <form method="POST" action="/link-phone">
       <div class="mb-3">
         <label for="phone" class="form-label">Phone Number</label>
-        <input type="text" class="form-control" name="phone" placeholder="+91XXXXXXXXXX" required />
+          <div class="input-group">
+          <span class="input-group-text"><i class="fas fa-phone"></i>&nbsp; +91 -</span>
+        <input type="text" class="form-control" name="phone" placeholder="" required />
+        </div>
       </div>
       <button type="submit" class="btn  btn-success w-100" style="text-decoration: none;">Send OTP</button>
     </form>
