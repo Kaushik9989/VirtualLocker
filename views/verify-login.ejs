@@ -1,44 +1,95 @@
 <% layout("/layouts/boilerplate") %>
 
-<!-- Main Content -->
-<body class="min-vh-100 d-flex align-items-center justify-content-center" style="background: linear-gradient(to bottom right, #e0f2fe, #fffaf0); font-family: 'Poppins', sans-serif;">
+<style>
+  body {
+    min-height: 100vh;
+    background: linear-gradient(to bottom right, #e0f2fe, #fffaf0);
+    font-family: 'Poppins', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+  }
+  .card {
+    border: none;
+    border-radius: 1rem;
+  }
+  .icon-circle {
+    width: 64px;
+    height: 64px;
+    background: #4e54c8;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    margin: 0 auto 1rem auto;
+  }
+  .icon-circle i {
+    font-size: 1.5rem;
+  }
+  .otp-input {
+    letter-spacing: 10px;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+  .btn-login {
+    border-radius: 2rem;
+    padding: 0.75rem;
+    font-weight: 600;
+  }
+  .resend-link {
+    font-weight: 500;
+  }
+</style>
+
+<body>
   <div class="container">
     <div class="row justify-content-center">
-      <div class="col-md-6 col-lg-5">
-        <div class="card shadow-lg border-0 rounded-4">
-          <div class="card-body p-4 text-center">
-            <!-- Header Icon -->
-            <div class="bg-primary d-flex justify-content-center align-items-center mx-auto rounded-4 mb-3" style="width: 60px; height: 60px;">
-              <i class="fas fa-lock text-white fs-4"></i>
+      <div class="col-12 col-sm-10 col-md-8 col-lg-5 col-xl-4">
+        <div class="card shadow-sm p-4">
+          <div class="card-body text-center">
+            <!-- Icon -->
+            <div class="icon-circle mb-3">
+              <i class="fas fa-lock"></i>
             </div>
-            <h3 class="card-title fw-bold">Login via OTP</h3>
-            <p class="text-muted small">Enter the 6-digit code sent to your phone</p>
+            <!-- Title -->
+            <h3 class="fw-bold mb-1">Verify OTP</h3>
+            <p class="text-muted mb-3 small">Enter the 6-digit code sent to your phone</p>
 
             <!-- Error Alert -->
             <% if (error) { %>
-              <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+              <div class="alert alert-danger alert-dismissible fade show" role="alert">
                 <%= error %>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
               </div>
             <% } %>
 
             <!-- OTP Form -->
-            <form method="POST" action="/verify-login" class="mt-4">
+            <form method="POST" action="/verify-login" class="mt-3">
               <div class="mb-3">
-                <label for="otp" class="form-label fw-semibold">OTP</label>
-                <input type="text" class="form-control form-control-lg text-center fs-5 fw-bold rounded" id="otp" name="otp" placeholder="6-digit code" required style="letter-spacing: 8px;" maxlength="6" />
+                <input
+                  type="text"
+                  name="otp"
+                  id="otp"
+                  maxlength="6"
+                  placeholder="______"
+                  class="form-control otp-input rounded"
+                  required
+                />
               </div>
-
-              <div class="d-grid">
-                <button type="submit" class="btn btn-success btn-lg rounded-pill">
-                  <i class="fas fa-sign-in-alt me-2"></i>Login
-                </button>
-              </div>
+              <button type="submit" class="btn btn-success btn-lg w-100 btn-login">
+                <i class="fas fa-check-circle me-2"></i>Verify & Login
+              </button>
             </form>
 
-            <!-- Resend -->
-            <p class="text-center mt-3 text-muted small">
-              Didn’t get it? <a href="/resend-login-otp" class="text-decoration-none fw-semibold text-primary">Resend OTP</a>
+            <!-- Resend Link -->
+            <p class="text-muted small mt-4 mb-0">
+              Didn’t get the code?
+              <a href="/resend-login-otp" class="resend-link text-decoration-none text-primary">
+                Resend OTP
+              </a>
             </p>
           </div>
         </div>
