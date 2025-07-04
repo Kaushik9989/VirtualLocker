@@ -159,17 +159,39 @@
         renderParcels([]);
       });
 
-    socket.on("parcelUpdated", (update) => {
-      console.log("🔄 Parcel update received:", update);
-      const cachedParcels = JSON.parse(localStorage.getItem("incomingParcels") || "[]");
-      const idx = cachedParcels.findIndex(p => p._id === update.parcelId);
-      if (idx !== -1) {
-        cachedParcels[idx] = { ...cachedParcels[idx], ...update };
-        localStorage.setItem("incomingParcels", JSON.stringify(cachedParcels));
-        renderParcels(cachedParcels);
-        showParcelToast(update);
-      }
+socket.on("parcelUpdated", (update) => {
+  console.log("🔄 Parcel update received:", update);
+
+  let cachedParcels = JSON.parse(localStorage.getItem("incomingParcels") || "[]");
+  const idx = cachedParcels.findIndex(p => p._id === update.parcelId);
+
+  if (idx !== -1) {
+    // Parcel already exists—update it
+    cachedParcels[idx] = { ...cachedParcels[idx], ...update };
+  } else {
+    // New parcel—add it
+    cachedParcels.push({
+      _id: update.parcelId,
+      senderName: update.senderName || "Unknown",
+      status: update.status || "awaiting_drop",
+      lockerId: update.lockerId || null,
+      lockerLocation: update.lockerLocation || null,
+      metadata: update.metadata || {},
+      accessCode: update.accessCode || "N/A",
+      expiresAt: update.expiresAt || null,
+      size: update.size || "N/A",
+      cost: update.cost || "N/A",
+      compartmentId: update.compartmentId || "N/A",
+      type: update.type || "N/A",
+      qrCodeUrl: update.qrCodeUrl || null
     });
+  }
+
+  localStorage.setItem("incomingParcels", JSON.stringify(cachedParcels));
+  renderParcels(cachedParcels);
+  showParcelToast(update);
+});
+
 
 
     document.getElementById("statusFilter").addEventListener("change", () => {

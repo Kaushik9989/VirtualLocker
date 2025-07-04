@@ -641,7 +641,7 @@ app.post("/link-phone", async (req, res) => {
       });
 
     // Save to session
-    req.session.linkPhone = canonicalPhone;
+    req.session.linkPhone = phone;
     res.redirect("/verify-link-phone");
   } catch (err) {
     console.error("Failed to send OTP:", err);
@@ -656,12 +656,12 @@ app.get("/verify-link-phone", (req, res) => {
 app.post("/verify-link-phone", async (req, res) => {
   const { otp } = req.body;
   const phone = req.session.linkPhone;
-
+  const canonicalPhone = `+91` + phone;
   try {
     const verificationCheck = await client.verify.v2
       .services(process.env.TWILIO_VERIFY_SERVICE_SID)
       .verificationChecks.create({
-        to: phone,
+        to: canonicalPhone,
         code: otp,
       });
 
