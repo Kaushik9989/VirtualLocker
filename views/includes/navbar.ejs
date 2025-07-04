@@ -184,19 +184,19 @@
         <!-- Center Nav Icons Group -->
         <div class="d-flex gap-4 justify-content-center align-items-center flex-wrap">
           <% if (activePage==='home' ) { %>
-            <a href="/dashboard" class="a-def nav-item text-center fw-semibold text-orange" style="font-size: 1rem;">
+            <a href="/dashboard" class="a-def nav-item text-center fw-semibold text-orange" style="font-size: 1rem; text-decoration: none; text-decoration: none;">
               <!-- <i class="fas fa-home"></i><br />Home -->Home
             </a>
             <% } %>
               <% if (activePage==='send' ) { %>
                 <a href="/sendParcel" class=" a-def nav-item text-center fw-semibold text-orange"
-                  style="font-size: 1rem;">
-                  <!-- <i class="fas fa-paper-plane"></i><br />Send -->Send
+                  style="font-size: 1rem; text-decoration: none;">
+                  <!-- <i class="fas fa-paper-plane"></i><br />Send -->Send a Parcel
                 </a>
                 <% } %>
                   <% if (activePage==='receive' ) { %>
                     <a href="/receive" class="a-def nav-item text-center fw-semibold text-orange position-relative"
-                      style="font-size: 1rem;">
+                      style="font-size: 1rem; text-decoration: none;">
                       <i class="fas fa-box-open"></i><br />
                       Receive
                       <% if (parcelCount> 0) { %>

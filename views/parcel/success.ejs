@@ -1,5 +1,11 @@
 <% layout("layouts/boilerplate") %>
-
+<style>
+  @media (min-width: 768px) {
+    .helli{
+    margin-left: 200px;
+  }}
+</style>
+<div class="helli">
 <div class="container py-5">
     <% if (parcel.paymentOption === "receiver_pays") { %>
   <div class="alert alert-warning">
@@ -43,7 +49,7 @@
     <a href="/dashboard" class="btn btn-primary mt-5">🏠 Back to Dashboard</a>
   </div>
 </div>
-
+</div>
 <script>
   function shareQR() {
     if (navigator.share) {

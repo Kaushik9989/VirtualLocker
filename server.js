@@ -2,20 +2,15 @@ const express = require("express");
 const mongoose = require("mongoose");
 const http = require("http");
 const { Server } = require("socket.io");
-
+const crypto = require("crypto");
 const cors = require("cors");
 
 const LRU = require("lru-cache");
+const Razorpay = require("razorpay");
 
-const dashboardCache = new LRU.LRUCache({
-  max: 500,
-  ttl: 1000 * 60 * 5, // Cache for 5 min
-});
 
-const parcelCache = new LRU.LRUCache({
-  max: 500,
-  ttl: 1000 * 60 * 5, // Cache for 5 min
-});
+
+
 
 const locationsCache = new LRU.LRUCache({
   max: 10,
@@ -44,8 +39,6 @@ const Parcel = require("./models/Parcel");
 const incomingParcel = require("./models/incomingParcel.js");
 const app = express();
 const PORT = 8080;
-const Razorpay = require("razorpay");
-const crypto = require("crypto");
 const ejsMate = require("ejs-mate");
 const flash = require("connect-flash");
 const expressLayouts = require("express-ejs-layouts");
@@ -141,7 +134,10 @@ passport.deserializeUser(async (id, done) => {
   const user = await User.findById(id);
   done(null, user);
 });
-
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID || "your_key_id",
+  key_secret: process.env.RAZORPAY_KEY_SECRET || "your_key_secret",
+});
 // // MIDDLEWARES
 // app.use((req, res, next) => {
 //   console.log("🌐", req.method, req.originalUrl);
@@ -240,16 +236,9 @@ app.get("/api/sent-parcels", isAuthenticated, async (req, res) => {
 });
 
 app.get("/sendParcel", isAuthenticated, async (req, res) => {
-  console.log("Current cache size:", parcelCache.size);
-  const cacheKey = "sendParcel:" + req.session.user._id;
+ 
 
-  // Check cache first
-  const cachedHtml = parcelCache.get(cacheKey);
-  if (cachedHtml) {
-    console.log("✅ Served sendParcel from cache");
-    return res.send(cachedHtml);
-  }
-
+  // Check cache firs
   try {
     const user = await User.findById(req.session.user._id);
 
@@ -271,7 +260,7 @@ app.get("/sendParcel", isAuthenticated, async (req, res) => {
         }
 
         // Store in cache
-        parcelCache.set(cacheKey, html);
+       
 
         res.send(html);
       }
@@ -457,15 +446,6 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
     return res.redirect("/login");
   }
 
-  const cacheKey = "dashboard:" + req.session.user._id;
-
-  // Check cache first
-  const cachedHtml = dashboardCache.get(cacheKey);
-  if (cachedHtml) {
-    console.log("✅ Served dashboard from cache");
-    return res.send(cachedHtml);
-  }
-
   try {
     const user = await User.findById(req.session.user._id).lean();
     if (!user) return res.redirect("/login");
@@ -508,7 +488,6 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
         }
 
         // Save HTML to cache
-        dashboardCache.set(cacheKey, html);
 
         // Send the response
         res.send(html);
@@ -1133,6 +1112,17 @@ app.post("/send/step1", isAuthenticated, (req, res) => {
 });
 
 app.get("/send/step2", isAuthenticated, (req, res) => {
+  const { size } = req.query;
+  if (size) {
+    // Initialize draft session if not present
+    if (!req.session.parcelDraft) {
+      req.session.parcelDraft = {};
+    }
+    req.session.parcelDraft.size = size;
+    // Optionally, you could also set defaults:
+    req.session.parcelDraft.type = "package";
+    req.session.parcelDraft.description = "";
+  }
   res.render("parcel/step2");
 });
 
@@ -1150,117 +1140,262 @@ function getEstimatedCost(size) {
   return 30;
 }
 app.post("/send/step3", isAuthenticated, async (req, res) => {
-  const draft = req.session.parcelDraft;
-  draft.paymentOption = req.body.paymentOption;
-  const user = await User.findById(req.session.user._id);
-  const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
-  const cost = getEstimatedCost(draft.size).toString();
-  const qrPayload = JSON.stringify({
-    accessCode: accessCode,
-  });
-  const qrImage = await QRCode.toDataURL(qrPayload);
-  const status =
-    draft.paymentOption === "receiver_pays"
-      ? "awaiting_payment"
-      : "awaiting_drop";
-  const paymentStatus =
-    draft.paymentOption === "receiver_pays" ? "pending" : "completed";
-  const droppedAt = null;
-  const expiresAt =
-    draft.paymentOption === "receiver_pays"
-      ? new Date(Date.now() + 2 * 60 * 60 * 1000)
-      : new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+  try {
+    const draft = req.session.parcelDraft;
+    draft.paymentOption = req.body.paymentOption;
+    const user = await User.findById(req.session.user._id);
+    const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const cost = getEstimatedCost(draft.size).toString();
+    const qrPayload = JSON.stringify({
+      accessCode: accessCode,
+    });
+    const qrImage = await QRCode.toDataURL(qrPayload);
 
-  const parcel = new Parcel2({
-    ...draft,
-    senderId: req.user._id,
-    senderName: req.user.username,
-    accessCode,
-    unlockUrl: null,
-    qrImage,
-    cost,
-    status,
-    paymentStatus,
-    droppedAt,
-    expiresAt,
-    lockerId: null,
-    compartmentId: null,
-  });
+    let status = "awaiting_drop";
+    let paymentStatus = "completed";
+    let expiresAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+    let razorpayOrder = null;
 
-  await parcel.save();
-  delete req.session.parcelDraft;
+    if (draft.paymentOption === "sender_pays") {
+      // Create Razorpay order
+      razorpayOrder = await razorpay.orders.create({
+        amount: parseFloat(cost) * 100,
+        currency: "INR",
+        receipt: `parcel_${Date.now()}`,
+        payment_capture: 1,
+      });
+      status = "awaiting_payment";
+      paymentStatus = "pending";
+      expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
+    } else if (draft.paymentOption === "receiver_pays") {
+      status = "awaiting_payment";
+      paymentStatus = "pending";
+      expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
+    }
 
-  // ✅ Sync with IncomingParcel
-  const updated = await incomingParcel.findOneAndUpdate(
+    const parcel = new Parcel2({
+      ...draft,
+      senderId: req.user._id,
+      senderName: req.user.username,
+      accessCode,
+      unlockUrl: null,
+      qrImage,
+      cost,
+      status,
+      paymentStatus,
+      droppedAt: null,
+      expiresAt,
+      lockerId: null,
+      compartmentId: null,
+      razorpayOrderId: razorpayOrder?.id || null,
+    });
+
+    await parcel.save();
+    delete req.session.parcelDraft;
+
+    const updated = await incomingParcel.findOneAndUpdate(
+      { receiverPhone: parcel.receiverPhone, status: "pending" },
+      {
+        receiverName: parcel.receiverName,
+        parcelType: parcel.type,
+        size: parcel.size,
+        cost: parseFloat(parcel.cost),
+        accessCode: parcel.accessCode,
+        qrCodeUrl: parcel.qrImage,
+        status: "awaiting_drop",
+        lockerId: parcel.lockerId?.toString() || "",
+        "metadata.description": parcel.description || "",
+      },
+      { new: true }
+    );
+
+    if (!updated) {
+      await incomingParcel.create({
+        senderPhone: user.phone || "unknown",
+        receiverPhone: parcel.receiverPhone,
+        senderName: user.username,
+        receiverName: parcel.receiverName || "",
+        parcelType: parcel.type,
+        size: parcel.size,
+        cost: parseFloat(parcel.cost),
+        accessCode: parcel.accessCode,
+        qrCodeUrl: parcel.qrImage,
+        status: "awaiting_drop",
+        lockerId: parcel.lockerId?.toString() || "",
+        metadata: {
+          description: parcel.description || "",
+        },
+        lockerLat: parcel.lockerLat,
+        lockerLng: parcel.lockerLng,
+      });
+    }
+
+    if (draft.paymentOption === "receiver_pays") {
+      return res.render("parcel/waiting-payment", { parcel });
+    }
+
+    if (draft.paymentOption === "sender_pays") {
+      return res.render("parcel/payment", {
+        parcel,
+        razorpayKeyId: process.env.RAZORPAY_KEY_ID,
+        orderId: razorpayOrder.id,
+        amount: razorpayOrder.amount,
+        currency: razorpayOrder.currency,
+      });
+    }
+
+    res.redirect(`/parcel/${parcel._id}/success`);
+  } catch (error) {
+    console.error("Error in /send/step3:", error);
+    req.flash("error", "An unexpected error occurred. Please try again.");
+    res.redirect("/dashboard");
+  }
+});
+
+
+
+
+
+// app.post("/send/step3", isAuthenticated, async (req, res) => {
+//   const draft = req.session.parcelDraft;
+//   draft.paymentOption = req.body.paymentOption;
+//   const user = await User.findById(req.session.user._id);
+//   const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
+//   const cost = getEstimatedCost(draft.size).toString();
+//   const qrPayload = JSON.stringify({
+//     accessCode: accessCode,
+//   });
+//   const qrImage = await QRCode.toDataURL(qrPayload);
+//   const status =
+//     draft.paymentOption === "receiver_pays"
+//       ? "awaiting_payment"
+//       : "awaiting_drop";
+//   const paymentStatus =
+//     draft.paymentOption === "receiver_pays" ? "pending" : "completed";
+//   const droppedAt = null;
+//   const expiresAt =
+//     draft.paymentOption === "receiver_pays"
+//       ? new Date(Date.now() + 2 * 60 * 60 * 1000)
+//       : new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+
+//   const parcel = new Parcel2({
+//     ...draft,
+//     senderId: req.user._id,
+//     senderName: req.user.username,
+//     accessCode,
+//     unlockUrl: null,
+//     qrImage,
+//     cost,
+//     status,
+//     paymentStatus,
+//     droppedAt,
+//     expiresAt,
+//     lockerId: null,
+//     compartmentId: null,
+//   });
+
+//   await parcel.save();
+//   delete req.session.parcelDraft;
+
+//   // ✅ Sync with IncomingParcel
+//   const updated = await incomingParcel.findOneAndUpdate(
+//     {
+//       receiverPhone: parcel.receiverPhone,
+//       status: "pending",
+//     },
+//     {
+//       receiverName: parcel.receiverName,
+//       parcelType: parcel.type,
+//       size: parcel.size,
+//       cost: parseFloat(parcel.cost.toString()),
+//       accessCode: parcel.accessCode,
+//       qrCodeUrl: parcel.qrImage,
+//       status: "awaiting_drop", // Corrected
+//       lockerId: parcel.lockerId?.toString() || "",
+//       "metadata.description": parcel.description || "",
+//     },
+//     { new: true }
+//   );
+
+//   // ✅ If no matching incoming parcel found, create new
+//   if (!updated) {
+//     await incomingParcel.create({
+//       senderPhone: user.phone || "unknown",
+//       receiverPhone: parcel.receiverPhone,
+//       senderName: user.username,
+//       receiverName: parcel.receiverName || "",
+//       parcelType: parcel.type,
+//       size: parcel.size,
+//       cost: parseFloat(parcel.cost.toString()),
+//       accessCode: parcel.accessCode,
+//       qrCodeUrl: parcel.qrImage,
+//       status: "awaiting_drop", // Corrected
+//       lockerId: parcel.lockerId?.toString() || "",
+//       metadata: {
+//         description: parcel.description || "",
+//       },
+//       lockerLat: parcel.lockerLat,
+//       lockerLng: parcel.lockerLng,
+//     });
+//   }
+
+//   // ✅ Payment redirection
+//   if (draft.paymentOption === "receiver_pays") {
+//     const link = `${req.protocol}://${req.get("host")}/payment/receiver/${
+//       parcel._id
+//     }`;
+//     return res.render("parcel/waiting-payment", { parcel });
+//   }
+
+
+//   res.redirect(`/parcel/${parcel._id}/success`);
+// });
+app.get("/payment/success", isAuthenticated, async (req, res) => {
+  const { order_id, payment_id, signature } = req.query;
+
+  // Verify signature
+  const generatedSignature = crypto.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+    .update(order_id + "|" + payment_id)
+    .digest("hex");
+
+  if (generatedSignature !== signature) {
+    req.flash("error", "Payment verification failed.");
+    return res.redirect("/dashboard");
+  }
+
+  // Mark parcel as paid
+  const parcel = await Parcel2.findOneAndUpdate(
+    { razorpayOrderId: order_id },
     {
-      receiverPhone: parcel.receiverPhone,
-      status: "pending",
-    },
-    {
-      receiverName: parcel.receiverName,
-      parcelType: parcel.type,
-      size: parcel.size,
-      cost: parseFloat(parcel.cost.toString()),
-      accessCode: parcel.accessCode,
-      qrCodeUrl: parcel.qrImage,
-      status: "awaiting_drop", // Corrected
-      lockerId: parcel.lockerId?.toString() || "",
-      "metadata.description": parcel.description || "",
+      paymentStatus: "completed",
+      status: "awaiting_drop"
     },
     { new: true }
   );
 
-  // ✅ If no matching incoming parcel found, create new
-  if (!updated) {
-    await incomingParcel.create({
-      senderPhone: user.phone || "unknown",
-      receiverPhone: parcel.receiverPhone,
-      senderName: user.username,
-      receiverName: parcel.receiverName || "",
-      parcelType: parcel.type,
-      size: parcel.size,
-      cost: parseFloat(parcel.cost.toString()),
-      accessCode: parcel.accessCode,
-      qrCodeUrl: parcel.qrImage,
-      status: "awaiting_drop", // Corrected
-      lockerId: parcel.lockerId?.toString() || "",
-      metadata: {
-        description: parcel.description || "",
-      },
-      lockerLat: parcel.lockerLat,
-      lockerLng: parcel.lockerLng,
-    });
+  if (!parcel) {
+    req.flash("error", "Parcel not found.");
+    return res.redirect("/dashboard");
   }
-
-  // ✅ Payment redirection
-  if (draft.paymentOption === "receiver_pays") {
-    const link = `${req.protocol}://${req.get("host")}/payment/receiver/${
-      parcel._id
-    }`;
-    return res.render("parcel/waiting-payment", { parcel });
-  }
-  dashboardCache.delete("dashboard:" + req.session.user._id);
-  parcelCache.delete("sendParcel:" + req.session.user._id);
 
   res.redirect(`/parcel/${parcel._id}/success`);
 });
+// app.post("/payment/receiver/:id/success", isAuthenticated, async (req, res) => {
+//   const parcel = await Parcel1.findById(req.params.id);
+//   if (!parcel) return res.status(404).send("Parcel not found");
 
-app.post("/payment/receiver/:id/success", isAuthenticated, async (req, res) => {
-  const parcel = await Parcel1.findById(req.params.id);
-  if (!parcel) return res.status(404).send("Parcel not found");
+//   if (parcel.paymentStatus === "completed") {
+//     return res.send("Payment already completed.");
+//   }
 
-  if (parcel.paymentStatus === "completed") {
-    return res.send("Payment already completed.");
-  }
+//   parcel.status = "awaiting_drop";
+//   parcel.paymentStatus = "completed";
+//   parcel.droppedAt = new Date();
+//   parcel.expiresAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000); // extend after payment
 
-  parcel.status = "awaiting_drop";
-  parcel.paymentStatus = "completed";
-  parcel.droppedAt = new Date();
-  parcel.expiresAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000); // extend after payment
-
-  await parcel.save();
-  res.redirect(`/parcel/${parcel._id}/success`);
-});
+//   await parcel.save();
+//   res.redirect(`/parcel/${parcel._id}/success`);
+// });
 app.get("/parcel/:id/success", isAuthenticated, async (req, res) => {
   const parcel = await Parcel2.findById(req.params.id);
   if (!parcel) return res.status(404).send("Parcel not found");
@@ -1382,8 +1517,7 @@ app.post("/api/locker/scan", async (req, res) => {
       droppedAt: parcel.droppedAt,
     });
 
-    dashboardCache.delete("dashboard:" + req.session.user._id);
-    parcelCache.delete("sendParcel:" + req.session.user._id);
+    
 
     return res.json({
       success: true,

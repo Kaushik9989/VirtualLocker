@@ -125,110 +125,156 @@
     }
   </style>
 
-  <div class="send-container mt-4">
-    <div class="send-icon">
-      <i class="fas fa-paper-plane"></i>
-    </div>
-    <h5 class="send-heading">Send a Parcel</h5>
-    <p class="send-subtext">Quick 3-step process to send your items securely</p>
-
-    <a href="/send/step1" class="start-delivery d-block text-decoration-none text-dark">
-      <i class="fas fa-plus fa-lg"></i>
-      <p class="mt-2 mb-0 fw-medium">Start New Delivery</p>
-      <small class="text-muted">Send to any Drop Point location</small>
-    </a>
-
-    <div class="delivery-types">
-      <div class="delivery-type text-center">
-        <i class="fas fa-box text-primary"></i>
-        <div>Standard</div>
-      </div>
-      <div class="delivery-type text-center">
-        <i class="fas fa-bolt text-warning"></i>
-        <div>Express</div>
-      </div>
-      <div class="delivery-type text-center">
-        <i class="fas fa-gift text-purple"></i>
-        <div>Gift</div>
-      </div>
-    </div>
-
-    <div class="how-it-works">
-      <h6>How it works</h6>
-      <ol>
-        <li><strong>Choose recipient & location</strong> <br />Enter phone number and select drop point</li>
-        <li><strong>Drop off your parcel</strong> <br />Use QR code to access locker</li>
-        <li><strong>Recipient gets notified</strong> <br />They'll receive pickup instructions</li>
-      </ol>
-    </div>
-    <div id="sentParcelsList">Loading your bookings...</div>
-
-
-
-
-  </div>
-<script>
-  const sentContainer = document.getElementById("sentParcelsList");
-
-  const cachedSent = localStorage.getItem("sentParcels");
-  if (cachedSent) {
-    try {
-      const data = JSON.parse(cachedSent);
-      renderSentParcels(data);
-      console.log("✅ Loaded sent parcels from cache");
-    } catch (e) {
-      console.error("Cache parse error:", e);
-    }
+<style>
+  /* Make the entire link box clickable and show pointer */
+  .delivery-type-link {
+    display: inline-block;
+    padding: 0.5rem;
+    cursor: pointer;
+    text-decoration: none; /* remove underline */
+    color: inherit;        /* inherit text/icon color */
   }
+  .delivery-type-link:hover {
+    background-color: rgba(0,0,0,0.05);
+    border-radius: 8px;
+  }
+  .delivery-tile {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 0.5rem;
+  transition: background-color 0.2s, border-color 0.2s;
+  cursor: pointer;
+}
 
-  fetch("/api/sent-parcels")
-    .then(res => res.json())
-    .then(data => {
-      if (data.bookedParcels) {
-        localStorage.setItem("sentParcels", JSON.stringify(data.bookedParcels));
-        renderSentParcels(data.bookedParcels);
-        console.log("✅ Refreshed sent parcels from server");
+.delivery-tile:hover {
+  background-color: #f8f9fa;
+  border-color: #aaa;
+  text-decoration: none;
+}
+
+</style>
+
+<div class="send-container ">
+  <p class="send-subtext">Quick 3‑step process to send your items securely</p>
+
+  <!-- Start New Delivery with embedded clickable size icons -->
+  <div class="start-delivery text-center my-4">
+    <p class="fw-medium mb-2">Select your Size</p>  
+    <div class="d-flex gap-3">
+      <!-- Small -->
+      <a href="/send/step2?size=small"
+         class="delivery-tile text-decoration-none">
+        <i class="fas fa-box-open text-primary fa-2x"></i>
+        <div class="mt-2 fw-semibold">Small</div>
+      </a>
+
+      <!-- Medium -->
+      <a href="/send/step2?size=medium"
+         class="delivery-tile text-decoration-none">
+        <i class="fas fa-box text-warning fa-2x"></i>
+        <div class="mt-2 fw-semibold">Medium</div>
+      </a>
+
+      <!-- Large -->
+      <a href="/send/step2?size=large"
+         class="delivery-tile text-decoration-none">
+        <i class="fa-solid fa-boxes-stacked text-danger fa-2x"></i>
+        <div class="mt-2 fw-semibold">Large</div>
+      </a>
+    </div>
+    <small class="text-muted d-block mt-2">Send to any Drop Point location</small>
+  </div>
+<div class="how-it-works">
+  <h6>How it works</h6>
+  <ol>
+    <li>
+      <strong>Create your parcel</strong><br />
+      Enter recipient details and generate your QR code
+    </li>
+    <li>
+      <strong>Drop off at any locker</strong><br />
+      Scan the QR code to access and deposit your parcel
+    </li>
+    <li>
+      <strong>Recipient gets notified</strong><br />
+      They receive pickup instructions and access code
+    </li>
+  </ol>
+</div>
+
+
+  <div id="sentParcelsList">Loading your bookings...</div>
+</div>
+
+
+
+  <script>
+    const sentContainer = document.getElementById("sentParcelsList");
+
+    const cachedSent = localStorage.getItem("sentParcels");
+    if (cachedSent) {
+      try {
+        const data = JSON.parse(cachedSent);
+        renderSentParcels(data);
+        console.log("✅ Loaded sent parcels from cache");
+      } catch (e) {
+        console.error("Cache parse error:", e);
       }
-    })
-    .catch(err => {
-      console.error("Sent parcels fetch error:", err);
-    });
+    }
 
- function renderSentParcels(parcels) {
-  if (!parcels || parcels.length === 0) {
-    sentContainer.innerHTML = `
+    fetch("/api/sent-parcels")
+      .then(res => res.json())
+      .then(data => {
+        if (data.bookedParcels) {
+          localStorage.setItem("sentParcels", JSON.stringify(data.bookedParcels));
+          renderSentParcels(data.bookedParcels);
+          console.log("✅ Refreshed sent parcels from server");
+        }
+      })
+      .catch(err => {
+        console.error("Sent parcels fetch error:", err);
+      });
+
+    function renderSentParcels(parcels) {
+      if (!parcels || parcels.length === 0) {
+        sentContainer.innerHTML = `
       <div class="text-center mt-4 text-muted">
         <i class="fas fa-box-open fa-2x mb-2"></i><br />
         You don’t have any active bookings.
       </div>
     `;
-    return;
-  }
+        return;
+      }
 
-  sentContainer.innerHTML = `
+      sentContainer.innerHTML = `
     <div class="mt-4">
       <h6 class="text-start fw-semibold">Your Booked Parcels</h6>
       <div class="d-flex flex-column gap-3 mt-3">
         ${parcels.map(parcel => {
-          // Choose icon based on type
-          let iconClass = "fas fa-question-circle text-secondary";
-          if (parcel.type === "document") iconClass = "fas fa-file-alt text-info";
-          else if (parcel.type === "package") iconClass = "fas fa-box text-primary";
-          else if (parcel.type === "gift") iconClass = "fas fa-gift text-danger";
+        // Choose icon based on type
+        let iconClass = "fas fa-question-circle text-secondary";
+        if (parcel.type === "document") iconClass = "fas fa-file-alt text-info";
+        else if (parcel.type === "package") iconClass = "fas fa-box text-primary";
+        else if (parcel.type === "gift") iconClass = "fas fa-gift text-danger";
 
-          const typeLabel = parcel.type
-            ? parcel.type.charAt(0).toUpperCase() + parcel.type.slice(1)
-            : "Unknown";
+        const typeLabel = parcel.type
+          ? parcel.type.charAt(0).toUpperCase() + parcel.type.slice(1)
+          : "Unknown";
 
-          const statusLabel = parcel.status
-            ? parcel.status.replace("_", " ")
-            : "Unknown";
+        const statusLabel = parcel.status
+          ? parcel.status.replace("_", " ")
+          : "Unknown";
 
-          const expiresAt = parcel.expiresAt
-            ? new Date(parcel.expiresAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
-            : "N/A";
+        const expiresAt = parcel.expiresAt
+          ? new Date(parcel.expiresAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
+          : "N/A";
 
-          return `
+        return `
             <a href="/parcel/${parcel._id}/success" class="text-decoration-none">
               <div class="border rounded p-3 d-flex justify-content-between align-items-center shadow-sm">
                 <div>
@@ -245,12 +291,12 @@
               </div>
             </a>
           `;
-        }).join("")}
+      }).join("")}
       </div>
     </div>
   `;
-}
+    }
 
-</script>
+  </script>
 
   <!-- Bottom Navigation -->

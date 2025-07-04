@@ -10,6 +10,15 @@
 />
 
 <style>
+   @media (min-width: 768px) {
+    .helli{
+    margin-left: 200px;
+  }
+
+
+
+
+}
   .location-card.highlighted {
   outline: 3px solid #007bff;
   transition: outline 0.3s ease;
@@ -133,9 +142,10 @@ body {
   
 @media (max-width: 768px) {
   .leaflet-control-recenter {
-    top: 78px !important;    /* just below header */
+    top: 80px !important;    /* just below header */
     right: 16px !important;
     bottom: auto !important;
+    background-color: black;
   }
 }
 
@@ -191,8 +201,8 @@ body {
   }
 </style>
 
-
-<div class="main-layout ">
+<div class="helli">
+<div class="main-layout">
   <div id="locker-map"></div>
 
   <div class="left-sidebar">
@@ -231,7 +241,7 @@ body {
     <% }) %>
   </div>
 </div>
-
+</div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-1A4e1S43i+rpymzKQ8CE2Y8GABZ1p26b0gShmYPQHsg=" crossorigin=""></script>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-1A4e1S43i+rpymzKQ8CE2Y8GABZ1p26b0gShmYPQHsg=" crossorigin=""></script>
@@ -287,7 +297,7 @@ body {
       options: { position: 'topright' },
       onAdd: function () {
         const container = L.DomUtil.create('div', 'leaflet-control-recenter');
-        container.innerHTML = '<i class="fas fa-crosshairs"></i> Recenter to User';
+        container.innerHTML = '<i class="fas fa-crosshairs"></i>';
         container.onclick = () => recenterToUser();
         L.DomEvent.disableClickPropagation(container);
         return container;
@@ -312,7 +322,7 @@ body {
       const userLng = position.coords.longitude;
 
       const userIcon = L.icon({
-        iconUrl: "https://cdn-icons-png.flaticon.com/512/1946/1946429.png",
+        iconUrl: "https://static.thenounproject.com/png/2181483-200.png",
         iconSize: [35, 35],
         iconAnchor: [17, 34],
         popupAnchor: [0, -30],
