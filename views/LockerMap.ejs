@@ -86,7 +86,7 @@
 
       const userMarker = L.marker([userLat, userLng], { icon: userIcon })
         .addTo(map)
-        .bindPopup(`<b>📍 You are here</b> &nbsp;<a href="/profile">View Profile</a>`)
+        .bindPopup(`<b>📍 You are here</b> &nbsp;<a href="/account">View Profile</a>`)
         .openPopup();
 
       userMarker.on("click", () => {
