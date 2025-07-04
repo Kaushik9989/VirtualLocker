@@ -60,185 +60,183 @@
       box-shadow: 0 0 0 3px rgba(78, 84, 200, 0.2);
     }
 
-.parcel-card-hover:hover {
-  background-color: #f8fafc;
-  transition: background-color 0.2s;
-}
-
-
+    .parcel-card-hover:hover {
+      background-color: #f8fafc;
+      transition: background-color 0.2s;
+    }
   </style>
 
   <div class="gradient-card p-4 mb-4 d-flex justify-content-between align-items-center mt-5 mb-5">
-    <% if (messages.error && messages.error.length> 0) { %>
-      <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <%= messages.error[0] %>
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-      </div>
-      <% } %>
-        <% if (messages.success && messages.success.length> 0) { %>
-          <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <%= messages.success[0] %>
-              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-          </div>
-          <% } %>
-            <div>
-              <h5>Welcome back, <%= user.username %>
-              </h5>
-              <p id="parcelCountText" class="mb-0">Loading your parcels...</p>
+
+    <div>
+      <h5>Welcome back, <%= user.username %>
+      </h5>
+      <p id="parcelCountText" class="mb-0">Loading your parcels...</p>
+    </div>
+    <h3 class="mb-0 fw-bold">
+      <%= user.wallet.credits %> <small style="font-size: 16px;">Credits</small>
+    </h3>
+  </div>
+  <% if (messages.error && messages.error.length> 0) { %>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+      <%= messages.error[0] %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    <% } %>
+      <% if (messages.success && messages.success.length> 0) { %>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+          <%= messages.success[0] %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <% } %>
+          <div class="row text-center mb-4">
+            <div class="col-6">
+              <a href="/sendParcel" class="btn gradient-btn btn-send w-100">Send Parcel</a>
             </div>
-            <h3 class="mb-0 fw-bold">
-              <%= user.wallet.credits %> <small style="font-size: 16px;">Credits</small>
-            </h3>
-  </div>
+            <div class="col-6">
+              <a href="/locations" class="btn gradient-btn btn-locate w-100">Find Locations</a>
+            </div>
+          </div>
 
-  <div class="row text-center mb-4">
-    <div class="col-6">
-      <a href="/sendParcel" class="btn gradient-btn btn-send w-100">Send Parcel</a>
-    </div>
-    <div class="col-6">
-      <a href="/locations" class="btn gradient-btn btn-locate w-100">Find Locations</a>
-    </div>
-  </div>
+          <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <h5 class="mb-0">
+              Incoming Parcels
+              <span id="parcelCountBadge" class="badge bg-secondary">0</span>
+            </h5>
+            <div class="d-flex align-items-center gap-2">
+              <label for="statusFilter" class="mb-0 small text-muted">Filter:</label>
+              <select id="statusFilter" class="custom-select-minimal">
+                <option value="all">Show All</option>
+                <option value="awaiting_drop">Awaiting Drop</option>
+                <option value="awaiting_pick">Awaiting Pickup</option>
+                <option value="picked">Picked</option>
+              </select>
+            </div>
+          </div>
 
-  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-    <h5 class="mb-0">
-      Incoming Parcels
-      <span id="parcelCountBadge" class="badge bg-secondary">0</span>
-    </h5>
-    <div class="d-flex align-items-center gap-2">
-      <label for="statusFilter" class="mb-0 small text-muted">Filter:</label>
-      <select id="statusFilter" class="custom-select-minimal">
-        <option value="all">Show All</option>
-        <option value="awaiting_drop">Awaiting Drop</option>
-        <option value="awaiting_pick">Awaiting Pickup</option>
-        <option value="picked">Picked</option>
-      </select>
-    </div>
-  </div>
+          <div id="parcelList">
+            <div class="text-muted text-center my-4">Loading your parcels...</div>
+          </div>
+          <div class="toast-container position-fixed top-0 start-0 p-3" style="z-index: 1055;"></div>
 
-  <div id="parcelList">
-    <div class="text-muted text-center my-4">Loading your parcels...</div>
-  </div>
-  <div class="toast-container position-fixed top-0 start-0 p-3" style="z-index: 1055;"></div>
+          <script src="/socket.io/socket.io.js"></script>
+          <script>
+            const socket = io();
+            socket.on("connect", () => console.log("✅ Connected to Socket.IO"));
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script>
-    const socket = io();
-    socket.on("connect", () => console.log("✅ Connected to Socket.IO"));
+            const parcelContainer = document.getElementById("parcelList");
+            const badge = document.getElementById("parcelCountBadge");
 
-    const parcelContainer = document.getElementById("parcelList");
-    const badge = document.getElementById("parcelCountBadge");
+            // Load cached parcels
+            const cached = localStorage.getItem("incomingParcels");
+            if (cached) {
+              try {
+                const data = JSON.parse(cached);
+                renderParcels(data);
+                console.log("✅ Loaded parcels from cache");
+              } catch (e) {
+                console.error("Cache parse error:", e);
+              }
+            }
 
-    // Load cached parcels
-    const cached = localStorage.getItem("incomingParcels");
-    if (cached) {
-      try {
-        const data = JSON.parse(cached);
-        renderParcels(data);
-        console.log("✅ Loaded parcels from cache");
-      } catch (e) {
-        console.error("Cache parse error:", e);
-      }
-    }
+            // Always fetch fresh parcels
+            fetch("/api/incoming-parcels")
+              .then(res => res.json())
+              .then(data => {
+                if (data.parcels) {
+                  localStorage.setItem("incomingParcels", JSON.stringify(data.parcels));
+                  renderParcels(data.parcels);
+                  console.log("✅ Refreshed parcels from server");
+                } else {
+                  console.warn("API returned no parcels field.");
+                  renderParcels([]);
+                }
+              })
+              .catch(err => {
+                console.error("Fetch error:", err);
+                renderParcels([]);
+              });
 
-    // Always fetch fresh parcels
-    fetch("/api/incoming-parcels")
-      .then(res => res.json())
-      .then(data => {
-        if (data.parcels) {
-          localStorage.setItem("incomingParcels", JSON.stringify(data.parcels));
-          renderParcels(data.parcels);
-          console.log("✅ Refreshed parcels from server");
-        } else {
-          console.warn("API returned no parcels field.");
-          renderParcels([]);
-        }
-      })
-      .catch(err => {
-        console.error("Fetch error:", err);
-        renderParcels([]);
-      });
+            socket.on("parcelUpdated", (update) => {
+              console.log("🔄 Parcel update received:", update);
 
-socket.on("parcelUpdated", (update) => {
-  console.log("🔄 Parcel update received:", update);
+              let cachedParcels = JSON.parse(localStorage.getItem("incomingParcels") || "[]");
+              const idx = cachedParcels.findIndex(p => p._id === update.parcelId);
 
-  let cachedParcels = JSON.parse(localStorage.getItem("incomingParcels") || "[]");
-  const idx = cachedParcels.findIndex(p => p._id === update.parcelId);
+              if (idx !== -1) {
+                // Parcel already exists—update it
+                cachedParcels[idx] = { ...cachedParcels[idx], ...update };
+              } else {
+                // New parcel—add it
+                cachedParcels.push({
+                  _id: update.parcelId,
+                  senderName: update.senderName || "Unknown",
+                  status: update.status || "awaiting_drop",
+                  lockerId: update.lockerId || null,
+                  lockerLocation: update.lockerLocation || null,
+                  metadata: update.metadata || {},
+                  accessCode: update.accessCode || "N/A",
+                  expiresAt: update.expiresAt || null,
+                  size: update.size || "N/A",
+                  cost: update.cost || "N/A",
+                  compartmentId: update.compartmentId || "N/A",
+                  type: update.type || "N/A",
+                  qrCodeUrl: update.qrCodeUrl || null
+                });
+              }
 
-  if (idx !== -1) {
-    // Parcel already exists—update it
-    cachedParcels[idx] = { ...cachedParcels[idx], ...update };
-  } else {
-    // New parcel—add it
-    cachedParcels.push({
-      _id: update.parcelId,
-      senderName: update.senderName || "Unknown",
-      status: update.status || "awaiting_drop",
-      lockerId: update.lockerId || null,
-      lockerLocation: update.lockerLocation || null,
-      metadata: update.metadata || {},
-      accessCode: update.accessCode || "N/A",
-      expiresAt: update.expiresAt || null,
-      size: update.size || "N/A",
-      cost: update.cost || "N/A",
-      compartmentId: update.compartmentId || "N/A",
-      type: update.type || "N/A",
-      qrCodeUrl: update.qrCodeUrl || null
-    });
-  }
-
-  localStorage.setItem("incomingParcels", JSON.stringify(cachedParcels));
-  renderParcels(cachedParcels);
-  showParcelToast(update);
-});
+              localStorage.setItem("incomingParcels", JSON.stringify(cachedParcels));
+              renderParcels(cachedParcels);
+              showParcelToast(update);
+            });
 
 
 
-    document.getElementById("statusFilter").addEventListener("change", () => {
-      const cachedParcels = JSON.parse(localStorage.getItem("incomingParcels") || "[]");
-      renderParcels(cachedParcels);
-    });
+            document.getElementById("statusFilter").addEventListener("change", () => {
+              const cachedParcels = JSON.parse(localStorage.getItem("incomingParcels") || "[]");
+              renderParcels(cachedParcels);
+            });
 
-    function renderParcels(parcels) {
-      const filter = document.getElementById("statusFilter").value;
-      const filtered = filter === "all" ? parcels : parcels.filter(p => p.status === filter);
-      badge.textContent = filtered.length;
+            function renderParcels(parcels) {
+              const filter = document.getElementById("statusFilter").value;
+              const filtered = filter === "all" ? parcels : parcels.filter(p => p.status === filter);
+              badge.textContent = filtered.length;
 
-      const countText = document.getElementById("parcelCountText");
-      countText.textContent = `You have ${filtered.length} parcels`;
+              const countText = document.getElementById("parcelCountText");
+              countText.textContent = `You have ${filtered.length} parcels`;
 
-      if (filtered.length === 0) {
-        parcelContainer.innerHTML = `
+              if (filtered.length === 0) {
+                parcelContainer.innerHTML = `
       <div class="text-center text-muted my-5">
         <i class="fas fa-inbox fa-3x mb-3"></i>
         <p class="mb-0">No parcels found.</p>
       </div>
     `;
-        return;
-      }
+                return;
+              }
 
-      parcelContainer.innerHTML = filtered.map(parcel => {
-        const status = parcel.status || "unknown";
-        const badgeColor = status === "picked"
-          ? "success"
-          : status === "awaiting_drop"
-            ? "warning"
-            : "danger";
-        const statusText = status.charAt(0).toUpperCase() + status.slice(1).replace("_", " ");
-        const expiresAt = parcel.expiresAt
-          ? new Date(parcel.expiresAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
-          : "N/A";
-        const hasCoordinates = parcel.lockerLocation && parcel.lockerLocation.latitude != null && parcel.lockerLocation.longitude != null;
-        const mapsUrl = hasCoordinates
-          ? `https://www.google.com/maps/dir/?api=1&destination=${parcel.lockerLocation.latitude},${parcel.lockerLocation.longitude}`
-          : parcel.lockerLocation?.address
-            ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(parcel.lockerLocation.address)}`
-            : null;
-        const cardLink = status === "awaiting_pick"
-          ? `/incoming/${parcel._id}/qr`
-          : `/incomingdetails/${parcel._id}`;
+              parcelContainer.innerHTML = filtered.map(parcel => {
+                const status = parcel.status || "unknown";
+                const badgeColor = status === "picked"
+                  ? "success"
+                  : status === "awaiting_drop"
+                    ? "warning"
+                    : "danger";
+                const statusText = status.charAt(0).toUpperCase() + status.slice(1).replace("_", " ");
+                const expiresAt = parcel.expiresAt
+                  ? new Date(parcel.expiresAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
+                  : "N/A";
+                const hasCoordinates = parcel.lockerLocation && parcel.lockerLocation.latitude != null && parcel.lockerLocation.longitude != null;
+                const mapsUrl = hasCoordinates
+                  ? `https://www.google.com/maps/dir/?api=1&destination=${parcel.lockerLocation.latitude},${parcel.lockerLocation.longitude}`
+                  : parcel.lockerLocation?.address
+                    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(parcel.lockerLocation.address)}`
+                    : null;
+                const cardLink = status === "awaiting_pick"
+                  ? `/incoming/${parcel._id}/qr`
+                  : `/incomingdetails/${parcel._id}`;
 
-        return `
+                return `
   <div class="card shadow-sm mb-4 border-start rounded-3 parcel-card-hover" 
        style="cursor: pointer;"
        data-parcel-id="${parcel._id}"
@@ -247,7 +245,7 @@ socket.on("parcelUpdated", (update) => {
       <div class="d-flex justify-content-between align-items-start mb-2">
         <div>
           <h6 class="fw-bold mb-1">From: ${parcel.senderName || "Unknown"}</h6>
-          <p class="mb-1 text-muted small">${parcel.metadata?.description || "No description"}</p>
+          <p class="mb-1 text-muted small">${parcel.description || "No description"}</p>
           <div class="text-muted small mb-1">
             <i class="fas fa-box me-1"></i> ${parcel.type || "N/A"} • ${parcel.size || "N/A"} • ₹${parcel.cost || "N/A"}
           </div>
@@ -261,67 +259,67 @@ socket.on("parcelUpdated", (update) => {
       <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
         <span class="text-muted small">Access Code: <strong>${parcel.accessCode}</strong></span>
         ${parcel.qrCodeUrl
-            ? `<a href="${parcel.qrCodeUrl}" class="btn btn-sm btn-primary" target="_blank" onclick="event.stopPropagation();"><i class="fas fa-qrcode me-1"></i> View QR</a>`
-            : ""
-          }
+                    ? `<a href="${parcel.qrCodeUrl}" class="btn btn-sm btn-primary" target="_blank" onclick="event.stopPropagation();"><i class="fas fa-qrcode me-1"></i> View QR</a>`
+                    : ""
+                  }
         ${status === "awaiting_pick"
-            ? `<a href="/incoming/${parcel._id}/qr" class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation();"><i class="fas fa-qrcode me-1"></i> QR Code</a>`
-            : `<a href="/incomingdetails/${parcel._id}" class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation();"><i class="fas fa-info-circle me-1"></i> Details</a>`
-          }
+                    ? `<a href="/incoming/${parcel._id}/qr" class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation();"><i class="fas fa-qrcode me-1"></i> QR Code</a>`
+                    : `<a href="/incomingdetails/${parcel._id}" class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation();"><i class="fas fa-info-circle me-1"></i> Details</a>`
+                  }
         ${mapsUrl
-            ? `<a href="${mapsUrl}" target="_blank" class="btn btn-sm btn-outline-success" onclick="event.stopPropagation();">
+                    ? `<a href="${mapsUrl}" target="_blank" class="btn btn-sm btn-outline-success" onclick="event.stopPropagation();">
               <i class="fas fa-map-marker-alt me-1"></i> Show Directions
             </a>`
-            : ""
-          }
+                    : ""
+                  }
       </div>
     </div>
   </div>
 `;
 
 
-      }).join("");
-    }
-    // Delegate click event for all parcel cards
-parcelContainer.addEventListener("click", (e) => {
-  const card = e.target.closest(".parcel-card-hover");
-  if (card) {
-    const parcelId = card.dataset.parcelId;
-    const status = card.dataset.parcelStatus;
-    if (status === "awaiting_pick") {
-      window.location.href = `/incoming/${parcelId}/qr`;
-    } else {
-      window.location.href = `/incomingdetails/${parcelId}`;
-    }
-  }
-});
+              }).join("");
+            }
+            // Delegate click event for all parcel cards
+            parcelContainer.addEventListener("click", (e) => {
+              const card = e.target.closest(".parcel-card-hover");
+              if (card) {
+                const parcelId = card.dataset.parcelId;
+                const status = card.dataset.parcelStatus;
+                if (status === "awaiting_pick") {
+                  window.location.href = `/incoming/${parcelId}/qr`;
+                } else {
+                  window.location.href = `/incomingdetails/${parcelId}`;
+                }
+              }
+            });
 
-    function showParcelToast(update) {
-      const container = document.querySelector(".toast-container");
-      const toast = document.createElement("div");
-      toast.className = "toast align-items-center text-bg-primary border-0 show";
-      toast.role = "alert";
-      toast.ariaLive = "assertive";
-      toast.ariaAtomic = "true";
+            function showParcelToast(update) {
+              const container = document.querySelector(".toast-container");
+              const toast = document.createElement("div");
+              toast.className = "toast align-items-center text-bg-primary border-0 show";
+              toast.role = "alert";
+              toast.ariaLive = "assertive";
+              toast.ariaAtomic = "true";
 
-      // Decide the message based on status
-      let message = "";
-      switch (update.status) {
-        case "awaiting_pick":
-          message = `📦 Parcel has been <strong>dropped</strong> ${update.lockerId ? `at Locker <strong>${update.lockerId}</strong>` : ""
-            } and is ready for pickup.`;
-          break;
-        case "awaiting_drop":
-          message = `📦 Parcel is <strong>awaiting drop-off</strong>.`;
-          break;
-        case "picked":
-          message = `📦 Parcel has been <strong>picked up</strong>.`;
-          break;
-        default:
-          message = `📦 Parcel status updated to <strong>${update.status}</strong>.`;
-      }
+              // Decide the message based on status
+              let message = "";
+              switch (update.status) {
+                case "awaiting_pick":
+                  message = `📦 Parcel has been <strong>dropped</strong> ${update.lockerId ? `at Locker <strong>${update.lockerId}</strong>` : ""
+                    } and is ready for pickup.`;
+                  break;
+                case "awaiting_drop":
+                  message = `📦 Parcel is <strong>awaiting drop-off</strong>.`;
+                  break;
+                case "picked":
+                  message = `📦 Parcel has been <strong>picked up</strong>.`;
+                  break;
+                default:
+                  message = `📦 Parcel status updated to <strong>${update.status}</strong>.`;
+              }
 
-      toast.innerHTML = `
+              toast.innerHTML = `
     <div class="d-flex">
       <div class="toast-body">
         ${message}
@@ -330,22 +328,22 @@ parcelContainer.addEventListener("click", (e) => {
     </div>
   `;
 
-      container.appendChild(toast);
+              container.appendChild(toast);
 
-      setTimeout(() => {
-        toast.classList.remove("show");
-        toast.classList.add("hide");
-        setTimeout(() => toast.remove(), 300);
-      }, 6000);
-    }
-
-
-  </script>
+              setTimeout(() => {
+                toast.classList.remove("show");
+                toast.classList.add("hide");
+                setTimeout(() => toast.remove(), 300);
+              }, 6000);
+            }
 
 
+          </script>
 
 
-  <!-- <% layout("/layouts/boilerplate") %>
+
+
+          <!-- <% layout("/layouts/boilerplate") %>
 
   <style>
     .gradient-card {
