@@ -2054,13 +2054,15 @@ app.get("/incomingdetails/:id", isAuthenticated, async (req, res) => {
   const { id } = req.params;
   try {
     const parcel = await Parcel2.findById(id);
+    const username = parcel.senderName;
+    const user = await User.findOne({username : username});
     if (!parcel) {
       return res.status(404).render("errorpage", {
         errorMessage: "Parcel not found.",
       });
     }
 
-    res.render("incomingDetails", { parcel });
+    res.render("incomingDetails", { parcel, user });
   } catch (err) {
     console.error("Error fetching parcel details:", err);
     res.status(500).render("errorpage", {
