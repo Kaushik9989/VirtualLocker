@@ -60,14 +60,24 @@
       width: 340px;
       max-height: calc(100vh - 140px);
       overflow-y: auto;
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(8px);
+    
+      
+      background: rgba(255, 255, 255, 0.50);
+backdrop-filter: blur(12px) saturate(150%);
+      
       border-radius: 5px 5px;
       padding: 1rem;
       padding-bottom: 70px;
       z-index: 1001;
-
+       transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
+    .left-sidebar:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
+}
+.left-sidebar {
+  scroll-behavior: smooth;
+}
 
     .location-card {
       background: white;
