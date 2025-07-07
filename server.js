@@ -241,7 +241,7 @@ app.get("/sendParcel", isAuthenticated, async (req, res) => {
   // Check cache firs
   try {
     const user = await User.findById(req.session.user._id);
-
+    
     const bookedParcels = await Parcel2.find({
       senderId: req.session.user._id,
     }).sort({ createdAt: -1 });
@@ -362,20 +362,27 @@ app.get("/locations", isAuthenticated, async (req, res) => {
 
 app.get("/receive", isAuthenticated, async (req, res) => {
   try {
+    const userPhone = req.session.user.phone;
+
     const incomingParcels = await Parcel2.find({
-      receiverPhone: req.user.phone,
+      receiverPhone: userPhone
     }).sort({ createdAt: -1 });
 
+    const filteredParcels = incomingParcels.filter(
+      p => p.status === "awaiting_pick"
+    );
+
     res.render("recieve", {
-      parcels: incomingParcels,
+      parcels: filteredParcels,
       activePage: "receive",
-      parcelCount: incomingParcels.length,
+      parcelCount: filteredParcels.length
     });
   } catch (error) {
     console.error("Error fetching parcels:", error);
     res.status(500).send("Server Error");
   }
 });
+
 
 /// accountCache.delete("account:" + req.session.user._id);
 app.get("/account", isAuthenticated, async (req, res) => {
@@ -472,6 +479,15 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
     // }));
 
     // Render the EJS template to HTML string instead of sending immediately
+     
+
+    const incomingParcels = await Parcel2.find({
+      receiverPhone: userPhone
+    }).sort({ createdAt: -1 });
+
+    const filteredParcels = incomingParcels.filter(
+      p => p.status === "awaiting_pick"
+    );
     res.render(
       "newDashboard",
       {
@@ -480,6 +496,7 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
         activePage: "home",
 
         userName,
+        parcelCount : filteredParcels.length
       },
       (err, html) => {
         if (err) {
