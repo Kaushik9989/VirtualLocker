@@ -35,7 +35,7 @@ const User = require("./models/User/UserUpdated.js");
 const Courier = require("./models/Courier.js");
 const Parcel = require("./models/Parcel");
 const Analytics = require("./models/Analytics.js");
-const SessionIntent = require("./models/SessionIntent.js");
+const SessionIntent = require("./models/sessionIntent.js");
 const StepDuration = require("./models/stepDuration.js");
 const incomingParcel = require("./models/incomingParcel.js");
 const getGAStats = require('./utils/analytics');
@@ -284,7 +284,7 @@ app.get('/analytics', async (req, res) => {
 
 app.post('/track', async (req, res) => {
   try {
-    console.log("Tracking event:", req.body);
+   
     await Analytics.create(req.body); // this will work if step 1 + 2 are right
     res.status(200).send("Tracked");
   } catch (err) {
