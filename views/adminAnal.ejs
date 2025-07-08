@@ -1,0 +1,119 @@
+<% layout("layouts/boilerplate") %>
+<style>
+    @media (min-width: 768px) {
+    .helli{
+    margin-left: 200px;
+  }}
+</style>
+<div class="helli">
+<div class="container my-4">
+  <h2 class="mb-4">📊 Click Analytics Dashboard</h2>
+
+  <div class="row g-4">
+    <div class="col-md-6">
+      <h5>Clicks by Page Path</h5>
+      <canvas id="pathChart" height="200"></canvas>
+    </div>
+    <div class="col-md-6">
+      <h5>Clicks by Tag (e.g., button, div)</h5>
+      <canvas id="tagChart" height="200"></canvas>
+    </div>
+    <div class="col-md-6">
+      <h5>Clicks by Element ID</h5>
+      <canvas id="idChart" height="200"></canvas>
+    </div>
+  </div>
+
+  <div class="mt-5">
+    <h5>🔍 Raw Click Events</h5>
+    <table class="table table-bordered table-sm">
+      <thead class="table-dark">
+        <tr>
+          <th>Timestamp</th>
+          <th>Path</th>
+          <th>Tag</th>
+          <th>ID</th>
+          <th>Classes</th>
+          <th>Text</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% raw.forEach(r => { %>
+          <tr>
+            <td><%= new Date(r.timestamp).toLocaleString() %></td>
+            <td><%= r.path %></td>
+            <td><%= r.tag %></td>
+            <td><%= r.id %></td>
+            <td><%= r.classes %></td>
+            <td><%= r.text %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const colors = ['#4e79a7', '#f28e2b', '#e15759', '#76b7b2', '#59a14f', '#edc948'];
+
+  const ctxPath = document.getElementById('pathChart').getContext('2d');
+  new Chart(ctxPath, {
+    type: 'bar',
+    data: {
+      labels: <%- JSON.stringify(paths) %>,
+      datasets: [{
+        label: 'Clicks',
+        data: <%- JSON.stringify(pathData) %>,
+        backgroundColor: colors
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: 'Page-wise Clicks' }
+      }
+    }
+  });
+
+  const ctxTag = document.getElementById('tagChart').getContext('2d');
+  new Chart(ctxTag, {
+    type: 'pie',
+    data: {
+      labels: <%- JSON.stringify(tags) %>,
+      datasets: [{
+        label: 'Tag Clicks',
+        data: <%- JSON.stringify(tagData) %>,
+        backgroundColor: colors
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: { display: true, text: 'Click Distribution by HTML Tag' }
+      }
+    }
+  });
+
+  const ctxId = document.getElementById('idChart').getContext('2d');
+  new Chart(ctxId, {
+    type: 'doughnut',
+    data: {
+      labels: <%- JSON.stringify(ids) %>,
+      datasets: [{
+        label: 'ID Clicks',
+        data: <%- JSON.stringify(idData) %>,
+        backgroundColor: colors
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: { display: true, text: 'Clicks by Element ID' }
+      }
+    }
+  });
+</script>
+
+

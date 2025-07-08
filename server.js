@@ -10,8 +10,6 @@ const Razorpay = require("razorpay");
 
 
 
-
-
 const locationsCache = new LRU.LRUCache({
   max: 10,
   ttl: 1000 * 60 * 5, // 5 min
@@ -36,7 +34,11 @@ const Parcel2 = require("./models/parcel2Updated.js");
 const User = require("./models/User/UserUpdated.js");
 const Courier = require("./models/Courier.js");
 const Parcel = require("./models/Parcel");
+const Analytics = require("./models/Analytics.js");
+const SessionIntent = require("./models/SessionIntent.js");
+const StepDuration = require("./models/stepDuration.js");
 const incomingParcel = require("./models/incomingParcel.js");
+const getGAStats = require('./utils/analytics');
 const app = express();
 const PORT = 8080;
 const ejsMate = require("ejs-mate");
@@ -94,7 +96,27 @@ app.use(
     },
   })
 );
-
+app.use((req, res, next) => {
+  // Track user intent only on main entry points
+  if (req.path.startsWith("/send")) {
+    setIntent(req, "send");
+  } else if (req.path.startsWith("/receive")) {
+    setIntent(req, "receive");
+  } else if (req.path === "/") {
+    setIntent(req, "explore");
+  }
+  next();
+});
+async function setIntent(req, intent) {
+  const existing = await SessionIntent.findOne({ sessionId: req.sessionID, completed: false });
+  if (!existing) {
+    await SessionIntent.create({
+      sessionId: req.sessionID,
+      userId: req.session.user?._id || null,
+      intent
+    });
+  }
+}
 app.use(flash());
 
 app.use((req, res, next) => {
@@ -235,6 +257,123 @@ app.get("/api/sent-parcels", isAuthenticated, async (req, res) => {
   }
 });
 
+app.post("/analytics/step-duration", express.json(), async (req, res) => {
+  const { step, durationMs, path, timestamp } = req.body;
+
+  await StepDuration.create({
+    step,
+    durationMs,
+    path,
+    timestamp: new Date(timestamp),
+    sessionId: req.sessionID
+  });
+
+  res.sendStatus(200);
+});
+
+
+app.get('/analytics', async (req, res) => {
+  try {
+    const data = await getGAStats();
+    res.render('analytics', { data });
+  } catch (error) {
+    console.error('Analytics Error:', error);
+    res.status(500).send('Failed to load analytics.');
+  }
+});
+
+app.post('/track', async (req, res) => {
+  try {
+    console.log("Tracking event:", req.body);
+    await Analytics.create(req.body); // this will work if step 1 + 2 are right
+    res.status(200).send("Tracked");
+  } catch (err) {
+    console.error("Tracking error:", err.message);
+    res.sendStatus(500);
+  }
+});
+
+app.get('/analytics/private', async (req, res) => {
+  const data = await Analytics.find({}).lean();
+
+  // Group by path
+  const pathCounts = {};
+  const tagCounts = {};
+  const idCounts = {};
+
+  data.forEach(item => {
+    pathCounts[item.path] = (pathCounts[item.path] || 0) + 1;
+    tagCounts[item.tag] = (tagCounts[item.tag] || 0) + 1;
+    idCounts[item.id] = (idCounts[item.id] || 0) + 1;
+  });
+
+  res.render('adminAnal', {
+    paths: Object.keys(pathCounts),
+    pathData: Object.values(pathCounts),
+    tags: Object.keys(tagCounts),
+    tagData: Object.values(tagCounts),
+    ids: Object.keys(idCounts),
+    idData: Object.values(idCounts),
+    raw: data
+  });
+});
+
+
+app.post("/analytics/step-duration", async (req, res) => {
+  const { step, durationMs, path, timestamp } = req.body;
+
+  await StepDuration.create({
+    step,
+    durationMs,
+    path,
+    timestamp: new Date(timestamp),
+    sessionId: req.sessionID
+  });
+
+  res.sendStatus(200);
+});
+
+app.get("/analytics/step-durations", async (req, res) => {
+  const durations = await StepDuration.find().lean();
+
+  const mapPathToStep = (path) => {
+    if (!path) return null;
+    if (path.includes("/send/step1")) return "send_step_1";
+    if (path.includes("/send/step2")) return "send_step_2";
+    if (path.includes("/send/step3")) return "send_step_3";
+    if (path.includes("/payment")) return "payment";
+    if (path.includes("/completed")) return "completed";
+    return null;
+  };
+
+  const stepData = {};
+
+  durations.forEach(entry => {
+    let step = entry.step;
+    if (!step) step = mapPathToStep(entry.path);
+
+    if (!step) return; // skip unknown steps
+
+    if (!stepData[step]) stepData[step] = [];
+    stepData[step].push(entry.durationMs);
+  });
+
+  const stepAverages = Object.entries(stepData).map(([step, durations]) => ({
+    step,
+    avg: Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
+  }));
+
+  const orderedSteps = ["send_step_1", "send_step_2", "send_step_3", "payment", "completed"];
+
+  const finalData = orderedSteps.map(name => {
+    const match = stepAverages.find(e => e.step === name);
+    return { step: name, avg: match ? match.avg : 0 };
+  });
+
+  res.render("step-durations", { durations: finalData });
+});
+
+
 app.get("/sendParcel", isAuthenticated, async (req, res) => {
  
 
@@ -269,6 +408,7 @@ app.get("/sendParcel", isAuthenticated, async (req, res) => {
     console.error("Error loading sendParcel:", err);
     res.status(500).send("Internal Server Error");
   }
+  
 }); // routes/api.js
 
 // GET /api/lockers - Fetch all lockers and compartments
@@ -1117,6 +1257,10 @@ app.get("/send/step1", isAuthenticated, async (req, res) => {
     return res.redirect("/link-phone");
   }
   res.render("parcel/step1", { messages: req.flash() });
+  await SessionIntent.findOneAndUpdate(
+  { sessionId: req.sessionID, completed: false },
+  { completed: true, endedAt: new Date() }
+);
 });
 
 app.post("/send/step1", isAuthenticated, (req, res) => {
@@ -1150,6 +1294,7 @@ app.post("/send/step2", isAuthenticated, (req, res) => {
 });
 app.get("/send/step3", isAuthenticated, (req, res) => {
   res.render("parcel/step3");
+  
 });
 function getEstimatedCost(size) {
   if (size === "small") return 10;
@@ -1268,10 +1413,6 @@ app.post("/send/step3", isAuthenticated, async (req, res) => {
     res.redirect("/dashboard");
   }
 });
-
-
-
-
 
 // app.post("/send/step3", isAuthenticated, async (req, res) => {
 //   const draft = req.session.parcelDraft;
@@ -1394,7 +1535,10 @@ app.get("/payment/success", isAuthenticated, async (req, res) => {
     req.flash("error", "Parcel not found.");
     return res.redirect("/dashboard");
   }
-
+await SessionIntent.findOneAndUpdate(
+  { sessionId: req.sessionID, completed: false },
+  { completed: true, endedAt: new Date() }
+);
   res.redirect(`/parcel/${parcel._id}/success`);
 });
 // app.post("/payment/receiver/:id/success", isAuthenticated, async (req, res) => {
@@ -1620,6 +1764,22 @@ app.post("/api/locker/scan", async (req, res) => {
   return res
     .status(400)
     .json({ success: false, message: `Parcel is in status: ${parcel.status}` });
+});
+app.get("/admin/analytics/funnel", async (req, res) => {
+  const sessions = await SessionIntent.find().lean();
+
+  const counts = {
+    send: { total: 0, completed: 0 },
+    receive: { total: 0, completed: 0 },
+    explore: { total: 0, completed: 0 }
+  };
+
+  sessions.forEach(s => {
+    counts[s.intent].total += 1;
+    if (s.completed) counts[s.intent].completed += 1;
+  });
+
+  res.render("funnel", { counts });
 });
 
 /// unlock route
@@ -2771,6 +2931,10 @@ app.post("/admin/login", async (req, res) => {
   req.session.adminId = user._id;
   res.redirect("/admin/dashboard");
 });
+
+app.get("/admin/analytics",isAdmin, async(req,res)=>{
+
+})
 app.get("/admin/dashboard", isAdmin, async (req, res) => {
   try {
     const user = await User.findOne({ role: "admin" });

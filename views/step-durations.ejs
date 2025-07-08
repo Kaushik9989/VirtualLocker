@@ -1,0 +1,108 @@
+<% layout("layouts/boilerplate") %>
+
+<style>
+  @media (min-width: 768px) {
+    .helli {
+      margin-left: 200px;
+    }
+  }
+
+  #durationChart {
+    max-height: 400px;
+  }
+
+  .card {
+    box-shadow: 0 0 1rem rgba(0, 0, 0, 0.05);
+    border: none;
+  }
+
+  .chart-card-header {
+    background: linear-gradient(to right, #17a2b8, #0d6efd);
+    color: white;
+    border-radius: 0.5rem 0.5rem 0 0;
+    padding: 1rem;
+  }
+
+  .chart-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+</style>
+
+<div class="helli">
+  <div class="container my-5">
+    <div class="card">
+      <div class="chart-card-header">
+        <h3 class="chart-title">⏱️ Average Time Spent per Step</h3>
+      </div>
+      <div class="card-body bg-light">
+        <canvas id="durationChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const ctx = document.getElementById("durationChart").getContext("2d");
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: <%- JSON.stringify(durations.map(d => d.step)) %>,
+      datasets: [{
+        label: 'Average Time (seconds)',
+        data: <%- JSON.stringify(durations.map(d => Math.round(d.avg / 1000))) %>,
+        backgroundColor: '#17a2b8',
+        hoverBackgroundColor: '#138496',
+        borderRadius: 8,
+        barThickness: 40
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            stepSize: 1
+          },
+          title: {
+            display: true,
+            text: "Seconds",
+            font: {
+              weight: 'bold'
+            }
+          }
+        },
+        x: {
+          title: {
+            display: true,
+            text: "Step Path",
+            font: {
+              weight: 'bold'
+            }
+          }
+        }
+      },
+      plugins: {
+        title: {
+          display: true,
+          text: 'User Journey - Time per Step',
+          font: {
+            size: 18
+          },
+          padding: {
+            top: 10,
+            bottom: 10
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${ctx.raw} sec`
+          }
+        }
+      }
+    }
+  });
+</script>

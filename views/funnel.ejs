@@ -1,0 +1,30 @@
+<% layout("layouts/boilerplate") %>
+<style>
+      @media (min-width: 768px) {
+    .helli {
+      margin-left: 200px;
+    }
+  }
+
+</style>
+<div class="helli">
+<div class="container my-4">
+  <h3 class="mb-4">📈 User Funnel (Intent Completion)</h3>
+  <div class="row">
+    <% Object.entries(counts).forEach(([intent, data]) => { %>
+      <div class="col-md-4">
+        <div class="card shadow-sm">
+          <div class="card-body text-center">
+            <h5><%= intent.toUpperCase() %></h5>
+            <p>Total: <strong><%= data.total %></strong></p>
+            <p>Completed: <strong class="text-success"><%= data.completed %></strong></p>
+            <p>Drop-off Rate: <strong class="text-danger">
+              <%= data.total > 0 ? Math.round(100 - (data.completed / data.total) * 100) : 0 %>%</strong>
+            </p>
+          </div>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+</div>
+</div>

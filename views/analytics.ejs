@@ -1,0 +1,172 @@
+<% layout("layouts/boilerplate") %>
+<style>
+    @media (min-width: 768px) {
+    .helli{
+    margin-left: 200px;
+  }}
+</style>
+<div class="helli">
+<div class="container my-5">
+  <h2 class="mb-4"><i class="bi bi-graph-up-arrow me-2"></i> Google Analytics Dashboard</h2>
+
+  <div class="row g-4">
+    <!-- Line Chart: Sessions & Users -->
+    <div class="col-md-8">
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+          <i class="bi bi-activity me-2"></i> Traffic Overview (Last 7 Days)
+        </div>
+        <div class="card-body">
+          <canvas id="lineChart" height="150"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pie Chart: Total Sessions vs Users -->
+    <div class="col-md-4">
+      <div class="card shadow-sm">
+        <div class="card-header bg-secondary text-white">
+          <i class="bi bi-pie-chart-fill me-2"></i> Summary
+        </div>
+        <div class="card-body text-center">
+          <canvas id="pieChart" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Raw Data Table -->
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white">
+          <i class="bi bi-table me-2"></i> Raw Analytics Data
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-striped table-hover mb-0">
+              <thead class="table-dark">
+                <tr>
+                  <th>Date</th>
+                  <th>Sessions</th>
+                  <th>Users</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% data.forEach(d => { %>
+                  <tr>
+                    <%
+  // Parse string like "20250708"
+                        const raw = d.date.toString();
+                        const year = raw.substring(0, 4);
+                        const month = raw.substring(4, 6);
+                        const day = raw.substring(6, 8);
+                        const parsedDate = new Date(`${year}-${month}-${day}`);
+                    %>
+                    <td>
+                        <span class="badge bg-light text-dark">
+                                <%= parsedDate.toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                                 }) %>
+                            </span>
+                        </td>
+                    <td><%= d.sessions %></td>
+                    <td><%= d.users %></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const data = <%- JSON.stringify(data) %>;
+
+  // Extract labels and datasets
+  const labels = data.map(d => {
+  const raw = d.date.toString();
+  const year = raw.substring(0, 4);
+  const month = raw.substring(4, 6);
+  const day = raw.substring(6, 8);
+  const dateObj = new Date(`${year}-${month}-${day}`);
+  return dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+});
+
+  const sessions = data.map(d => d.sessions);
+  const users = data.map(d => d.users);
+
+  // Line Chart
+  const ctxLine = document.getElementById("lineChart").getContext("2d");
+  new Chart(ctxLine, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Sessions",
+          data: sessions,
+          borderColor: "#007bff",
+          backgroundColor: "rgba(0, 123, 255, 0.1)",
+          fill: true,
+          tension: 0.4
+        },
+        {
+          label: "Users",
+          data: users,
+          borderColor: "#28a745",
+          backgroundColor: "rgba(40, 167, 69, 0.1)",
+          fill: true,
+          tension: 0.4
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: {
+          display: true,
+          text: "Sessions vs Users (Last 7 Days)",
+          font: { size: 18 }
+        },
+        legend: {
+          display: true,
+          position: "bottom"
+        }
+      }
+    }
+  });
+
+  // Pie Chart
+  const totalSessions = sessions.reduce((sum, val) => sum + val, 0);
+  const totalUsers = users.reduce((sum, val) => sum + val, 0);
+
+  const ctxPie = document.getElementById("pieChart").getContext("2d");
+  new Chart(ctxPie, {
+    type: "doughnut",
+    data: {
+      labels: ["Total Sessions", "Total Users"],
+      datasets: [{
+        data: [totalSessions, totalUsers],
+        backgroundColor: ["#0d6efd", "#198754"],
+        hoverOffset: 4
+      }]
+    },
+    options: {
+      plugins: {
+        title: {
+          display: true,
+          text: "Overall Traffic Breakdown"
+        },
+        legend: {
+          position: "bottom"
+        }
+      }
+    }
+  });
+</script>

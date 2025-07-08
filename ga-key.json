@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "omega-cider-462409-c8",
+  "private_key_id": "f8503cd0e21ebb342a710d2d91d417e2c42dc7ee",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC2N+3Dxc0aNXuc\nf9x+hv2VDBbLoxhK+NSmm84hetmu+SHqrf61YFJCnnNEQfOp6AEsuid25F60MNwB\nHl4gL7FSmRIcZgUtNlXuYJzn11GabFAAIQbLzOQgBSDd92zbC9MF0owbzkPqztj5\nuF4nRuiNgY9eeelJRt/eY4kBApekHMYWoUoqSxOF9abtLxykGAhTQmcE4S+2GH2S\neCo1irosS8DxADCHZm26IfVnDXR0CLwG7QYiEbBf94pUnGYuhdlDyNjP5nxoa6ic\nmKSvIUJvsCVWLUbXAwEb5mOke4hD21dZavSur4ek8iNM6Y1BC18qk1hS3AuOM+75\nezKXYwn/AgMBAAECggEANykBGdWD/B4amEqAdfDpTLhHIkfx76gZv4HEyY/F29jg\n8ojPZRqObEpI/G22lEV+LYsArVX+cS+lOdV2iunFFQrvV5duk7wyESI//VLKCiQl\np5RX2VPh7ut+gpMG6dxPeiC9dyFen/MT7axpHBy0AzooK2JeQ2doF4ssCxk8zFnB\ncwNfjcLcR1NQvCbqddqOxovit0kHWppwx7nV/lliZC43vvV6L7GWNQqohxkwpVVy\nAUMBoBKzSEyr2SCRX+DOmC038bxRnh38dtUVL5LspnXg1YIYLAHNwTWENUO3tKrV\niLh1VjXm1P6M+vkX7xBiSpJHxnIBGSLSc0/eWv2hQQKBgQD4jw2/8VcRhtxRvffP\nP556Jqlbyf1MNx1Zi/WPtp31rceOF1LOPdf5VofKrjlpbMZ4sqY11qhye41RbnC4\ngX+vx+vX+eBgPgHtc1yCLc5EpcStAMoKo5kjmxBowFOUpwsLFpnTWz4yfb+/QajL\n2zn/6TLT/CLLAVvowEmM9vMSoQKBgQC7rHHrA0E5XVdZFpmVTwqPnjvV9ewZpTsT\nEU2B9pCSnQoDRXx9QRTgJ3V/51MZEuw6fmun2lE8aIaBcoH/toTb7oeQrRbhaKCx\nsST1jXCDNbmRJIjUChh7y4HQyekY4wrg/zATf0zGgInQnEQIxFxHGZL3dTFKNp8F\nM8h4xk94nwKBgQCAcw0cAFCKkjMRWybRR4NShOBIux3XYTQdrqJ8XldLOz9BQvRb\n+MG/7OPH7jllLf1zKn+Smxf58beaOYSvFN0zrhFHT66QjfrZByDrdVh/SVtWPG4t\nCVZ+fAgC2kFXNOwUEt3zx9dgqHOLFxdwIh7bDVxjCI3CczVYFubrnkMHgQKBgHqW\nzR7fVGadQyZNbesq41Im4R0E88FYvfrZjZB8N7mdXOIALK5Aqds1yznOJ+i0BJy8\n4aOWJwRXnqzF2IbpeWWULPdjKRP6XSVU+jhvuHPszxcxDzO6mH2c1GJG0b1Q6VVJ\nO+UwfT0Yz2z19jbn1QMYgHimE5lPjpY+WhASMe0vAoGBAKHYIg1pqGC3dgUyKvuU\nlHQYoQElPQqLRhs075LAthUavyHRWMibpSJfnD3mwD/QQLQg1QBVRzOLK+nmNuH1\niq8uc9iok0gNiVkljna4IVmJ3BLQxY3tJcdl57diFH8YJlDFl1tVbbhoOYk4Ih0p\nj1YBkQ17KHnUPX/TZB0GZQ6s\n-----END PRIVATE KEY-----\n",
+  "client_email": "droppoint-analytics@omega-cider-462409-c8.iam.gserviceaccount.com",
+  "client_id": "103593048347767576156",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/droppoint-analytics%40omega-cider-462409-c8.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

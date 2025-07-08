@@ -3,13 +3,13 @@
 
 <head>
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-DPJJFZLL9L"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
 
-  gtag('config', 'G-DPJJFZLL9L');
-</script>
+    gtag('config', 'G-DPJJFZLL9L');
+  </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DropPoint</title>
@@ -227,11 +227,80 @@
 
 
         <!-- Scripts -->
+         
+        <script>
+          const stepFromPath = (path) => {
+  if (path.includes("/send/step1")) return "send_step_1";
+  if (path.includes("/send/step2")) return "send_step_2";
+  if (path.includes("/send/step3")) return "send_step_3";
+  if (path.includes("/payment")) return "payment";
+  if (path.includes("/completed")) return "completed";
+  return null;
+};
+
+window.addEventListener("load", () => {
+  const step = stepFromPath(window.location.pathname);
+  const start = Date.now();
+
+  window.addEventListener("beforeunload", () => {
+    const duration = Date.now() - start;
+
+    fetch("/analytics/step-duration", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        step,
+        path: window.location.pathname,
+        durationMs: duration,
+        timestamp: new Date().toISOString(),
+      })
+    });
+  });
+});
+         
+          
+
+          // Track when user leaves or goes forward
+          window.addEventListener("beforeunload", logStepDuration);
+
+          // If using a "Next" button, call manually on click
+          document.querySelectorAll("form, a.next-button").forEach(el => {
+            el.addEventListener("submit", logStepDuration);
+            el.addEventListener("click", logStepDuration);
+          });
+        </script>
+<script>
+  // Identify the current step in each page individually
+  window.currentStep = window.currentStep || null;
+</script>
+
+<!-- Step Duration Tracker -->
+<script src="./trackStep.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
           crossorigin="anonymous"></script>
         <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@3.0.0/dist/maplibre-gl.js"></script>
         <script src="/js/script.js"></script>
+        <script>
+          document.addEventListener('click', function (e) {
+            const event = {
+              type: 'click',
+              timestamp: new Date().toISOString(),
+              path: window.location.pathname,
+              tag: e.target.tagName,
+              id: e.target.id || null,
+              classes: e.target.className || null,
+              text: e.target.innerText?.slice(0, 50) || null,
+            };
+
+            fetch('/track', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(event),
+            });
+          });
+        </script>
+
 
         <script>
           window.addEventListener("load", () => {
