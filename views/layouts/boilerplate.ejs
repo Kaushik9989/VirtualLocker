@@ -2,6 +2,9 @@
 <html lang="en">
 
 <head>
+  <!-- Add Inter Font -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-DPJJFZLL9L"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -48,6 +51,10 @@
   <link rel="stylesheet" href="/css/rating.css" />
 
   <style>
+    body {
+  font-family: 'Inter', sans-serif !important;
+}
+
     /* Reset default margin */
     body,
     html {
@@ -227,12 +234,16 @@
 
 
         <!-- Scripts -->
-         
+         <script>
+  function trackEvent(name, params = {}) {
+    if (window.gtag) gtag('event', name, params);
+  }
+</script>
         <script>
           const stepFromPath = (path) => {
-  if (path.includes("/send/step1")) return "send_step_1";
+  if (path.includes("/send/step1")) return "Name Entry";
   if (path.includes("/send/step2")) return "send_step_2";
-  if (path.includes("/send/step3")) return "send_step_3";
+  if (path.includes("/send/step3")) return "Payment";
   if (path.includes("/payment")) return "payment";
   if (path.includes("/completed")) return "completed";
   return null;
