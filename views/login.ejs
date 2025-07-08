@@ -164,6 +164,27 @@
       <span><i class="fas fa-thumbs-up me-1"></i>Trusted</span>
     </div>
   </div>
+  <script>
+  gtag('event', 'visit_landing_page');
+</script>
+<script>
+  // Google login
+  document.querySelector('a[href="/auth/google"]').addEventListener('click', () => {
+    gtag('event', 'click_login', { method: 'oauth' });
+    gtag('event', 'login_oauth');
+    sessionStorage.setItem('login_time', Date.now()); // Start timer
+  });
+
+  // Phone login
+  const phoneForm = document.querySelector('form[action="/otpLogin"]');
+  if (phoneForm) {
+    phoneForm.addEventListener('submit', () => {
+      gtag('event', 'click_login', { method: 'phone' });
+      gtag('event', 'login_phone');
+      sessionStorage.setItem('login_time', Date.now()); // Start timer
+    });
+  }
+</script>
 
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

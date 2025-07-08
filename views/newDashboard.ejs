@@ -133,8 +133,17 @@
 
 
 
-<script>
-  gtag('event', 'landing_page_visit');
+
+  <script>
+  gtag('event', 'dashboard_loaded');
+
+  // ⏱️ Track time taken from login to dashboard
+  const loginTime = sessionStorage.getItem("login_time");
+  if (loginTime) {
+    const delta = Date.now() - parseInt(loginTime);
+    gtag('event', 'time_to_dashboard', { value: delta });
+    sessionStorage.removeItem("login_time");
+  }
 </script>
 
   <script src="/socket.io/socket.io.js"></script>

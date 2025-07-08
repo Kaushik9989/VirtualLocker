@@ -96,4 +96,11 @@
       </div>
     </div>
   </div>
+  <script>
+  gtag('event', 'otp_sent'); // when sent from backend
+  document.getElementById("submit-otp").addEventListener("click", () => {
+    gtag('event', 'otp_entered');
+  });
+</script>
+
 </body>
