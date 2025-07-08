@@ -262,7 +262,7 @@
     <!-- Desktop (Gmail-like single line) -->
     <div class="d-none d-md-flex align-items-center justify-content-between flex-wrap gap-2">
       <!-- Left Section -->
-      <div class="d-flex align-items-center flex-wrap gap-3">
+      <div class="d-flex align-items-center flex-wrap gap-2">
         <span class="fw-bold">${parcel.senderName || "Unknown"}</span>
         
        
@@ -271,7 +271,7 @@
         <span class="text-muted small">| Access Code: <strong>${parcel.accessCode}</strong></span>
       </div>
       <!-- Right Section -->
-      <div class="d-flex align-items-center flex-wrap gap-2">
+      <div class="d-flex align-items-center flex-wrap gap-1">
         <span class="badge text-bg-${badgeColor}">${statusText}</span>
         ${parcel.qrCodeUrl
             ? `<a href="${parcel.qrCodeUrl}" class="btn btn-sm btn-light border" target="_blank" onclick="event.stopPropagation();"><i class="fas fa-qrcode"></i></a>`

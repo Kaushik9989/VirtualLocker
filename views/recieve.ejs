@@ -9,6 +9,11 @@
     text-align: center;
     margin-top: 2rem;
   }
+  .parcel-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
 
   .receive-header .icon-circle {
     width: 60px;
@@ -155,11 +160,21 @@
           </span>
         </div>
       </div>
-      <div class="parcel-sub"><%= parcel.metadata?.description || 'No description' %></div>
+      <div class="parcel-sub"><%= parcel.metadata?.description || '' %></div>
       <div class="parcel-meta">
-        <span><%=parcel.type%></span>
-        <span><i class="fas fa-clock"></i> <%= new Date(parcel.expiresAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) %></span>
-      </div>
+ 
+  <span>Expires At : <%= new Date(parcel.expiresAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) %></span>
+  <% if (parcel.compartmentId) { %>
+    <span><i class="fas fa-door-open"></i> Compartment <%= parcel.compartmentId %></span>
+  <% } %>
+  <% if (parcel.lockerId) { %>
+    <span><i class="fas fa-warehouse"></i> Locker <%= parcel.lockerId %></span>
+  <% } %>
+<% if (parcel.lockerLocation) { %>
+    <span><i class="fas fa-map-pin"></i> <%= parcel.lockerLocation %></span>
+<% } %>
+</div>
+
 
       <% if (status === 'awaiting_pick') { %>
         <div class="pickup-box">
