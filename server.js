@@ -392,12 +392,7 @@ app.get("/analytics/step-durations", async (req, res) => {
 
 
 app.get("/sendParcel", isAuthenticated, async (req, res) => {
-  await FunnelEvent.create({
-    sessionId: req.sessionID,
-    userId: req.user?._id || null,
-    step: "send_parcel_clicked",
-    timestamp: new Date()
-  });
+
 
   // Check cache firs
   try {
@@ -1460,6 +1455,12 @@ app.post("/send/step1", isAuthenticated, (req, res) => {
 });
 
 app.get("/send/step2", isAuthenticated, (req, res) => {
+  await FunnelEvent.create({
+    sessionId: req.sessionID,
+    userId: req.user?._id || null,
+    step: "send_parcel_clicked",
+    timestamp: new Date()
+  });
   const { size } = req.query;
   if (size) {
     // Initialize draft session if not present
