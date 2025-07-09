@@ -136,21 +136,14 @@
 
  <script>
   try {
-    // Track dashboard load event
-    gtag('event', 'dashboard_loaded');
-
-    // ⏱️ Track time from login to dashboard
+    gtag('event', 'dashboard_loaded',{ 'debug_mode':true });
     const loginTime = sessionStorage.getItem("login_time");
     if (loginTime) {
       const delta = Date.now() - parseInt(loginTime);
-      gtag('event', 'time_to_dashboard', {
-        value: delta
-      });
+      gtag('event', 'time_to_dashboard', { value: delta });
       sessionStorage.removeItem("login_time");
     }
-  } catch (err) {
-    console.warn("Google Analytics tracking failed:", err);
-  }
+  } catch (e) {}
 </script>
 
 

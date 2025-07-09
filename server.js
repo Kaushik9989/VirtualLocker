@@ -638,17 +638,7 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
         userName,
         parcelCount : filteredParcels.length
       },
-      (err, html) => {
-        if (err) {
-          console.error("Error rendering dashboard:", err);
-          return res.status(500).send("Internal Server Error");
-        }
-
-        // Save HTML to cache
-
-        // Send the response
-        res.send(html);
-      }
+     
     );
   } catch (err) {
     console.error("Error loading dashboard:", err);

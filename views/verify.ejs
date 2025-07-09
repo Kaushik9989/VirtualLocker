@@ -33,4 +33,16 @@
       </div>
     </div>
   </div>
+  <script>
+  try {
+    gtag('event', 'otp_sent',{ 'debug_mode':true });
+    const form = document.querySelector('form[action="/verify-login"]');
+    if (form) {
+      form.addEventListener('submit', () => {
+        gtag('event', 'otp_entered',{ 'debug_mode':true });
+      });
+    }
+  } catch (e) {}
+</script>
+
 </body>

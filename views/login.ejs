@@ -176,12 +176,12 @@
 <script>
   try {
     // Page view tracking
-    gtag('event', 'visit_landing_page');
+    gtag('event', 'visit_landing_page',{ 'debug_mode':true } );
 
     // Google login button tracking
     document.querySelector('a[href="/auth/google"]').addEventListener('click', () => {
-      gtag('event', 'click_login', { method: 'oauth' });
-      gtag('event', 'login_oauth');
+      gtag('event', 'click_login', { method: 'oauth' },{ 'debug_mode':true });
+      gtag('event', 'login_oauth',{ 'debug_mode':true });
       sessionStorage.setItem('login_time', Date.now()); // Start timer
     });
 
@@ -189,8 +189,8 @@
     const phoneForm = document.querySelector('form[action="/otpLogin"]');
     if (phoneForm) {
       phoneForm.addEventListener('submit', () => {
-        gtag('event', 'click_login', { method: 'phone' });
-        gtag('event', 'login_phone');
+        gtag('event', 'click_login', { method: 'phone' },{ 'debug_mode':true });
+        gtag('event', 'login_phone',{ 'debug_mode':true });
         sessionStorage.setItem('login_time', Date.now()); // Start timer
       });
     }
