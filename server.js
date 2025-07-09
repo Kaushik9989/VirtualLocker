@@ -1454,7 +1454,7 @@ app.post("/send/step1", isAuthenticated, (req, res) => {
   res.redirect("/send/step2");
 });
 
-app.get("/send/step2", isAuthenticated, (req, res) => {
+app.get("/send/step2", isAuthenticated, async(req, res) => {
   await FunnelEvent.create({
     sessionId: req.sessionID,
     userId: req.user?._id || null,
