@@ -1,134 +1,172 @@
 <% layout("/layouts/boilerplate") %>
 
-<style>
-  body {
-    background: #f3f4f6;
-  }
-  .details-container {
-    max-width: 600px;
-    margin: 2rem auto;
-    background: #ffffff;
-    border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-    padding: 2rem;
-  }
-  .details-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-  }
-  .details-header h5 {
-    font-weight: 600;
-    color: #1f2937;
-  }
-  .badge-status {
-    padding: 6px 12px;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    text-transform: capitalize;
-    background: #eef2ff;
-    color: #4338ca;
-  }
-  .detail-row {
-    margin-bottom: 1.2rem;
-    border-bottom: 1px solid #f1f5f9;
-    padding-bottom: 0.75rem;
-  }
-  .detail-label {
-    font-weight: 500;
-    color: #6b7280;
-    font-size: 0.9rem;
-  }
-  .detail-value {
-    color: #374151;
-    margin-top: 0.25rem;
-    word-break: break-word;
-  }
-  .qr-preview {
-    width: 180px;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 6px;
-    background: #fff;
-    margin-top: 0.5rem;
-  }
-  @media (max-width: 576px) {
+  <style>
+    body {
+      background: #f3f4f6;
+    }
+
     .details-container {
-      padding: 1.25rem;
+      max-width: 600px;
+      margin: 2rem auto;
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+      padding: 2rem;
+    }
+
+    .details-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .details-header h5 {
+      font-weight: 600;
+      color: #1f2937;
+    }
+
+    .badge-status {
+      padding: 6px 12px;
       border-radius: 12px;
+      font-size: 0.75rem;
+      text-transform: capitalize;
+      background: #eef2ff;
+      color: #4338ca;
     }
+
+    .detail-row {
+      margin-bottom: 1.2rem;
+      border-bottom: 1px solid #f1f5f9;
+      padding-bottom: 0.75rem;
+    }
+
+    .detail-label {
+      font-weight: 500;
+      color: #6b7280;
+      font-size: 0.9rem;
+    }
+
+    .detail-value {
+      color: #374151;
+      margin-top: 0.25rem;
+      word-break: break-word;
+    }
+
     .qr-preview {
-      width: 100%;
+      width: 180px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 6px;
+      background: #fff;
+      margin-top: 0.5rem;
     }
-  }
-</style>
 
-<div class="details-container">
-  <div class="details-header">
-    <h5><i class="fas fa-box-open me-1 text-primary"></i> Parcel Details</h5>
-    <span class="badge badge-status"><%= parcel.status %></span>
-  </div>
+    @media (max-width: 576px) {
+      .details-container {
+        padding: 1.25rem;
+        border-radius: 12px;
+      }
 
-  <div class="detail-row">
-    <div class="detail-label">Sender</div>
-    <div class="detail-value"><%= parcel.senderName || 'N/A' %></div>
-  </div>
+      .qr-preview {
+        width: 100%;
+      }
+    }
+  </style>
 
-  <div class="detail-row">
-    <div class="detail-label">Receiver</div>
-    <div class="detail-value"><%= parcel.receiverName || 'N/A' %></div>
-  </div>
-
-  <div class="detail-row">
-    <div class="detail-label">Contact Sender:</div>
-    <div class="detail-value"><%= user.phone %></div>
-  </div>
-
-  <div class="detail-row">
-    <div class="detail-label">Parcel Type</div>
-    <div class="detail-value"><%= parcel.type || 'N/A' %></div>
-  </div>
-
-  <div class="detail-row">
-    <div class="detail-label">Size</div>
-    <div class="detail-value"><%= parcel.size || 'N/A' %></div>
-  </div>
-
-  <div class="detail-row">
-    <div class="detail-label">Cost</div>
-    <div class="detail-value">₹<%= parcel.cost || '0.00' %></div>
-  </div>
-
-  <div class="detail-row">
-    <div class="detail-label">Access Code</div>
-    <div class="detail-value"><%= parcel.accessCode || 'N/A' %></div>
-  </div>
-
-  <div class="detail-row">
-    <div class="detail-label">Locker</div>
-    <div class="detail-value"><%= parcel.lockerId || 'Not assigned' %></div>
-  </div>
-
-  <div class="detail-row">
-    <div class="detail-label">Compartment</div>
-    <div class="detail-value"><%= parcel.compartmentId || 'N/A' %></div>
-  </div>
-
-  <% if (parcel.qrCodeUrl) { %>
-    <div class="detail-row">
-      <div class="detail-label">QR Code</div>
-      <img src="<%= parcel.qrCodeUrl %>" class="qr-preview" alt="QR Code"/>
+  <div class="details-container">
+    <div class="details-header">
+      <h5><i class="fas fa-box-open me-1 text-primary"></i> Parcel Details</h5>
+      <span class="badge badge-status">
+        <%= parcel.status %>
+      </span>
     </div>
-  <% } %>
 
-  <div class="detail-row">
-    <div class="detail-label">Description</div>
-    <div class="detail-value"><%= parcel.metadata?.description || 'N/A' %></div>
-  </div>
+    <div class="detail-row">
+      <div class="detail-label">Sender</div>
+      <div class="detail-value">
+        <%= parcel.senderName || 'N/A' %>
+      </div>
+    </div>
 
-  <div class="detail-row">
-    <div class="detail-label">Created</div>
-    <div class="detail-value"><%= parcel.createdAt?.toLocaleString() || 'N/A' %></div>
+    <div class="detail-row">
+      <div class="detail-label">Receiver</div>
+      <div class="detail-value">
+        <%= parcel.receiverName || 'N/A' %>
+      </div>
+    </div>
+
+    <div class="detail-row">
+      <div class="detail-label">Contact Sender:</div>
+      <div class="detail-value">
+        <%= user.phone %>
+      </div>
+    </div>
+
+    <div class="detail-row">
+      <div class="detail-label">Parcel Type</div>
+      <div class="detail-value">
+        <%= parcel.type || 'N/A' %>
+      </div>
+    </div>
+
+    <div class="detail-row">
+      <div class="detail-label">Size</div>
+      <div class="detail-value">
+        <%= parcel.size || 'N/A' %>
+      </div>
+    </div>
+
+    <div class="detail-row">
+      <div class="detail-label">Cost</div>
+      <div class="detail-value mt-1">
+        ₹<%= parcel.cost || '0.00' %>
+          <% if (parcel.paymentOption==='sender_pays'  ) { %>
+            <span class="badge bg-success text-white ms-2">Paid</span>
+            <% } %>
+      </div>
+    </div>
+
+
+    <div class="detail-row">
+      <div class="detail-label">Access Code</div>
+      <div class="detail-value">
+        <%= parcel.accessCode || 'N/A' %>
+      </div>
+    </div>
+
+    <div class="detail-row">
+      <div class="detail-label">Locker</div>
+      <div class="detail-value">
+        <%= parcel.lockerId || 'Not assigned' %>
+      </div>
+    </div>
+
+    <div class="detail-row">
+      <div class="detail-label">Compartment</div>
+      <div class="detail-value">
+        <%= parcel.compartmentId || 'N/A' %>
+      </div>
+    </div>
+
+    <% if (parcel.qrCodeUrl) { %>
+      <div class="detail-row">
+        <div class="detail-label">QR Code</div>
+        <img src="<%= parcel.qrCodeUrl %>" class="qr-preview" alt="QR Code" />
+      </div>
+      <% } %>
+
+        <div class="detail-row">
+          <div class="detail-label">Description</div>
+          <div class="detail-value">
+            <%= parcel.metadata?.description || 'N/A' %>
+          </div>
+        </div>
+
+        <div class="detail-row">
+          <div class="detail-label">Created</div>
+          <div class="detail-value">
+            <%= parcel.createdAt?.toLocaleString() || 'N/A' %>
+          </div>
+        </div>
   </div>
-</div>
