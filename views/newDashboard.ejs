@@ -86,10 +86,10 @@
     <!-- Mobile buttons -->
     <div class="row text-center mb-4 d-md-none">
       <div class="col-6">
-        <a href="/sendParcel" class="btn gradient-btn btn-send w-100">Send Parcel</a>
+        <a href="/sendParcel" onclick="fetch('/api/track-send-click')" class="btn gradient-btn btn-send w-100">Send Parcel</a>
       </div>
       <div class="col-6">
-        <a href="/locations" class="btn gradient-btn btn-locate w-100">Find Locations</a>
+        <a href="/locations" onclick="fetch('/api/track-send-click')" class="btn gradient-btn btn-locate w-100">Find Locations</a>
       </div>
     </div>
 

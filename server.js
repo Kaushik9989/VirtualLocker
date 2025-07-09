@@ -19,6 +19,7 @@ const accountCache = new LRU.LRUCache({
   max: 500,
   ttl: 1000 * 60 * 2, // 2 min cache (you can adjust)
 });
+const uaParser = require("ua-parser-js");
 const session = require("express-session");
 const MongoStore = require("connect-mongo");
 const passport = require("passport");
@@ -317,6 +318,22 @@ app.get('/analytics/private', async (req, res) => {
     raw: data
   });
 });
+// routes/api.js or directly in app.js
+app.get("/api/track-send-click", async (req, res) => {
+  try {
+    
+    await FunnelEvent.create({
+      sessionId: req.sessionID,
+      userId: req.user?._id || null,
+      step: "send_parcel_clicked",
+      timestamp: new Date()
+    });
+    res.sendStatus(204);
+  } catch (err) {
+    console.error("Send Parcel track failed:", err);
+    res.sendStatus(500);
+  }
+});
 
 
 app.post("/analytics/step-duration", async (req, res) => {
@@ -375,7 +392,12 @@ app.get("/analytics/step-durations", async (req, res) => {
 
 
 app.get("/sendParcel", isAuthenticated, async (req, res) => {
- 
+  await FunnelEvent.create({
+    sessionId: req.sessionID,
+    userId: req.user?._id || null,
+    step: "send_parcel_clicked",
+    timestamp: new Date()
+  });
 
   // Check cache firs
   try {
@@ -628,6 +650,7 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
     const filteredParcels = incomingParcels.filter(
       p => p.status === "awaiting_pick"
     );
+     await trackFunnelStep(req, "dashboard_loaded");
     res.render(
       "newDashboard",
       {
@@ -645,6 +668,172 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
+
+const FunnelEvent = require("./models/funnelEvent.js");
+
+async function trackFunnelStep(req, step, metadata = {}) {
+  try {
+    const ua = uaParser(req.headers['user-agent']);
+    const device = ua.device.type || 'desktop';
+
+    await FunnelEvent.create({
+      sessionId: req.sessionID,
+      userId: req.user?._id || null,
+      phone: req.body?.phone || null,
+      step,
+      metadata: {
+        ...metadata,
+        device
+      }
+    });
+  } catch (err) {
+    console.error("Funnel tracking error:", err);
+  }
+}
+async function getAverageDurations() {
+  const sessions = await FunnelEvent.aggregate([
+    { $match: { step: { $in: ["login_phone", "dashboard_loaded", "send_parcel_clicked", "send_parcel_submitted", "parcel_created", "parcel_picked"] } } },
+    { $group: {
+      _id: "$sessionId",
+      steps: {
+        $push: { step: "$step", timestamp: "$timestamp" }
+      }
+    }}
+  ]);
+
+  const durations = {
+    loginToDashboard: [],
+    sendStartToSubmit: [],
+    parcelCreateToPickup: []
+  };
+
+  for (const session of sessions) {
+    const stepMap = {};
+    session.steps.forEach(s => stepMap[s.step] = new Date(s.timestamp));
+
+    if (stepMap["login_phone"] && stepMap["dashboard_loaded"])
+      durations.loginToDashboard.push(stepMap["dashboard_loaded"] - stepMap["login_phone"]);
+
+    if (stepMap["send_parcel_clicked"] && stepMap["send_parcel_submitted"])
+      durations.sendStartToSubmit.push(stepMap["send_parcel_submitted"] - stepMap["send_parcel_clicked"]);
+
+    if (stepMap["parcel_created"] && stepMap["parcel_picked"])
+      durations.parcelCreateToPickup.push(stepMap["parcel_picked"] - stepMap["parcel_created"]);
+  }
+
+  // Compute average in seconds
+  const avg = arr => arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length / 1000).toFixed(2) : "0.00";
+
+  return {
+    avgLoginToDashboard: avg(durations.loginToDashboard),
+    avgSendFlow: avg(durations.sendStartToSubmit),
+    avgPickupTime: avg(durations.parcelCreateToPickup)
+  };
+}
+
+async function getStepDurations(sessionId) {
+  const events = await FunnelEvent.find({ sessionId }).sort("timestamp");
+  const steps = {};
+  events.forEach(e => steps[e.step] = e.timestamp);
+
+  const durations = {
+    loginDelay: steps["login_phone"] && steps["visit_landing_page"]
+      ? (steps["login_phone"] - steps["visit_landing_page"]) / 1000 : null,
+    otpDelay: steps["otp_entered"] && steps["login_phone"]
+      ? (steps["otp_entered"] - steps["login_phone"]) / 1000 : null,
+    dashboardDelay: steps["dashboard_loaded"] && steps["otp_entered"]
+      ? (steps["dashboard_loaded"] - steps["otp_entered"]) / 1000 : null,
+  };
+
+  return durations;
+}
+
+app.get("/admin/funnel", async (req, res) => {
+ 
+ 
+
+
+// Success and abandonment rates
+
+// Render in admin panel
+const timingData = await getAverageDurations();
+ 
+ 
+ const loginPhoneCount = await FunnelEvent.distinct("sessionId", { step: "login_phone" }).then(d => d.length);
+const loginOAuthCount = await FunnelEvent.distinct("sessionId", { step: "login_oauth" }).then(d => d.length);
+
+ 
+  const totalVisits   = await FunnelEvent.distinct("sessionId", { step: "visit_landing_page" }).then(d => d.length);
+const loginPhone    = await FunnelEvent.distinct("sessionId", { step: "login_phone" }).then(d => d.length);
+const otpEntered    = await FunnelEvent.distinct("sessionId", { step: "otp_entered" }).then(d => d.length);
+const dashboard     = await FunnelEvent.distinct("sessionId", { step: "dashboard_loaded" }).then(d => d.length);
+
+
+
+
+  const drop1 = totalVisits - loginPhone;
+  const drop2 = loginPhone - otpEntered;
+  const drop3 = Math.max(otpEntered - dashboard, 0);
+
+  const successRate = totalVisits > 0 ? ((dashboard / totalVisits) * 100).toFixed(2) : "0.00";
+
+
+const successRateNum = Math.min(parseFloat(successRate), 100);
+const abandonmentRate = (100 - successRateNum).toFixed(2);
+// Count distinct sessions per step
+const [visitSessions, loginSessions, otpSessions, dashboardSessions] = await Promise.all([
+  FunnelEvent.distinct("sessionId", { step: "visit_landing_page" }),
+  FunnelEvent.distinct("sessionId", { step: { $in: ["login_phone", "login_oauth"] } }),
+  FunnelEvent.distinct("sessionId", { step: "otp_entered" }),
+  FunnelEvent.distinct("sessionId", { step: "dashboard_loaded" })
+]);
+
+// Count of users at each step
+const loginCount = loginSessions.length;
+const otpCount = otpSessions.length;
+const dashboardCount = dashboardSessions.length;
+
+// Drop-off at each step
+const dropAfterVisit = totalVisits - loginCount;
+const dropAfterLogin = loginCount - otpCount;
+const dropAfterOTP = Math.max(otpCount - dashboardCount, 0);
+
+const dashboardSession = await FunnelEvent.distinct("sessionId", { step: "dashboard_loaded" });
+const sendParcelSessions = await FunnelEvent.distinct("sessionId", { step: "send_parcel_clicked" });
+
+const sentCount = sendParcelSessions.length;
+const dashboardOnly = dashboardSessions.filter(id => !sendParcelSessions.includes(id));
+const notSentCount = dashboardOnly.length;
+// Stuck breakdown
+const stuckStats = {
+  at_visit_page: dropAfterVisit,
+  at_login: dropAfterLogin,
+  at_otp: dropAfterOTP
+};
+  res.render("funnelDashboard", {
+     totalVisits,
+  loginCount,
+  otpCount,
+  dashboardCount,
+  successRate,
+  abandonmentRate,
+  stuckStats,
+     timingData,
+    loginPhone,
+    otpEntered,
+    dashboard,
+    drop1,
+    drop2,
+    drop3,
+    successRate,
+    abandonmentRate,
+    loginPhoneCount,
+    sentCount,
+  notSentCount,
+  loginOAuthCount
+  });
+});
+
 
 // app.get("/api/incoming-parcels", isAuthenticated, async (req, res) => {
 //   try {
@@ -705,7 +894,7 @@ app.get(
 app.get(
   "/auth/google/callback",
   passport.authenticate("google", { failureRedirect: "/login" }),
-  (req, res) => {
+  async (req, res) => {
     // Successful auth
     req.session.user = {
       _id: req.user._id,
@@ -716,6 +905,7 @@ app.get(
       wallet: req.user.wallet || { credits: 0 },
       phone: req.user.phone || null,
     };
+    await trackFunnelStep(req, "login_oauth", { phone: req.body.phone });
     const redirectTo = req.session.redirectTo || "/dashboard";
     delete req.session.redirectTo;
 
@@ -817,7 +1007,8 @@ app.post("/verify-link-phone", async (req, res) => {
 
 // -------------------------------------------LOGIN ROUTES---------------------------------------------------
 
-app.get("/login", (req, res) => {
+app.get("/login", async(req, res) => {
+   await trackFunnelStep(req, "visit_landing_page");
   const error = req.query.error || null;
   res.render("login", { error });
 });
@@ -1076,6 +1267,7 @@ app.post("/set-username", async (req, res) => {
 });
 
 app.post("/otpLogin", async (req, res) => {
+  await trackFunnelStep(req, "login_phone", { phone: req.body.phone });
   const { phone } = req.body;
 
   // Check if user exists
@@ -1107,6 +1299,11 @@ app.get("/verify-login", (req, res) => {
 });
 
 app.post("/verify-login", async (req, res) => {
+  await trackFunnelStep(req, "otp_entered");
+  
+  // ...login logic
+
+
   const { otp } = req.body;
   const phone = req.session.phone;
 
@@ -1395,7 +1592,11 @@ app.post("/send/step3", isAuthenticated, async (req, res) => {
         currency: razorpayOrder.currency,
       });
     }
-
+await FunnelEvent.create({
+  sessionId: req.sessionID,
+  step,
+  timestamp: new Date(),
+});
     res.redirect(`/parcel/${parcel._id}/success`);
   } catch (error) {
     console.error("Error in /send/step3:", error);
@@ -1529,6 +1730,12 @@ await SessionIntent.findOneAndUpdate(
   { sessionId: req.sessionID, completed: false },
   { completed: true, endedAt: new Date() }
 );
+  await FunnelEvent.create({
+    sessionId: req.sessionID,
+    userId: req.user?._id || null,
+    step: "send_parcel_submitted",
+    timestamp: new Date()
+  });
   res.redirect(`/parcel/${parcel._id}/success`);
 });
 // app.post("/payment/receiver/:id/success", isAuthenticated, async (req, res) => {

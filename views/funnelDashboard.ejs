@@ -1,0 +1,157 @@
+<% layout("/layouts/boilerplate") %>
+<style>
+    @media (min-width: 768px) {
+    .helli{
+    margin-left: 200px;
+    margin-top:100px;
+  }}
+</style>
+<div class="helli">
+<% layout("/layouts/boilerplate") %>
+
+<h2 class="mb-4">Funnel Analytics Dashboard</h2>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+  <div class="col-md-3">
+    <div class="card p-3 bg-light border">
+      <h6>Total Visits</h6>
+      <h4><%= totalVisits %></h4>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card p-3 bg-light border">
+      <h6>Dashboard Reached</h6>
+      <h4><%= dashboardCount %></h4>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card p-3 bg-success-subtle">
+      <h6 class="text-success">Success Rate</h6>
+      <h4><%= successRate %>%</h4>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card p-3 bg-danger-subtle">
+      <h6 class="text-danger">Abandonment Rate</h6>
+      <h4><%= abandonmentRate %>%</h4>
+    </div>
+  </div>
+</div>
+
+<!-- Drop-off Chart -->
+<canvas id="funnelChart" height="100"></canvas>
+
+<!-- Drop-off Table -->
+<h4 class="mt-5">Where Users Are Stuck</h4>
+<table class="table table-bordered">
+  <thead>
+    <tr><th>Step</th><th>Users Stuck</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Never clicked login</td><td><%= stuckStats.at_visit_page %></td></tr>
+    <tr><td>Clicked login but didn’t enter OTP</td><td><%= stuckStats.at_login %></td></tr>
+    <tr><td>Entered OTP but didn’t reach dashboard</td><td><%= stuckStats.at_otp %></td></tr>
+  </tbody>
+</table>
+
+<!-- Login Method Breakdown -->
+<h4 class="mt-5">Login Method Breakdown</h4>
+<div class="row">
+  <div class="col-md-6">
+    <table class="table table-striped">
+      <thead>
+        <tr><th>Method</th><th>Users</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Phone</td><td><%= loginPhoneCount %></td></tr>
+        <tr><td>Google</td><td><%= loginOAuthCount %></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="col-md-6">
+    <canvas id="loginChart" height="180"></canvas>
+  </div>
+</div>
+<h4 class="mt-5">Post-Dashboard Parcel Actions</h4>
+<table class="table table-bordered w-50">
+  <thead>
+    <tr><th>Action</th><th>Users</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Dashboard & Sent Parcel</td><td><%= sentCount %></td></tr>
+    <tr><td>Dashboard & Did NOT Send</td><td><%= notSentCount %></td></tr>
+  </tbody>
+</table>
+<h4 class="mt-5">⏱️ Average Time Between Steps</h4>
+<table class="table table-striped w-50">
+  <thead>
+    <tr><th>Step</th><th>Avg Time (sec)</th></tr>
+  </thead>
+  <tbody>
+    
+    <tr><td>Send Start → Submit</td><td><%= timingData.avgSendFlow %></td></tr>
+  
+  </tbody>
+</table>
+
+</div>
+<!-- Device Type Table (Optional if provided) -->
+<% if (typeof deviceBreakdown !== 'undefined') { %>
+  <h4 class="mt-5">Device Type Breakdown (Dashboard Reached)</h4>
+  <table class="table table-striped">
+    <thead>
+      <tr><th>Device</th><th>Users</th></tr>
+    </thead>
+    <tbody>
+      <% deviceBreakdown.forEach(d => { %>
+        <tr><td><%= d._id %></td><td><%= d.count %></td></tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>
+
+<!-- Chart.js Script -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const funnelChart = new Chart(document.getElementById('funnelChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Visited', 'Login', 'OTP', 'Dashboard'],
+      datasets: [{
+        label: 'Users at Step',
+        data: [<%= totalVisits %>, <%= loginCount %>, <%= otpCount %>, <%= dashboardCount %>],
+        backgroundColor: ['#60a5fa', '#34d399', '#fbbf24', '#a78bfa']
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+
+  const loginChart = new Chart(document.getElementById('loginChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Phone', 'Google'],
+      datasets: [{
+        label: 'Login Methods',
+        data: [<%= loginPhoneCount %>, <%= loginOAuthCount %>],
+        backgroundColor: ['#34d399', '#60a5fa'],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'bottom'
+        }
+      }
+    }
+  });
+</script>
