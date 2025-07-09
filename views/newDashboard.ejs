@@ -134,17 +134,25 @@
 
 
 
-  <script>
-  gtag('event', 'dashboard_loaded');
+ <script>
+  try {
+    // Track dashboard load event
+    gtag('event', 'dashboard_loaded');
 
-  // ⏱️ Track time taken from login to dashboard
-  const loginTime = sessionStorage.getItem("login_time");
-  if (loginTime) {
-    const delta = Date.now() - parseInt(loginTime);
-    gtag('event', 'time_to_dashboard', { value: delta });
-    sessionStorage.removeItem("login_time");
+    // ⏱️ Track time from login to dashboard
+    const loginTime = sessionStorage.getItem("login_time");
+    if (loginTime) {
+      const delta = Date.now() - parseInt(loginTime);
+      gtag('event', 'time_to_dashboard', {
+        value: delta
+      });
+      sessionStorage.removeItem("login_time");
+    }
+  } catch (err) {
+    console.warn("Google Analytics tracking failed:", err);
   }
 </script>
+
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
