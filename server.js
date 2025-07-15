@@ -662,22 +662,7 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
-app.use((req, res, next) => {
-  // Dummy user id logic (replace with real session-based or DB ID)
-  const userId = req.session.userId || Math.floor(Math.random() * 10000);
 
-  // Stage logic
-  if (userId % 100 < 10) {
-    req.releaseStage = "canary"; // 10% of users
-  } else {
-    req.releaseStage = "stable"; // 90% of users
-  }
-
-  // Example override for dev/testing
-  if (req.query.test === "true") req.releaseStage = "testing";
-
-  next();
-});
 
 app.post("/log-version", async (req, res) => {
   const { version, notes, pushedBy } = req.body;
