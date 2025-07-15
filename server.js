@@ -4,7 +4,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const crypto = require("crypto");
 const cors = require("cors");
-
+const fs = require("fs");
 const LRU = require("lru-cache");
 const Razorpay = require("razorpay");
 
@@ -662,7 +662,48 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
+app.use((req, res, next) => {
+  // Dummy user id logic (replace with real session-based or DB ID)
+  const userId = req.session.userId || Math.floor(Math.random() * 10000);
 
+  // Stage logic
+  if (userId % 100 < 10) {
+    req.releaseStage = "canary"; // 10% of users
+  } else {
+    req.releaseStage = "stable"; // 90% of users
+  }
+
+  // Example override for dev/testing
+  if (req.query.test === "true") req.releaseStage = "testing";
+
+  next();
+});
+
+app.post("/log-version", async (req, res) => {
+  const { version, notes, pushedBy } = req.body;
+
+  if (!version || !notes) {
+    return res.status(400).json({ error: "version and notes are required" });
+  }
+
+  try {
+    const entry = await Version.create({ version, notes, pushedBy });
+    res.status(201).json({ message: "Version logged", data: entry });
+  } catch (err) {
+    res.status(500).json({ error: "DB error", details: err.message });
+  }
+});
+//VERSION TRACKIN
+
+app.get("/version", (req, res) => {
+  const versionPath = path.join(__dirname, "version.json");
+  try {
+    const versionData = fs.readFileSync(versionPath, "utf8");
+    res.json(JSON.parse(versionData));
+  } catch (error) {
+    res.status(500).json({ error: "Version not found" });
+  }
+});
 const FunnelEvent = require("./models/funnelEvent.js");
 
 async function trackFunnelStep(req, step, metadata = {}) {
@@ -1935,7 +1976,6 @@ app.get("/parcel/:id/success", async (req, res) => {
      await client.messages.create({
   to: `whatsapp:+91${user.phone}`,
   from: 'whatsapp:+15558076515',
-   messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID_WHATSAPP,
   contentSid: 'HX8dc7a5b23a3a6a2a7ce8a4d2e577ac3c', 
   contentVariables: JSON.stringify({
   1: `${user.username}`, // Sender name
