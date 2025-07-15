@@ -678,7 +678,7 @@ app.post("/log-version", async (req, res) => {
     res.status(500).json({ error: "DB error", details: err.message });
   }
 });
-//VERSION TRACKIN
+//VERSION TRACKING
 
 app.get("/version", (req, res) => {
   const versionPath = path.join(__dirname, "version.json");
