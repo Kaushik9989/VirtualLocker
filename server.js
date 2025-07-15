@@ -584,7 +584,6 @@ async function notifyUserOnLockerBooking(
       to: `+91${receiverPhone}`, // e.g. "+919876543210"
       body: `📦 Hello ${receiverName}, a parcel has been sent to you via SmartLocker.\nAccess Code: ${accessCode}\nSent on: ${timestamp}`,
     });
-
     console.log("📤 SMS sent:", message.sid);
   } catch (err) {
     console.error("❌ Failed to send SMS:", err.message);
@@ -1922,7 +1921,7 @@ await SessionIntent.findOneAndUpdate(
 //   await parcel.save();
 //   res.redirect(`/parcel/${parcel._id}/success`);
 // });
-app.get("/parcel/:id/success", isAuthenticated, async (req, res) => {
+app.get("/parcel/:id/success", async (req, res) => {
     const user = await User.findById(req.session.user._id);
   const parcel = await Parcel2.findById(req.params.id);
   if (!parcel) return res.status(404).send("Parcel not found");
@@ -1930,7 +1929,11 @@ app.get("/parcel/:id/success", isAuthenticated, async (req, res) => {
   to: `whatsapp:+91${user.phone}`,
   from: 'whatsapp:+15558076515',
    messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID_WHATSAPP,
-  contentSid: 'HXe74caa5c28d96585c30b9e6d32409527', // Template SID
+  contentSid: 'HX8dc7a5b23a3a6a2a7ce8a4d2e577ac3c', 
+  contentVariables: JSON.stringify({
+  1: `${user.username}`, // Sender name
+  2: `parcel/${req.params.id}/success` // Parcel ID
+})// Template SID
 }).then(message => console.log('✅ WhatsApp Message Sent:', message.sid))
 .catch(error => console.error('❌ WhatsApp Message Error:', error));
   parcel.location = {
