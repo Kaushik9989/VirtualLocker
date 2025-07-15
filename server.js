@@ -1550,6 +1550,7 @@ app.post("/send/step3", isAuthenticated, async (req, res) => {
       ...draft,
       senderId: req.user._id,
       senderName: req.user.username,
+      senderPhone:user.phone,
       accessCode,
       unlockUrl: null,
       qrImage,

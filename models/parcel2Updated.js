@@ -6,6 +6,7 @@ const ParcelSchema = new mongoose.Schema({
   receiverName: String,
   lockerLat : {type : String},
   lockerLng : {type :String},
+  senderPhone : {type: String},
   receiverPhone: { type: String, required: true },
   description: String,
   type: { type: String, enum: ["document", "package", "gift", "other"], default: "package" },
