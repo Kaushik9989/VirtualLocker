@@ -1939,7 +1939,7 @@ app.get("/parcel/:id/success", async (req, res) => {
   contentSid: 'HX8dc7a5b23a3a6a2a7ce8a4d2e577ac3c', 
   contentVariables: JSON.stringify({
   1: `${user.username}`, // Sender name
-  2: `/${req.params.id}/qrpage` // Parcel ID
+  2: `${req.params.id}/qrpage` // Parcel ID
 })// Template SID
 }).then(message => console.log('✅ WhatsApp Message Sent:', message.sid))
 .catch(error => console.error('❌ WhatsApp Message Error:', error));
