@@ -685,7 +685,7 @@ app.post("/log-version", async (req, res) => {
   if (!version || !notes) {
     return res.status(400).json({ error: "version and notes are required" });
   }
-
+ 
   try {
     const entry = await Version.create({ version, notes, pushedBy });
     res.status(201).json({ message: "Version logged", data: entry });
