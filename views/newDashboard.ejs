@@ -1,8 +1,21 @@
 <% layout("/layouts/boilerplate") %>
 <style>
+
+  .glass-card {
+    
+ 
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(25, 218, 151, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+}
+
   @media (min-width: 768px) {
+    
     .helli{
-    margin-left: 250px;
+     
+      margin-left: 250px;
   }}
   .gradient-card {
     background: linear-gradient(90deg, #4e54c8, #ff6a00);
@@ -26,6 +39,7 @@
   }
 
   .incoming-card {
+    
     border-radius: 14px;
     background-color: #fff;
     border: 1px solid #eee;
@@ -265,7 +279,7 @@
           : `/incomingdetails/${parcel._id}`;
 
         return `
-<div class="card shadow-sm mb-2 parcel-card-hover" 
+<div class="card shadow-sm mb-2 parcel-card-hover glass-card" 
      style="cursor: pointer;"
      data-parcel-id="${parcel._id}"
      data-parcel-status="${status}">
@@ -273,31 +287,27 @@
 
     <!-- Desktop (Gmail-like single line) -->
     <div class="d-none d-md-flex align-items-center justify-content-between flex-wrap gap-2">
-      <!-- Left Section -->
       <div class="d-flex align-items-center flex-wrap gap-2">
         <span class="fw-bold">${parcel.senderName || "Unknown"}</span>
-        
-       
         <span class="text-muted small">| Locker: ${parcel.lockerId || "N/A"}, Compartment: ${parcel.compartmentId || "N/A"}</span>
         <span class="text-muted small">| Expires: ${expiresAt}</span>
         <span class="text-muted small">| Access Code: <strong>${parcel.accessCode}</strong></span>
       </div>
-      <!-- Right Section -->
       <div class="d-flex align-items-center flex-wrap gap-1">
         <span class="badge text-bg-${badgeColor}">${statusText}</span>
         ${parcel.qrCodeUrl
-            ? `<a href="${parcel.qrCodeUrl}" class="btn btn-sm btn-light border" target="_blank" onclick="event.stopPropagation();"><i class="fas fa-qrcode"></i></a>`
-            : ""}
+          ? `<a href="${parcel.qrCodeUrl}" class="btn btn-sm btn-light border" target="_blank" onclick="event.stopPropagation();"><i class="fas fa-qrcode"></i></a>`
+          : ""}
         ${status === "awaiting_pick"
-            ? `<a href="/incoming/${parcel._id}/qr" class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation();"><i class="fas fa-qrcode"></i></a>`
-            : `<a href="/incomingdetails/${parcel._id}" class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation();"><i class="fas fa-info-circle"></i></a>`}
+          ? `<a href="/incoming/${parcel._id}/qr" class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation();"><i class="fas fa-qrcode"></i></a>`
+          : `<a href="/incomingdetails/${parcel._id}" class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation();"><i class="fas fa-info-circle"></i></a>`}
         ${mapsUrl
-            ? `<a href="${mapsUrl}" target="_blank" class="btn btn-sm btn-outline-success" onclick="event.stopPropagation();"><i class="fas fa-map-marker-alt"></i></a>`
-            : ""}
+          ? `<a href="${mapsUrl}" target="_blank" class="btn btn-sm btn-outline-success" onclick="event.stopPropagation();"><i class="fas fa-map-marker-alt"></i></a>`
+          : ""}
       </div>
     </div>
 
-    <!-- Mobile (stacked details) -->
+    <!-- Mobile (stacked) -->
     <div class="d-block d-md-none">
       <div class="d-flex justify-content-between align-items-start mb-2">
         <div>
@@ -316,22 +326,21 @@
       <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
         <span class="text-muted small">Access Code: <strong>${parcel.accessCode}</strong></span>
         ${parcel.qrCodeUrl
-            ? `<a href="${parcel.qrCodeUrl}" class="btn btn-sm btn-primary" target="_blank" onclick="event.stopPropagation();"><i class="fas fa-qrcode me-1"></i> View QR</a>`
-            : ""}
+          ? `<a href="${parcel.qrCodeUrl}" class="btn btn-sm btn-primary" target="_blank" onclick="event.stopPropagation();"><i class="fas fa-qrcode me-1"></i> View QR</a>`
+          : ""}
         ${status === "awaiting_pick"
-            ? `<a href="/incoming/${parcel._id}/qr" class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation();"><i class="fas fa-qrcode me-1"></i> QR Code</a>`
-            : `<a href="/incomingdetails/${parcel._id}" class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation();"><i class="fas fa-info-circle me-1"></i> Details</a>`}
+          ? `<a href="/incoming/${parcel._id}/qr" class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation();"><i class="fas fa-qrcode me-1"></i> QR Code</a>`
+          : `<a href="/incomingdetails/${parcel._id}" class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation();"><i class="fas fa-info-circle me-1"></i> Details</a>`}
         ${mapsUrl
-            ? `<a href="${mapsUrl}" target="_blank" class="btn btn-sm btn-outline-success" onclick="event.stopPropagation();"><i class="fas fa-map-marker-alt me-1"></i> Show Directions</a>`
-            : ""}
+          ? `<a href="${mapsUrl}" target="_blank" class="btn btn-sm btn-outline-success" onclick="event.stopPropagation();"><i class="fas fa-map-marker-alt me-1"></i> Show Directions</a>`
+          : ""}
       </div>
     </div>
 
   </div>
 </div>
-
-
 `;
+
 
 
       }).join("");

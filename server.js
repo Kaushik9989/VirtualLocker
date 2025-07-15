@@ -687,13 +687,31 @@ async function trackFunnelStep(req, step, metadata = {}) {
 }
 async function getAverageDurations() {
   const sessions = await FunnelEvent.aggregate([
-    { $match: { step: { $in: ["login_phone", "dashboard_loaded", "send_parcel_clicked", "send_parcel_submitted", "parcel_created", "parcel_picked"] } } },
-    { $group: {
-      _id: "$sessionId",
-      steps: {
-        $push: { step: "$step", timestamp: "$timestamp" }
+    {
+      $match: {
+        step: { $in: [
+          "visit_landing_page",
+          "login_phone",
+          "otp_entered",
+          "dashboard_loaded",
+          "send_parcel_clicked",
+          "send_parcel_submitted",
+          "parcel_created",
+          "parcel_picked"
+        ]}
       }
-    }}
+    },
+    {
+      $group: {
+        _id: "$sessionId",
+        steps: {
+          $push: {
+            step: "$step",
+            timestamp: "$timestamp"
+          }
+        }
+      }
+    }
   ]);
 
   const durations = {
@@ -704,20 +722,31 @@ async function getAverageDurations() {
 
   for (const session of sessions) {
     const stepMap = {};
-    session.steps.forEach(s => stepMap[s.step] = new Date(s.timestamp));
+    session.steps.forEach(e => stepMap[e.step] = new Date(e.timestamp));
 
-    if (stepMap["login_phone"] && stepMap["dashboard_loaded"])
-      durations.loginToDashboard.push(stepMap["dashboard_loaded"] - stepMap["login_phone"]);
+    // Login → Dashboard
+    if (stepMap["login_phone"] && stepMap["dashboard_loaded"]) {
+      const delta = stepMap["dashboard_loaded"] - stepMap["login_phone"];
+      if (delta >= 0 && delta <= 600000) durations.loginToDashboard.push(delta);
+    }
 
-    if (stepMap["send_parcel_clicked"] && stepMap["send_parcel_submitted"])
-      durations.sendStartToSubmit.push(stepMap["send_parcel_submitted"] - stepMap["send_parcel_clicked"]);
+    // Send Start → Submit
+    if (stepMap["send_parcel_clicked"] && stepMap["send_parcel_submitted"]) {
+      const delta = stepMap["send_parcel_submitted"] - stepMap["send_parcel_clicked"];
+      if (delta >= 0 && delta <= 600000) durations.sendStartToSubmit.push(delta);
+    }
 
-    if (stepMap["parcel_created"] && stepMap["parcel_picked"])
-      durations.parcelCreateToPickup.push(stepMap["parcel_picked"] - stepMap["parcel_created"]);
+    // Parcel Created → Pickup
+    if (stepMap["parcel_created"] && stepMap["parcel_picked"]) {
+      const delta = stepMap["parcel_picked"] - stepMap["parcel_created"];
+      if (delta >= 0 && delta <= 24 * 60 * 60 * 1000) // < 24h
+        durations.parcelCreateToPickup.push(delta);
+    }
   }
 
-  // Compute average in seconds
-  const avg = arr => arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length / 1000).toFixed(2) : "0.00";
+  // Helper to compute avg
+  const avg = arr =>
+    arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length / 1000).toFixed(2) : "0.00";
 
   return {
     avgLoginToDashboard: avg(durations.loginToDashboard),
@@ -725,6 +754,7 @@ async function getAverageDurations() {
     avgPickupTime: avg(durations.parcelCreateToPickup)
   };
 }
+
 
 async function getStepDurations(sessionId) {
   const events = await FunnelEvent.find({ sessionId }).sort("timestamp");
@@ -745,88 +775,82 @@ async function getStepDurations(sessionId) {
 
 app.get("/admin/funnel", async (req, res) => {
  
- 
+        const timingData = await getAverageDurations();
 
 
-// Success and abandonment rates
+        const loginPhoneCount = await FunnelEvent.distinct("sessionId", { step: "login_phone" }).then(d => d.length);
+        const loginOAuthCount = await FunnelEvent.distinct("sessionId", { step: "login_oauth" }).then(d => d.length);
 
-// Render in admin panel
-const timingData = await getAverageDurations();
- 
- 
- const loginPhoneCount = await FunnelEvent.distinct("sessionId", { step: "login_phone" }).then(d => d.length);
-const loginOAuthCount = await FunnelEvent.distinct("sessionId", { step: "login_oauth" }).then(d => d.length);
 
- 
-  const totalVisits   = await FunnelEvent.distinct("sessionId", { step: "visit_landing_page" }).then(d => d.length);
-const loginPhone    = await FunnelEvent.distinct("sessionId", { step: "login_phone" }).then(d => d.length);
-const otpEntered    = await FunnelEvent.distinct("sessionId", { step: "otp_entered" }).then(d => d.length);
-const dashboard     = await FunnelEvent.distinct("sessionId", { step: "dashboard_loaded" }).then(d => d.length);
+        const totalVisits   = await FunnelEvent.distinct("sessionId", { step: "visit_landing_page" }).then(d => d.length);
+        const loginPhone    = await FunnelEvent.distinct("sessionId", { step: "login_phone" }).then(d => d.length);
+        const otpEntered    = await FunnelEvent.distinct("sessionId", { step: "otp_entered" }).then(d => d.length);
+        const dashboard     = await FunnelEvent.distinct("sessionId", { step: "dashboard_loaded" }).then(d => d.length);
 
 
 
 
-  const drop1 = totalVisits - loginPhone;
-  const drop2 = loginPhone - otpEntered;
-  const drop3 = Math.max(otpEntered - dashboard, 0);
+        const drop1 = totalVisits - loginPhone;
+        const drop2 = loginPhone - otpEntered;
+        const drop3 = Math.max(otpEntered - dashboard, 0);
 
-  const successRate = totalVisits > 0 ? ((dashboard / totalVisits) * 100).toFixed(2) : "0.00";
+        const successRate = totalVisits > 0 ? ((dashboard / totalVisits) * 100).toFixed(2) : "0.00";
 
 
-const successRateNum = Math.min(parseFloat(successRate), 100);
-const abandonmentRate = (100 - successRateNum).toFixed(2);
-// Count distinct sessions per step
-const [visitSessions, loginSessions, otpSessions, dashboardSessions] = await Promise.all([
-  FunnelEvent.distinct("sessionId", { step: "visit_landing_page" }),
-  FunnelEvent.distinct("sessionId", { step: { $in: ["login_phone", "login_oauth"] } }),
-  FunnelEvent.distinct("sessionId", { step: "otp_entered" }),
-  FunnelEvent.distinct("sessionId", { step: "dashboard_loaded" })
-]);
+        const successRateNum = Math.min(parseFloat(successRate), 100);
+        const abandonmentRate = (100 - successRateNum).toFixed(2);
+        // Count distinct sessions per step
+        const [visitSessions, loginSessions, otpSessions, dashboardSessions] = await Promise.all([
+        FunnelEvent.distinct("sessionId", { step: "visit_landing_page" }),
+        FunnelEvent.distinct("sessionId", { step: { $in: ["login_phone", "login_oauth"] } }),
+        FunnelEvent.distinct("sessionId", { step: "otp_entered" }),
+        FunnelEvent.distinct("sessionId", { step: "dashboard_loaded" })
+        ]);
 
-// Count of users at each step
-const loginCount = loginSessions.length;
-const otpCount = otpSessions.length;
-const dashboardCount = dashboardSessions.length;
+        // Count of users at each step
+        const loginCount = loginSessions.length;
+        const otpCount = otpSessions.length;
+        const dashboardCount = dashboardSessions.length;
 
-// Drop-off at each step
-const dropAfterVisit = totalVisits - loginCount;
-const dropAfterLogin = loginCount - otpCount;
-const dropAfterOTP = Math.max(otpCount - dashboardCount, 0);
+        // Drop-off at each step
+        const dropAfterVisit = totalVisits - loginCount;
+        const dropAfterLogin = loginCount - otpCount;
+        const dropAfterOTP = Math.max(otpCount - dashboardCount, 0);
 
-const dashboardSession = await FunnelEvent.distinct("sessionId", { step: "dashboard_loaded" });
-const sendParcelSessions = await FunnelEvent.distinct("sessionId", { step: "send_parcel_clicked" });
+        const dashboardSession = await FunnelEvent.distinct("sessionId", { step: "dashboard_loaded" });
+        const sendParcelSessions = await FunnelEvent.distinct("sessionId", { step: "send_parcel_clicked" });
 
-const sentCount = sendParcelSessions.length;
-const dashboardOnly = dashboardSessions.filter(id => !sendParcelSessions.includes(id));
-const notSentCount = dashboardOnly.length;
-// Stuck breakdown
-const stuckStats = {
-  at_visit_page: dropAfterVisit,
-  at_login: dropAfterLogin,
-  at_otp: dropAfterOTP
-};
-  res.render("funnelDashboard", {
-     totalVisits,
-  loginCount,
-  otpCount,
-  dashboardCount,
-  successRate,
-  abandonmentRate,
-  stuckStats,
-     timingData,
-    loginPhone,
-    otpEntered,
-    dashboard,
-    drop1,
-    drop2,
-    drop3,
-    successRate,
-    abandonmentRate,
-    loginPhoneCount,
-    sentCount,
-  notSentCount,
-  loginOAuthCount
-  });
+        const sentCount = sendParcelSessions.length;
+        const dashboardOnly = dashboardSessions.filter(id => !sendParcelSessions.includes(id));
+        const notSentCount = dashboardOnly.length;
+        // Stuck breakdown
+        const stuckStats = {
+        at_visit_page: dropAfterVisit,
+        at_login: dropAfterLogin,
+        at_otp: dropAfterOTP
+        };
+        res.render("funnelDashboard", {
+        totalVisits,
+        loginCount,
+        otpCount,
+        dashboardCount,
+        successRate,
+        abandonmentRate,
+        stuckStats,
+        timingData,
+        loginPhone,
+        otpEntered,
+        dashboard,
+        drop1,
+        drop2,
+        drop3,
+        successRate,
+        abandonmentRate,
+        loginPhoneCount,
+        sentCount,
+        notSentCount,
+        loginOAuthCount
+        });
 });
 
 
@@ -1431,6 +1455,7 @@ app.get("/map", async (req, res) => {
 
 app.get("/send/step1", isAuthenticated, async (req, res) => {
   const user = await User.findById(req.session.user._id);
+  console.log(user.phone);
   if (!user.phone) {
     req.flash(
       "error",
@@ -1461,6 +1486,15 @@ app.get("/send/step2", isAuthenticated, async(req, res) => {
     step: "send_parcel_clicked",
     timestamp: new Date()
   });
+   const user = await User.findById(req.session.user._id);
+  console.log(user.phone);
+  if (!user.phone) {
+    req.flash(
+      "error",
+      "Please verify your phone number to continue sending a parcel."
+    );
+    return res.redirect("/link-phone");
+  }
   const { size } = req.query;
   if (size) {
     // Initialize draft session if not present
@@ -1496,9 +1530,7 @@ app.post("/send/step3", isAuthenticated, async (req, res) => {
     const user = await User.findById(req.session.user._id);
     const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
     const cost = getEstimatedCost(draft.size).toString();
-    const qrPayload = JSON.stringify({
-      accessCode: accessCode,
-    });
+    const qrPayload = JSON.stringify({ accessCode });
     const qrImage = await QRCode.toDataURL(qrPayload);
 
     let status = "awaiting_drop";
@@ -1506,21 +1538,19 @@ app.post("/send/step3", isAuthenticated, async (req, res) => {
     let expiresAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
     let razorpayOrder = null;
 
+    if (draft.paymentOption === "sender_pays" || draft.paymentOption === "receiver_pays") {
+      status = "awaiting_payment";
+      paymentStatus = "pending";
+      expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
+    }
+
     if (draft.paymentOption === "sender_pays") {
-      // Create Razorpay order
       razorpayOrder = await razorpay.orders.create({
         amount: parseFloat(cost) * 100,
         currency: "INR",
         receipt: `parcel_${Date.now()}`,
         payment_capture: 1,
       });
-      status = "awaiting_payment";
-      paymentStatus = "pending";
-      expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
-    } else if (draft.paymentOption === "receiver_pays") {
-      status = "awaiting_payment";
-      paymentStatus = "pending";
-      expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
     }
 
     const parcel = new Parcel2({
@@ -1580,6 +1610,24 @@ app.post("/send/step3", isAuthenticated, async (req, res) => {
       });
     }
 
+    // ✅ WhatsApp Notification (before any return)
+   
+   await client.messages.create({
+  to: `whatsapp:+91${user.phone}`,
+  from: 'whatsapp:+15558076515',
+   messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID_WHATSAPP,
+  contentSid: 'HXe74caa5c28d96585c30b9e6d32409527', // Template SID
+}).then(message => console.log('✅ WhatsApp Message Sent:', message.sid))
+.catch(error => console.error('❌ WhatsApp Message Error:', error));
+
+    // ✅ Funnel Event Logging
+    await FunnelEvent.create({
+      sessionId: req.sessionID,
+      step: 'step3_complete',
+      timestamp: new Date(),
+    });
+
+    // ✅ Now handle payment redirection
     if (draft.paymentOption === "receiver_pays") {
       return res.render("parcel/waiting-payment", { parcel });
     }
@@ -1593,18 +1641,143 @@ app.post("/send/step3", isAuthenticated, async (req, res) => {
         currency: razorpayOrder.currency,
       });
     }
-await FunnelEvent.create({
-  sessionId: req.sessionID,
-  step,
-  timestamp: new Date(),
-});
-    res.redirect(`/parcel/${parcel._id}/success`);
+
+    // ✅ Final fallback redirect if payment is completed
+    return res.redirect(`/parcel/${parcel._id}/success`);
+
   } catch (error) {
-    console.error("Error in /send/step3:", error);
+    console.error("❌ Error in /send/step3:", error);
     req.flash("error", "An unexpected error occurred. Please try again.");
     res.redirect("/dashboard");
   }
 });
+
+
+// app.post("/send/step3", isAuthenticated, async (req, res) => {
+//   try {
+//     const draft = req.session.parcelDraft;
+//     draft.paymentOption = req.body.paymentOption;
+//     const user = await User.findById(req.session.user._id);
+//     const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
+//     const cost = getEstimatedCost(draft.size).toString();
+//     const qrPayload = JSON.stringify({
+//       accessCode: accessCode,
+//     });
+//     const qrImage = await QRCode.toDataURL(qrPayload);
+
+//     let status = "awaiting_drop";
+//     let paymentStatus = "completed";
+//     let expiresAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+//     let razorpayOrder = null;
+
+//     if (draft.paymentOption === "sender_pays") {
+//       // Create Razorpay order
+//       razorpayOrder = await razorpay.orders.create({
+//         amount: parseFloat(cost) * 100,
+//         currency: "INR",
+//         receipt: `parcel_${Date.now()}`,
+//         payment_capture: 1,
+//       });
+//       status = "awaiting_payment";
+//       paymentStatus = "pending";
+//       expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
+//     } else if (draft.paymentOption === "receiver_pays") {
+//       status = "awaiting_payment";
+//       paymentStatus = "pending";
+//       expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
+//     }
+
+//     const parcel = new Parcel2({
+//       ...draft,
+//       senderId: req.user._id,
+//       senderName: req.user.username,
+//       accessCode,
+//       unlockUrl: null,
+//       qrImage,
+//       cost,
+//       status,
+//       paymentStatus,
+//       droppedAt: null,
+//       expiresAt,
+//       lockerId: null,
+//       compartmentId: null,
+//       razorpayOrderId: razorpayOrder?.id || null,
+//     });
+
+//     await parcel.save();
+//     delete req.session.parcelDraft;
+
+//     const updated = await incomingParcel.findOneAndUpdate(
+//       { receiverPhone: parcel.receiverPhone, status: "pending" },
+//       {
+//         receiverName: parcel.receiverName,
+//         parcelType: parcel.type,
+//         size: parcel.size,
+//         cost: parseFloat(parcel.cost),
+//         accessCode: parcel.accessCode,
+//         qrCodeUrl: parcel.qrImage,
+//         status: "awaiting_drop",
+//         lockerId: parcel.lockerId?.toString() || "",
+//         "metadata.description": parcel.description || "",
+//       },
+//       { new: true }
+//     );
+
+//     if (!updated) {
+//       await incomingParcel.create({
+//         senderPhone: user.phone || "unknown",
+//         receiverPhone: parcel.receiverPhone,
+//         senderName: user.username,
+//         receiverName: parcel.receiverName || "",
+//         parcelType: parcel.type,
+//         size: parcel.size,
+//         cost: parseFloat(parcel.cost),
+//         accessCode: parcel.accessCode,
+//         qrCodeUrl: parcel.qrImage,
+//         status: "awaiting_drop",
+//         lockerId: parcel.lockerId?.toString() || "",
+//         metadata: {
+//           description: parcel.description || "",
+//         },
+//         lockerLat: parcel.lockerLat,
+//         lockerLng: parcel.lockerLng,
+//       });
+//     }
+
+//     if (draft.paymentOption === "receiver_pays") {
+//       return res.render("parcel/waiting-payment", { parcel });
+//     }
+
+//     if (draft.paymentOption === "sender_pays") {
+//       return res.render("parcel/payment", {
+//         parcel,
+//         razorpayKeyId: process.env.RAZORPAY_KEY_ID,
+//         orderId: razorpayOrder.id,
+//         amount: razorpayOrder.amount,
+//         currency: razorpayOrder.currency,
+//       });
+//     }
+//     client.messages
+//   .create({
+//     from: 'whatsapp:+15558076515', // Twilio's sandbox or your approved number
+//     to: `whatsapp:+91${user.phone}`, // User's WhatsApp number
+//     body: 'Your Parcel has been booked, Please go to your nearest locker to place it!',
+//   })
+//   .then(message => console.log('Message sent:',message.sid))
+//   .catch(error => console.error('Error:', error));
+// await FunnelEvent.create({
+//   sessionId: req.sessionID,
+//   step,
+//   timestamp: new Date(),
+// });
+    
+//     res.redirect(`/parcel/${parcel._id}/success`);
+//   } catch (error) {
+//     console.error("Error in /send/step3:", error);
+//     req.flash("error", "An unexpected error occurred. Please try again.");
+//     res.redirect("/dashboard");
+//   }
+// });
 
 // app.post("/send/step3", isAuthenticated, async (req, res) => {
 //   const draft = req.session.parcelDraft;
