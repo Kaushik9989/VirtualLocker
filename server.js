@@ -1612,13 +1612,7 @@ app.post("/send/step3", isAuthenticated, async (req, res) => {
 
     // ✅ WhatsApp Notification (before any return)
    
-   await client.messages.create({
-  to: `whatsapp:+91${user.phone}`,
-  from: 'whatsapp:+15558076515',
-   messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID_WHATSAPP,
-  contentSid: 'HXe74caa5c28d96585c30b9e6d32409527', // Template SID
-}).then(message => console.log('✅ WhatsApp Message Sent:', message.sid))
-.catch(error => console.error('❌ WhatsApp Message Error:', error));
+
 
     // ✅ Funnel Event Logging
     await FunnelEvent.create({
@@ -1929,9 +1923,16 @@ await SessionIntent.findOneAndUpdate(
 //   res.redirect(`/parcel/${parcel._id}/success`);
 // });
 app.get("/parcel/:id/success", isAuthenticated, async (req, res) => {
+    const user = await User.findById(req.session.user._id);
   const parcel = await Parcel2.findById(req.params.id);
   if (!parcel) return res.status(404).send("Parcel not found");
-
+     await client.messages.create({
+  to: `whatsapp:+91${user.phone}`,
+  from: 'whatsapp:+15558076515',
+   messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID_WHATSAPP,
+  contentSid: 'HXe74caa5c28d96585c30b9e6d32409527', // Template SID
+}).then(message => console.log('✅ WhatsApp Message Sent:', message.sid))
+.catch(error => console.error('❌ WhatsApp Message Error:', error));
   parcel.location = {
     lat: 20.5937,
     lng: 78.9629,
