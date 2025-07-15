@@ -1921,6 +1921,13 @@ await SessionIntent.findOneAndUpdate(
 //   await parcel.save();
 //   res.redirect(`/parcel/${parcel._id}/success`);
 // });
+
+app.get("/:id/qrpage",async(req,res)=>{
+  const parcel = await Parcel2.findById(req.params.id);
+   if (!parcel) return res.status(404).send("Parcel not found");
+    res.render("parcel/success", { parcel });
+
+})
 app.get("/parcel/:id/success", async (req, res) => {
     const user = await User.findById(req.session.user._id);
   const parcel = await Parcel2.findById(req.params.id);
@@ -1932,7 +1939,7 @@ app.get("/parcel/:id/success", async (req, res) => {
   contentSid: 'HX8dc7a5b23a3a6a2a7ce8a4d2e577ac3c', 
   contentVariables: JSON.stringify({
   1: `${user.username}`, // Sender name
-  2: `parcel/${req.params.id}/success` // Parcel ID
+  2: `/${req.params.id}/qrpage` // Parcel ID
 })// Template SID
 }).then(message => console.log('✅ WhatsApp Message Sent:', message.sid))
 .catch(error => console.error('❌ WhatsApp Message Error:', error));
