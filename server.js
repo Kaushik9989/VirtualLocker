@@ -879,38 +879,6 @@ app.get("/admin/funnel", async (req, res) => {
 });
 
 
-// app.get("/api/incoming-parcels", isAuthenticated, async (req, res) => {
-//   try {
-//     const userId = req.session.user._id;
-//     const cacheKey = `incomingParcels:${userId}`;
-
-//     // Check cache first
-//     const cachedParcels = parcelCache.get(cacheKey);
-//     if (cachedParcels) {
-//       console.log("✅ Served incoming parcels from cache");
-//       return res.json({ parcels: cachedParcels });
-//     }
-
-//     // No cache, fetch from DB
-//     const user = await User.findById(userId).lean();
-//     if (!user) return res.status(401).json({ error: "Unauthorized" });
-
-//     const parcels = await incomingParcel.find({
-//       receiverPhone: user.phone,
-//     })
-//       .sort({ createdAt: -1 })
-//       .lean();
-
-//     // Save to cache
-//     parcelCache.set(cacheKey, parcels);
-
-//     console.log("✅ Served incoming parcels from DB and cached");
-//     res.json({ parcels });
-//   } catch (err) {
-//     console.error("API parcels error:", err);
-//     res.status(500).json({ error: "Internal server error" });
-//   }
-// });
 
 app.get("/api/lockers", isAuthenticated, async (req, res) => {
   try {
