@@ -689,31 +689,31 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
 });
 
 
+app.post("/log-version", async (req, res) => {
+  const { version, notes, pushedBy } = req.body;
 
+  if (!version || !notes) {
+    return res.status(400).json({ error: "version and notes are required" });
+  }
+ 
+  try {
+    const entry = await Version.create({ version, notes, pushedBy });
+    res.status(201).json({ message: "Version logged", data: entry });
+  } catch (err) {
+    res.status(500).json({ error: "DB error", details: err.message });
+  }
+});
 //VERSION TRACKING
 
-app.get("/admin/versions", async (req, res) => {
-  const versions = await Version.find().sort({ pushedAt: -1 }).lean();
-  res.render("admin/versions", { versions });
+app.get("/version", (req, res) => {
+  const versionPath = path.join(__dirname, "version.json");
+  try {
+    const versionData = fs.readFileSync(versionPath, "utf8");
+    res.json(JSON.parse(versionData));
+  } catch (error) {
+    res.status(500).json({ error: "Version not found" });
+  }
 });
-
-app.post("/admin/versions/:id/revert", async (req, res) => {
-  const version = await Version.findById(req.params.id);
-  if (!version) return res.status(404).send("Version not found");
-
-  const zipPath = version.zipPath;
-
-  // Unzip the old code (overwrite current)
-  const execSync = require("child_process").execSync;
-  execSync(`unzip -o ${zipPath} -d ./`);
-
-  // Update current flag
-  await Version.updateMany({}, { isCurrent: false });
-  await Version.findByIdAndUpdate(version._id, { isCurrent: true });
-
-  res.redirect("versions");
-});
-
 const FunnelEvent = require("./models/funnelEvent.js");
 
 async function trackFunnelStep(req, step, metadata = {}) {
