@@ -14,8 +14,9 @@ const commitHash = execSync("git rev-parse HEAD").toString().trim();
 
 // Create zip
 const zipName = `release_${version}_${Date.now()}.zip`;
-const zipPath = path.join("backups", zipName);
-execSync(`mkdir -p backups && zip -r ${zipPath} . -x "node_modules/*" ".git/*"`);
+const zipPath = `backups\\${zipName}`;
+execSync(`powershell.exe Compress-Archive -Path * -DestinationPath ${zipPath} -Force`);
+
 
 (async () => {
   await Version.updateMany({}, { isCurrent: false });
