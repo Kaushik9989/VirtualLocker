@@ -1745,8 +1745,7 @@ app.post("/analytics/user-action", async (req, res) => {
 app.get("/action_funnel", async (req, res) => {
   const now = new Date();
 
-  const todayStart = new Date(now);
-  todayStart.setHours(0, 0, 0, 0);
+  const todayStart = new Date(now.setHours(0, 0, 0, 0));
   const todayEnd = new Date(todayStart);
   todayEnd.setDate(todayEnd.getDate() + 1);
 
@@ -1754,21 +1753,55 @@ app.get("/action_funnel", async (req, res) => {
   yesterdayStart.setDate(yesterdayStart.getDate() - 1);
   const yesterdayEnd = new Date(todayStart);
 
-  const today = await UserAction.aggregate([
-    { $match: { timestamp: { $gte: todayStart, $lt: todayEnd } } },
-    { $group: { _id: "$step", count: { $sum: 1 } } }
+  const [todayRaw, yesterdayRaw] = await Promise.all([
+    UserAction.aggregate([
+      { $match: { timestamp: { $gte: todayStart, $lt: todayEnd } } },
+      { $group: { _id: "$step", count: { $sum: 1 } } }
+    ]),
+    UserAction.aggregate([
+      { $match: { timestamp: { $gte: yesterdayStart, $lt: yesterdayEnd } } },
+      { $group: { _id: "$step", count: { $sum: 1 } } }
+    ])
   ]);
 
-  const yesterday = await UserAction.aggregate([
-    { $match: { timestamp: { $gte: yesterdayStart, $lt: yesterdayEnd } } },
-    { $group: { _id: "$step", count: { $sum: 1 } } }
-  ]);
+  const combineSteps = (raw) => {
+    const result = {
+      not_logged_in: 0,
+      logged_in: 0,
+      dashboard: 0,
+      send_step_2: 0,
+      payment_stage: 0,
+      payment_completed: 0,
+      parcel_booked: 0,
+      abandoned_login: 0
+    };
 
-  // ✅ Define your custom ordered funnel
-  const orderedSteps = [
-    "login_page",
-    "login_google",
-    "login_phone",
+    let loginPage = 0;
+    let loginTotal = 0;
+
+    raw.forEach(({ _id, count }) => {
+      if (_id === "login_page") {
+        result.not_logged_in += count;
+        loginPage = count;
+      } else if (_id === "login_google" || _id === "login_phone") {
+        result.logged_in += count;
+        loginTotal += count;
+      } else if (result[_id] !== undefined) {
+        result[_id] = count;
+      }
+    });
+
+    result.abandoned_login = Math.max(loginPage - loginTotal, 0);
+    return result;
+  };
+
+  const todayData = combineSteps(todayRaw);
+  const yesterdayData = combineSteps(yesterdayRaw);
+
+  const steps = [
+    "not_logged_in",
+    "logged_in",
+    "abandoned_login",
     "dashboard",
     "send_step_2",
     "payment_stage",
@@ -1776,19 +1809,14 @@ app.get("/action_funnel", async (req, res) => {
     "parcel_booked"
   ];
 
-  const funnel = orderedSteps.map(step => {
-    const t = today.find(c => c._id === step);
-    const y = yesterday.find(p => p._id === step);
-    return {
-      step,
-      today: t ? t.count : 0,
-      yesterday: y ? y.count : 0
-    };
-  });
+  const funnel = steps.map(step => ({
+    step,
+    today: todayData[step] || 0,
+    yesterday: yesterdayData[step] || 0
+  }));
 
   res.render("funnelAction", { funnel });
 });
-
 
 
 

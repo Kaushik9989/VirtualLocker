@@ -1,78 +1,113 @@
-
 <% layout("layouts/boilerplate") %>
+
 <style>
-    @media (min-width: 768px) {
-    .helli{
-    margin-left: 200px;
-    margin-top:100px;
-  }}
+  @media (min-width: 768px) {
+    .helli {
+      margin-left: 200px;
+      margin-top: 100px;
+    }
+  }
+
+  .abandoned-row {
+    background-color: #fff3cd;
+  }
 </style>
+
 <div class="helli">
-<div class="container mt-4">
-  <h4 class="mb-3">🔄 DropPoint Funnel Overview</h4>
-  <table class="table table-bordered mt-4">
-  <thead class="table-dark">
-    <tr>
-      <th>Step</th>
-      <th>Today</th>
-      <th>Yesterday</th>
-     
-    </tr>
-  </thead>
-  <tbody>
-    <% funnel.forEach(f => { 
-         const change = f.yesterday === 0 ? '∞' : (((f.today - f.yesterday) / f.yesterday) * 100).toFixed(1);
-         const trendClass = change >= 0 ? 'text-success' : 'text-danger';
-    %>
-      <tr>
-        <td><%= f.step.replace(/_/g, ' ').toUpperCase() %></td>
-        <td><%= f.today %></td>
-        <td><%= f.yesterday %></td>
-      
-      </tr>
-    <% }) %>
-  </tbody>
-</table>
+  <div class="container mt-4">
+    <h4 class="mb-3">🔄 DropPoint Funnel Overview</h4>
 
+    <!-- Table -->
+    <table class="table table-bordered mt-4">
+      <thead class="table-dark">
+        <tr>
+          <th>Step</th>
+          <th>Today</th>
+          <th>Yesterday</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% funnel.forEach(f => { %>
+          <tr class="<%= f.step === 'abandoned_login' ? 'abandoned-row' : '' %>">
+            <td><%= f.step.replace(/_/g, ' ').toUpperCase() %></td>
+            <td><%= f.today %></td>
+            <td><%= f.yesterday %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+
+    <!-- Chart -->
+    <canvas id="funnelChart" height="120"></canvas>
+  </div>
 </div>
 
-<canvas id="funnelChart" height="100"></canvas>
-</div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   const ctx = document.getElementById('funnelChart').getContext('2d');
 
   const todayGradient = ctx.createLinearGradient(0, 0, 0, 400);
-  todayGradient.addColorStop(0, 'rgba(0, 123, 255, 0.4)');
-  todayGradient.addColorStop(1, 'rgba(0, 123, 255, 0.05)');
+  todayGradient.addColorStop(0, 'rgba(13, 110, 253, 0.4)');
+  todayGradient.addColorStop(1, 'rgba(13, 110, 253, 0.05)');
+
+  const labels = [
+    "Not Logged In",
+    
+    "Abandoned Login",
+    "Logged In",
+    "Dashboard",
+    "Send Step 2",
+    "Payment Stage",
+    "Payment Completed",
+    "Parcel Booked"
+  ];
+
+  const todayData = [
+    <%= funnel.find(f => f.step === 'not_logged_in')?.today || 0 %>,
+   
+    <%= funnel.find(f => f.step === 'abandoned_login')?.today || 0 %>,
+     <%= funnel.find(f => f.step === 'logged_in')?.today || 0 %>,
+    <%= funnel.find(f => f.step === 'dashboard')?.today || 0 %>,
+    <%= funnel.find(f => f.step === 'send_step_2')?.today || 0 %>,
+    <%= funnel.find(f => f.step === 'payment_stage')?.today || 0 %>,
+    <%= funnel.find(f => f.step === 'payment_completed')?.today || 0 %>,
+    <%= funnel.find(f => f.step === 'parcel_booked')?.today || 0 %>
+  ];
+
+  const yesterdayData = [
+    <%= funnel.find(f => f.step === 'not_logged_in')?.yesterday || 0 %>,
+    <%= funnel.find(f => f.step === 'logged_in')?.yesterday || 0 %>,
+    <%= funnel.find(f => f.step === 'abandoned_login')?.yesterday || 0 %>,
+    <%= funnel.find(f => f.step === 'dashboard')?.yesterday || 0 %>,
+    <%= funnel.find(f => f.step === 'send_step_2')?.yesterday || 0 %>,
+    <%= funnel.find(f => f.step === 'payment_stage')?.yesterday || 0 %>,
+    <%= funnel.find(f => f.step === 'payment_completed')?.yesterday || 0 %>,
+    <%= funnel.find(f => f.step === 'parcel_booked')?.yesterday || 0 %>
+  ];
 
   new Chart(ctx, {
     type: 'line',
     data: {
-      labels: <%- JSON.stringify(funnel.map(f => f.step.replace(/_/g, ' ').toUpperCase())) %>,
+      labels,
       datasets: [
         {
           label: "Today",
-          data: <%- JSON.stringify(funnel.map(f => f.today)) %>,
-          borderColor: '#007bff',
+          data: todayData,
+          borderColor: '#0d6efd',
           backgroundColor: todayGradient,
-          pointBackgroundColor: '#007bff',
-          pointBorderColor: '#fff',
-          pointRadius: 5,
-          pointStyle: 'circle',
           fill: true,
+          pointBackgroundColor: '#0d6efd',
+          pointBorderColor: '#fff',
           tension: 0.3
         },
         {
           label: "Yesterday",
-          data: <%- JSON.stringify(funnel.map(f => f.yesterday)) %>,
-          borderColor: '#FF851B',
+          data: yesterdayData,
+          borderColor: '#fd7e14',
           borderDash: [6, 3],
-          pointBackgroundColor: '#FF851B',
-          pointBorderColor: '#fff',
-          pointRadius: 5,
-          pointStyle: 'rectRot',
           fill: false,
+          pointBackgroundColor: '#fd7e14',
+          pointBorderColor: '#fff',
           tension: 0.3
         }
       ]
@@ -87,46 +122,27 @@
           color: "#333"
         },
         legend: {
-          position: 'top',
           labels: {
-            color: '#333',
             usePointStyle: true
           }
         },
         tooltip: {
-          backgroundColor: '#000',
-          titleColor: '#fff',
-          bodyColor: '#fff',
-          padding: 10
+          callbacks: {
+            label: (context) => `${context.dataset.label}: ${context.parsed.y}`
+          }
         }
       },
       scales: {
         x: {
-          ticks: {
-            color: '#555',
-            font: { weight: '600' }
-          },
-          grid: {
-            display: true,
-            color: '#eee'
-          }
+          ticks: { color: '#444', font: { weight: 'bold' } },
+          grid: { color: '#eee' }
         },
         y: {
           beginAtZero: true,
-          ticks: {
-            color: '#555',
-            stepSize: 1
-          },
-          grid: {
-            color: '#eee',
-            borderDash: [4, 4]
-          }
+          ticks: { stepSize: 1 },
+          grid: { color: '#eee', borderDash: [4, 4] }
         }
       }
     }
   });
 </script>
-
-
-
-
