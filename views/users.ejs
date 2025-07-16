@@ -1,0 +1,128 @@
+<% layout("layouts/boilerplate") %>
+
+    <style>
+        @media (min-width: 768px) {
+            .helli {
+                margin-left: 200px;
+            }
+        }
+
+        .table th,
+        .table td {
+            vertical-align: middle;
+            font-size: 0.95rem;
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .badge-status {
+            font-size: 0.8rem;
+            padding: 0.35em 0.6em;
+        }
+
+        .btn-delete {
+            font-size: 0.8rem;
+            padding: 0.25rem 0.6rem;
+        }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .admin-header h2 {
+            font-weight: 600;
+            color: #0d6efd;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+            border-radius: 10px;
+        }
+    </style>
+
+    <div class="helli">
+        <div class="container mt-4">
+            <div class="admin-header mb-3">
+                <h2>👥 User Management</h2>
+            </div>
+
+            <div class="table-wrapper bg-white p-3 rounded">
+                <table class="table table-bordered table-hover align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>Phone</th>
+                            <th>Email</th>
+                            <th>Login Method</th>
+                            <th>Created</th>
+                            <th>Status</th>
+                            <th class="text-center">Actions</th>
+                            <th>Last Login</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% users.forEach((u, index)=> { %>
+                            <tr>
+                                <td>
+                                    <%= index + 1 %>
+                                </td>
+                                <td>
+                                    <%= u.username || "N/A" %>
+                                </td>
+                                <td>
+                                    <%= u.phone || "—" %>
+                                </td>
+                                <td>
+                                    <%= u.email || "—" %>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info text-dark badge-status">
+                                        <%= u.phone ? "Phone OTP" : "Google OAuth" %>
+                                    </span>
+                                </td>
+                                <td>
+                                    <%= new Date(u.createdAt).toLocaleString("en-IN") %>
+                                </td>
+                                <td>
+                                    <% const last=new Date(u.lastLogin); const now=new Date(); const diffDays=(now -
+                                        last) / (1000 * 60 * 60 * 24); %>
+
+                                        <% if (!u.lastLogin) { %>
+                                            <span class="badge bg-secondary badge-status">Inactive</span>
+                                            <% } else if (diffDays <=20) { %>
+                                                <span class="badge bg-success badge-status">Active</span>
+                                                <% } else { %>
+                                                    <span
+                                                        class="badge bg-warning text-dark badge-status">Inactive</span>
+                                                    <% } %>
+                                </td>
+
+                                <td class="text-center">
+                                    <% if (process.env.NODE_ENV !=="production" ) { %>
+                                        <form action="/admin/users/<%= u._id %>/delete" method="POST"
+                                            onsubmit="return confirm('Delete this user?');" class="d-inline">
+                                            <button class="btn btn-sm btn-outline-danger btn-delete">
+                                                <i class="bi bi-trash"></i> Delete
+                                            </button>
+                                        </form>
+                                        <% } else { %>
+                                            <span class="text-muted small">Locked</span>
+                                            <% } %>
+                                </td>
+                                <td>
+                                    <%= u.lastLogin ? new Date(u.lastLogin).toLocaleString("en-IN") : "—" %>
+                                </td>
+
+                            </tr>
+                            <% }) %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>

@@ -68,3 +68,20 @@
     alert("✅ Link copied to clipboard");
   }
 </script>
+ <script>
+  function trackUserAction(step, method = 'pageview') {
+    fetch('/analytics/user-action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        step,
+        method,
+        path: window.location.pathname
+      })
+    });
+  }
+</script>
+<script>
+  trackUserAction('payment_completed');
+  trackUserAction('parcel_booked');
+</script>

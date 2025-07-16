@@ -13,3 +13,20 @@
 <p>A payment link has been sent. Locker will be booked after successful payment.</p>
 <p><strong>Expires At:</strong> <%= new Date(parcel.expiresAt).toLocaleString("en-IN") %></p>
 </div>
+ <script>
+  function trackUserAction(step, method = 'pageview') {
+    fetch('/analytics/user-action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        step,
+        method,
+        path: window.location.pathname
+      })
+    });
+  }
+</script>
+<script>
+  trackUserAction('receiver_pays_pending');
+
+</script>

@@ -171,8 +171,31 @@
       <span><i class="fas fa-envelope me-1"></i>No Spam</span>
       <span><i class="fas fa-thumbs-up me-1"></i>Trusted</span>
     </div>
-  </div>
-  
+  </div> <script>
+  function trackUserAction(step, method = 'pageview') {
+    fetch('/analytics/user-action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        step,
+        method,
+        path: window.location.pathname
+      })
+    });
+  }
+</script>
+  <script>
+  trackUserAction('login_page');
+
+  document.querySelector("form[action='/otpLogin']")?.addEventListener("submit", () => {
+    trackUserAction('login_phone', 'submit');
+  });
+
+  document.querySelector("a[href='/auth/google']")?.addEventListener("click", () => {
+    trackUserAction('login_google', 'click');
+  });
+</script>
+
 <script>
   try {
     // Page view tracking

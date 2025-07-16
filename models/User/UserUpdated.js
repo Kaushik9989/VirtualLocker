@@ -37,6 +37,12 @@ const userSchema = new mongoose.Schema(
       enum: ["user", "admin", "technician", "partner"],
       default: "user",
     },
+    lastLogin: {
+  type: Date,
+  default: null
+}
+,
+
     parcels: [{ type: mongoose.Schema.Types.ObjectId, ref: "Parcel" }],
     wallet: {
       type: walletSchema,

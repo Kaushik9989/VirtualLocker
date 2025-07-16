@@ -323,6 +323,20 @@ window.addEventListener("load", () => {
             }
           });
         </script>
+        <script>
+  function trackUserAction(step, method = 'pageview') {
+    fetch('/analytics/user-action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        step,
+        method,
+        path: window.location.pathname
+      })
+    });
+  }
+</script>
+
     </body>
 
 </html>

@@ -272,6 +272,31 @@ app.post("/analytics/step-duration", express.json(), async (req, res) => {
   res.sendStatus(200);
 });
 
+app.get("/users", async (req, res) => {
+  try {
+    const users = await User.find().sort({ createdAt: -1 }).lean();
+
+    res.render("users", {
+      users,
+      activePage: "users"
+    });
+  } catch (err) {
+    console.error("Failed to load users:", err);
+    res.status(500).send("Error loading users");
+  }
+});
+app.post("/admin/users/:id/delete", async (req, res) => {
+  
+
+  try {
+    await User.findByIdAndDelete(req.params.id);
+    res.redirect("/users");
+  } catch (err) {
+    console.error("Delete failed:", err);
+    res.status(500).send("Failed to delete user");
+  }
+});
+
 
 app.get('/analytics', async (req, res) => {
   try {
@@ -664,31 +689,31 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
 });
 
 
-app.post("/log-version", async (req, res) => {
-  const { version, notes, pushedBy } = req.body;
 
-  if (!version || !notes) {
-    return res.status(400).json({ error: "version and notes are required" });
-  }
- 
-  try {
-    const entry = await Version.create({ version, notes, pushedBy });
-    res.status(201).json({ message: "Version logged", data: entry });
-  } catch (err) {
-    res.status(500).json({ error: "DB error", details: err.message });
-  }
-});
 //VERSION TRACKING
 
-app.get("/version", (req, res) => {
-  const versionPath = path.join(__dirname, "version.json");
-  try {
-    const versionData = fs.readFileSync(versionPath, "utf8");
-    res.json(JSON.parse(versionData));
-  } catch (error) {
-    res.status(500).json({ error: "Version not found" });
-  }
+app.get("/admin/versions", async (req, res) => {
+  const versions = await Version.find().sort({ pushedAt: -1 }).lean();
+  res.render("admin/versions", { versions });
 });
+
+app.post("/admin/versions/:id/revert", async (req, res) => {
+  const version = await Version.findById(req.params.id);
+  if (!version) return res.status(404).send("Version not found");
+
+  const zipPath = version.zipPath;
+
+  // Unzip the old code (overwrite current)
+  const execSync = require("child_process").execSync;
+  execSync(`unzip -o ${zipPath} -d ./`);
+
+  // Update current flag
+  await Version.updateMany({}, { isCurrent: false });
+  await Version.findByIdAndUpdate(version._id, { isCurrent: true });
+
+  res.redirect("versions");
+});
+
 const FunnelEvent = require("./models/funnelEvent.js");
 
 async function trackFunnelStep(req, step, metadata = {}) {
@@ -917,6 +942,14 @@ app.get(
       wallet: req.user.wallet || { credits: 0 },
       phone: req.user.phone || null,
     };
+    let user = await User.findOne({ username : req.session.user.username});
+
+if (!user) {
+  user = await User.create({ googleId, email, username });
+}
+user.lastLogin = new Date();
+await user.save();
+
     await trackFunnelStep(req, "login_oauth", { phone: req.body.phone });
     const redirectTo = req.session.redirectTo || "/dashboard";
     delete req.session.redirectTo;
@@ -1277,6 +1310,33 @@ app.post("/set-username", async (req, res) => {
     });
   }
 });
+app.get("/verify-login", (req, res) => {
+  const phone = req.session.phone; // saved from login step
+  res.render("verify-login", { error: null, phone });
+});
+
+app.post("/resend-login-otp", async (req, res) => {
+  const  phone  = req.session.phone;
+
+  if (!phone) {
+    return res.status(400).send("Phone number missing.");
+  }
+
+  try {
+    await client.verify.v2
+      .services(process.env.TWILIO_VERIFY_SERVICE_SID)
+      .verifications.create({ to: `+91${phone}`, channel: "sms" });
+
+    req.session.phone = phone; // persist phone
+    res.redirect("/verify-login"); // back to OTP input
+  } catch (err) {
+    console.error("Error resending OTP:", err.message);
+    res.render("verify-login", {
+      error: "Failed to resend OTP. Try again.",
+      phone
+    });
+  }
+});
 
 app.post("/otpLogin", async (req, res) => {
   await trackFunnelStep(req, "login_phone", { phone: req.body.phone });
@@ -1335,10 +1395,13 @@ app.post("/verify-login", async (req, res) => {
 
     let user = await User.findOne({ phone });
 
-    if (!user) {
-      // 👇 User doesn't exist, redirect to set-username
-      return res.redirect("/set-username");
-    }
+
+if (user) {
+  user.lastLogin = new Date();
+  await user.save();
+}
+
+ 
 
     // ✅ Existing user
     req.session.user = {
@@ -1639,6 +1702,72 @@ app.post("/send/step3", isAuthenticated, async (req, res) => {
     res.redirect("/dashboard");
   }
 });
+const UserAction = require('./models/userAction.js');
+
+app.post("/analytics/user-action", async (req, res) => {
+  const { step, method, path } = req.body;
+  try{
+  await UserAction.create({
+    step,
+    method,
+    path,
+    sessionId: req.sessionID,
+    userId: req.session?.user?._id || null
+  });
+} catch(err){
+  console.log(err);
+}
+  res.sendStatus(200);
+});
+app.get("/action_funnel", async (req, res) => {
+  const now = new Date();
+
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(todayStart);
+  todayEnd.setDate(todayEnd.getDate() + 1);
+
+  const yesterdayStart = new Date(todayStart);
+  yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+  const yesterdayEnd = new Date(todayStart);
+
+  const today = await UserAction.aggregate([
+    { $match: { timestamp: { $gte: todayStart, $lt: todayEnd } } },
+    { $group: { _id: "$step", count: { $sum: 1 } } }
+  ]);
+
+  const yesterday = await UserAction.aggregate([
+    { $match: { timestamp: { $gte: yesterdayStart, $lt: yesterdayEnd } } },
+    { $group: { _id: "$step", count: { $sum: 1 } } }
+  ]);
+
+  // ✅ Define your custom ordered funnel
+  const orderedSteps = [
+    "login_page",
+    "login_google",
+    "login_phone",
+    "dashboard",
+    "send_step_2",
+    "payment_stage",
+    "payment_completed",
+    "parcel_booked"
+  ];
+
+  const funnel = orderedSteps.map(step => {
+    const t = today.find(c => c._id === step);
+    const y = yesterday.find(p => p._id === step);
+    return {
+      step,
+      today: t ? t.count : 0,
+      yesterday: y ? y.count : 0
+    };
+  });
+
+  res.render("funnelAction", { funnel });
+});
+
+
+
 
 
 // app.post("/send/step3", isAuthenticated, async (req, res) => {

@@ -1,0 +1,51 @@
+<% layout("layouts/boilerplate") %>
+<style>
+      @media (min-width: 768px) {
+            .helli {
+                margin-left: 200px;
+            }
+        }
+</style>
+<div class="Helli">
+<div class="container mt-4">
+  <h3>🚀 Deployed Versions</h3>
+  <table class="table table-bordered table-hover">
+    <thead class="table-dark">
+      <tr>
+        <th>Version</th>
+        <th>Commit</th>
+        <th>Pushed At</th>
+        <th>By</th>
+        <th>Status</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% versions.forEach(v => { %>
+        <tr>
+          <td><%= v.version %></td>
+          <td><code><%= v.commitHash.slice(0, 7) %></code></td>
+          <td><%= new Date(v.pushedAt).toLocaleString() %></td>
+          <td><%= v.deployedBy %></td>
+          <td>
+            <% if (v.isCurrent) { %>
+              <span class="badge bg-success">Current</span>
+            <% } else { %>
+              <span class="badge bg-secondary">Archived</span>
+            <% } %>
+          </td>
+          <td>
+            <% if (!v.isCurrent) { %>
+              <form action="/admin/versions/<%= v._id %>/revert" method="POST" onsubmit="return confirm('Revert to this version?');">
+                <button class="btn btn-sm btn-warning">Revert</button>
+              </form>
+            <% } else { %>
+              —
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+</div>
