@@ -689,20 +689,43 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
 });
 
 
-app.post("/log-version", async (req, res) => {
-  const { version, notes, pushedBy } = req.body;
 
-  if (!version || !notes) {
-    return res.status(400).json({ error: "version and notes are required" });
+
+app.post("/log-version", async (req, res) => {
+  const { version, pushedBy = "auto" } = req.body;
+
+  if (!version) {
+    return res.status(400).json({ error: "version is required" });
   }
- 
+
   try {
-    const entry = await Version.create({ version, notes, pushedBy });
+    // Optional: get commit hash
+    const commitHash = require("child_process")
+      .execSync("git rev-parse HEAD")
+      .toString()
+      .trim();
+
+    // Optional: mark previous as inactive
+    await Version.updateMany({}, { isCurrent: false });
+
+    const zipPath = path.join("backups", `release_${version}.zip`);
+
+    const entry = await Version.create({
+      version,
+      commitHash,
+      zipPath,
+      pushedAt: new Date(),
+      isCurrent: true,
+      deployedBy: pushedBy
+    });
+
     res.status(201).json({ message: "Version logged", data: entry });
   } catch (err) {
+    console.error("Logging error:", err);
     res.status(500).json({ error: "DB error", details: err.message });
   }
 });
+
 //VERSION TRACKING
 
 app.get("/version", (req, res) => {
