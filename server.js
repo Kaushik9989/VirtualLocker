@@ -982,7 +982,7 @@ await user.save();
 );
 
 app.get("/link-phone", (req, res) => {
-  res.render("link-phone", { error: null });
+  res.render("link-phone", { error: null});
 });
 app.post("/link-phone", async (req, res) => {
   let rawPhone = req.body.phone || "";
@@ -1064,7 +1064,10 @@ app.post("/verify-link-phone", async (req, res) => {
     delete req.session.linkPhone;
     accountCache.delete("account:" + req.session.user._id);
     req.flash("success", "✅ Phone linked successfully.");
-    res.redirect("/send/step1");
+    const redirectTo = req.session.pendingRedirectAfterPhoneLink || "/dashboard";
+delete req.session.pendingRedirectAfterPhoneLink;
+res.redirect(redirectTo);
+    // res.redirect("/send/step2");
   } catch (err) {
     console.error("Error linking phone:", err);
     res.render("verify-link-phone", {
@@ -1279,86 +1282,63 @@ app.post("/verify", async (req, res) => {
   }
 });
 
-app.get("/set-username", (req, res) => {
-  if (!req.session.phone) return res.redirect("/register");
-  res.render("set-username", { error: null });
-});
+// app.get("/set-username", (req, res) => {
+//   if (!req.session.phone) return res.redirect("/register");
+//   res.render("set-username", { error: null });
+// });
 
-app.post("/set-username", async (req, res) => {
-  const { username } = req.body;
-  const phone = req.session.phone;
+// app.post("/set-username", async (req, res) => {
+//   const { username } = req.body;
+//   const phone = req.session.phone;
 
-  try {
-    // Check if username already exists
-    const existingUsername = await User.findOne({ username });
-    if (existingUsername) {
-      return res.render("set-username", {
-        error: "❌ Username already taken.",
-      });
-    }
+//   try {
+//     // Check if username already exists
+//     const existingUsername = await User.findOne({ username });
+//     if (existingUsername) {
+//       return res.render("set-username", {
+//         error: "❌ Username already taken.",
+//       });
+//     }
 
-    // Create new user
-    const user = new User({
-      phone,
-      username,
-      isPhoneVerified: true,
-      uid: "user_" + Math.random().toString(36).substr(2, 9),
-    });
+//     // Create new user
+//     const user = new User({
+//       phone,
+//       username,
+//       isPhoneVerified: true,
+//       uid: "user_" + Math.random().toString(36).substr(2, 9),
+//     });
 
-    await user.save();
+//     await user.save();
 
-    // Set session user
-    req.session.user = {
-      _id: user._id,
-      uid: user.uid,
-      username: user.username,
-      phone: user.phone,
-      email: user.email || null,
-      wallet: user.wallet || { credits: 0 },
-    };
+//     // Set session user
+//     req.session.user = {
+//       _id: user._id,
+//       uid: user.uid,
+//       username: user.username,
+//       phone: user.phone,
+//       email: user.email || null,
+//       wallet: user.wallet || { credits: 0 },
+//     };
 
-    // Clean up session
-    delete req.session.phone;
-    const redirectTo = req.session.redirectTo || "/dashboard";
-    delete req.session.redirectTo;
+//     // Clean up session
+//     delete req.session.phone;
+//     const redirectTo = req.session.redirectTo || "/dashboard";
+//     delete req.session.redirectTo;
 
-    // 🚫 REMOVE this line - it is causing the error
-    // req.user.phone = user.phone;
-    accountCache.delete("account:" + req.session.user._id);
-    res.redirect(redirectTo);
-  } catch (err) {
-    console.error("User Save Error:", err.message);
-    res.render("set-username", {
-      error: "❌ Failed to save user. Try again.",
-    });
-  }
-});
+//     // 🚫 REMOVE this line - it is causing the error
+//     // req.user.phone = user.phone;
+//     accountCache.delete("account:" + req.session.user._id);
+//     res.redirect(redirectTo);
+//   } catch (err) {
+//     console.error("User Save Error:", err.message);
+//     res.render("set-username", {
+//       error: "❌ Failed to save user. Try again.",
+//     });
+//   }
+// });
 app.get("/verify-login", (req, res) => {
   const phone = req.session.phone; // saved from login step
   res.render("verify-login", { error: null, phone });
-});
-
-app.post("/resend-login-otp", async (req, res) => {
-  const  phone  = req.session.phone;
-
-  if (!phone) {
-    return res.status(400).send("Phone number missing.");
-  }
-
-  try {
-    await client.verify.v2
-      .services(process.env.TWILIO_VERIFY_SERVICE_SID)
-      .verifications.create({ to: `+91${phone}`, channel: "sms" });
-
-    req.session.phone = phone; // persist phone
-    res.redirect("/verify-login"); // back to OTP input
-  } catch (err) {
-    console.error("Error resending OTP:", err.message);
-    res.render("verify-login", {
-      error: "Failed to resend OTP. Try again.",
-      phone
-    });
-  }
 });
 
 app.post("/otpLogin", async (req, res) => {
@@ -1388,15 +1368,9 @@ app.post("/otpLogin", async (req, res) => {
   }
 });
 
-app.get("/verify-login", (req, res) => {
-  if (!req.session.phone) return res.redirect("/login");
-  res.render("verify-login", { error: null });
-});
-
 app.post("/verify-login", async (req, res) => {
   await trackFunnelStep(req, "otp_entered");
   
-  // ...login logic
 
 
   const { otp } = req.body;
@@ -1417,7 +1391,12 @@ app.post("/verify-login", async (req, res) => {
     }
 
     let user = await User.findOne({ phone });
-
+if (!user) {
+  return res.redirect("/set-username", 
+    
+   
+  );
+}
 
 if (user) {
   user.lastLogin = new Date();
@@ -1486,6 +1465,30 @@ app.post("/set-username", async (req, res) => {
     });
   }
 });
+app.post("/resend-login-otp", async (req, res) => {
+  const phone = req.session.phone;
+
+  if (!phone) {
+    return res.render("login", {
+      error: "Session expired. Please login again.",
+    });
+  }
+
+  try {
+    await client.verify.v2
+      .services(process.env.TWILIO_VERIFY_SERVICE_SID)
+      .verifications.create({ to: `+91${phone}`, channel: "sms" });
+
+    console.log(`OTP resent to ${phone}`);
+    res.redirect("/verify-login");  // session carries the phone
+  } catch (err) {
+    console.error("Error resending OTP:", err.message);
+    res.render("verify-login", {
+      error: "❌ Failed to resend OTP. Please try again.",
+      phone,
+    });
+  }
+});
 
 // =------------------------------------------------CREDIT WALLET SECTION--------------------------------------------------\\
 // GET: View wallet
@@ -1532,65 +1535,82 @@ app.get("/map", async (req, res) => {
 
 /// updated locker flow
 
-app.get("/send/step1", isAuthenticated, async (req, res) => {
-  const user = await User.findById(req.session.user._id);
-  console.log(user.phone);
-  if (!user.phone) {
-    req.flash(
-      "error",
-      "Please verify your phone number to continue sending a parcel."
-    );
-    return res.redirect("/link-phone");
-  }
-  res.render("parcel/step1", { messages: req.flash() });
-  await SessionIntent.findOneAndUpdate(
-  { sessionId: req.sessionID, completed: false },
-  { completed: true, endedAt: new Date() }
-);
-});
-
-app.post("/send/step1", isAuthenticated, (req, res) => {
-  req.session.parcelDraft = {
-    type: req.body.type,
-    size: req.body.size,
-    description: req.body.description || null,
-  };
-  res.redirect("/send/step2");
-});
-
-app.get("/send/step2", isAuthenticated, async(req, res) => {
+app.get("/send/step2", isAuthenticated, async (req, res) => {
   await FunnelEvent.create({
     sessionId: req.sessionID,
     userId: req.user?._id || null,
     step: "send_parcel_clicked",
     timestamp: new Date()
   });
-   const user = await User.findById(req.session.user._id);
-  console.log(user.phone);
+
+  const user = await User.findById(req.session.user._id);
+  const size = req.query.size;
+
+  // ✅ Ensure parcelDraft exists before setting any properties
+  if (!req.session.parcelDraft) {
+    req.session.parcelDraft = {};
+  }
+
+  // ✅ If size is passed via query, store it in session
+  if (size) {
+    req.session.parcelDraft.size = size;
+    req.session.parcelDraft.type = "package";  // Optional default
+    req.session.parcelDraft.description = "";  // Optional default
+  }
+
+  // ✅ If phone not linked, save redirect and go to /link-phone
   if (!user.phone) {
-    req.flash(
-      "error",
-      "Please verify your phone number to continue sending a parcel."
-    );
+    req.session.pendingRedirectAfterPhoneLink = `/send/step2${size ? `?size=${size}` : ""}`;
+    req.flash("error", "Please verify your phone number to continue sending a parcel.");
     return res.redirect("/link-phone");
   }
-  const { size } = req.query;
-  if (size) {
-    // Initialize draft session if not present
-    if (!req.session.parcelDraft) {
-      req.session.parcelDraft = {};
-    }
-    req.session.parcelDraft.size = size;
-    // Optionally, you could also set defaults:
-    req.session.parcelDraft.type = "package";
-    req.session.parcelDraft.description = "";
-  }
+
   res.render("parcel/step2");
 });
 
+
+
+
+
+
+
+// app.get("/send/step2", isAuthenticated, async(req, res) => {
+//   await FunnelEvent.create({
+//     sessionId: req.sessionID,
+//     userId: req.user?._id || null,
+//     step: "send_parcel_clicked",
+//     timestamp: new Date()
+//   });
+//   const user = await User.findById(req.session.user._id);
+//   req.session.parcelDraft.size = req.query.size;
+//   console.log(user.phone);
+//   if (!user.phone) {
+//     req.flash(
+//       "error",
+//       "Please verify your phone number to continue sending a parcel."
+//     );
+//     return res.redirect("/link-phone",);
+//   }
+ 
+//   if (size) {
+//     // Initialize draft session if not present
+//     if (!req.session.parcelDraft) {
+//       req.session.parcelDraft = {};
+//     }
+//     req.session.parcelDraft.size = size;
+//     // Optionally, you could also set defaults:
+//     req.session.parcelDraft.type = "package";
+//     req.session.parcelDraft.description = "";
+//   }
+//   res.render("parcel/step2");
+// });
 app.post("/send/step2", isAuthenticated, (req, res) => {
+  if (!req.session.parcelDraft) {
+    req.session.parcelDraft = {};  // Initialize if missing
+  }
   req.session.parcelDraft.receiverName = req.body.receiverName;
   req.session.parcelDraft.receiverPhone = req.body.receiverPhone;
+
   res.redirect("/send/step3");
 });
 app.get("/send/step3", isAuthenticated, (req, res) => {
@@ -1611,7 +1631,7 @@ app.post("/send/step3", isAuthenticated, async (req, res) => {
     const cost = getEstimatedCost(draft.size).toString();
     const qrPayload = JSON.stringify({ accessCode });
     const qrImage = await QRCode.toDataURL(qrPayload);
-
+  
     let status = "awaiting_drop";
     let paymentStatus = "completed";
     let expiresAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
