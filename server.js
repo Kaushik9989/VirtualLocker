@@ -1637,6 +1637,7 @@ app.post("/send/step2", isAuthenticated, async (req, res) => {
     req.session.parcelDraft.isSelf = false;
     req.session.parcelDraft.receiverName = receiverName;
     req.session.parcelDraft.receiverPhone = receiverPhone;
+    req.session.parcelDraft.paymentOption = "sender_pays";
   }
 
   res.redirect("/send/step3");
@@ -1644,161 +1645,246 @@ app.post("/send/step2", isAuthenticated, async (req, res) => {
 
 
 
-app.get("/send/step3", isAuthenticated, (req, res) => {
-  res.render("parcel/step3");
-  
-});
-function getEstimatedCost(size) {
-  if (size === "small") return 10;
-  if (size === "medium") return 20;
-  return 30;
-}
-app.post("/send/step3", isAuthenticated, async (req, res) => {
+app.get("/send/step3", isAuthenticated, async (req, res) => {
   try {
     const draft = req.session.parcelDraft;
-    draft.paymentOption = req.body.paymentOption;
-  const lockerId = draft.lockerId;
-    
+
+    const lockerId = draft.lockerId;
     const user = await User.findById(req.session.user._id);
     const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
     const cost = getEstimatedCost(draft.size).toString();
-   let qrImage; // declare it outside
 
-if (draft.lockerId) {
-  const qrPayload = JSON.stringify({ accessCode, lockerId });
-  qrImage = await QRCode.toDataURL(qrPayload);
-} else {
-  const qrPayload = JSON.stringify({ accessCode });
-  qrImage = await QRCode.toDataURL(qrPayload);
-}
-    
-  
-    
+    let qrImage;
+    if (lockerId) {
+      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode, lockerId }));
+    } else {
+      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode }));
+    }
+
     let status = "awaiting_drop";
     let paymentStatus = "completed";
     let expiresAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
     let razorpayOrder = null;
 
-    if (draft.paymentOption === "sender_pays" || draft.paymentOption === "receiver_pays") {
-      status = "awaiting_payment";
-      paymentStatus = "pending";
-      expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
+    // Always use "sender_pays" now
+    draft.paymentOption = "sender_pays";
+    status = "awaiting_payment";
+    paymentStatus = "pending";
+    expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
+
+    razorpayOrder = await razorpay.orders.create({
+      amount: parseFloat(cost) * 100,
+      currency: "INR",
+      receipt: `parcel_${Date.now()}`,
+      payment_capture: 1,
+    });
+
+    if (draft.isSelf) {
+      if (!draft.receiverPhone) draft.receiverPhone = user.phone;
+      if (!draft.receiverName) draft.receiverName = user.username || "Self";
     }
 
-    if (draft.paymentOption === "sender_pays") {
-      razorpayOrder = await razorpay.orders.create({
-        amount: parseFloat(cost) * 100,
-        currency: "INR",
-        receipt: `parcel_${Date.now()}`,
-        payment_capture: 1,
-      });
+    if (!draft.receiverPhone || draft.receiverPhone.trim() === "") {
+      req.flash("error", "Receiver phone is required.");
+      return res.redirect("/send/step2");
     }
-if (draft.isSelf) {
-  if (!draft.receiverPhone) draft.receiverPhone = user.phone;
-  if (!draft.receiverName) draft.receiverName = user.username || "Self";
-}
 
-if (!draft.receiverPhone || draft.receiverPhone.trim() === "") {
-  console.error("❌ Missing receiverPhone even after fallback:", draft);
-  req.flash("error", "Receiver phone is required.");
-  return res.redirect("/send/step2");
-}
-const parcel = new Parcel2({
-  ...draft,
-  senderId: req.user._id,
-  senderName: req.user.username,
-  senderPhone: user.phone,
-  receiverName: draft.receiverName,
-  receiverPhone: draft.receiverPhone,
-  accessCode,
-  qrImage : qrImage,
-  lockerId: draft.lockerId || null,
-  cost,
-  status,
-  paymentStatus,
-  droppedAt: null,
-  expiresAt,
-  compartmentId: null,
-  razorpayOrderId: razorpayOrder?.id || null,
-});
-
-await parcel.save();
+    const parcel = new Parcel2({
+      ...draft,
+      senderId: req.user._id,
+      senderName: user.username,
+      senderPhone: user.phone,
+      receiverName: draft.receiverName,
+      receiverPhone: draft.receiverPhone,
+      accessCode,
+      qrImage,
+      lockerId: draft.lockerId || null,
+      cost,
+      status,
+      paymentStatus,
+      droppedAt: null,
+      expiresAt,
+      compartmentId: null,
+      razorpayOrderId: razorpayOrder?.id || null,
+    });
 
     await parcel.save();
     delete req.session.parcelDraft;
 
-    const updated = await incomingParcel.findOneAndUpdate(
-      { receiverPhone: parcel.receiverPhone, status: "pending" },
-      {
-        receiverName: parcel.receiverName,
-        parcelType: parcel.type,
-        size: parcel.size,
-        cost: parseFloat(parcel.cost),
-        accessCode: parcel.accessCode,
-        qrCodeUrl: parcel.qrImage,
-        status: "awaiting_drop",
-        lockerId: parcel.lockerId?.toString() || "",
-        "metadata.description": parcel.description || "",
-      },
-      { new: true }
-    );
-
-    if (!updated) {
-      await incomingParcel.create({
-        senderPhone: user.phone || "unknown",
-        receiverPhone: parcel.receiverPhone,
-        senderName: user.username,
-        receiverName: parcel.receiverName || "",
-        parcelType: parcel.type,
-        size: parcel.size,
-        cost: parseFloat(parcel.cost),
-        accessCode: parcel.accessCode,
-        qrCodeUrl: parcel.qrImage,
-        status: "awaiting_drop",
-        lockerId: parcel.lockerId?.toString() || "",
-        metadata: {
-          description: parcel.description || "",
-        },
-        lockerLat: parcel.lockerLat,
-        lockerLng: parcel.lockerLng,
-      });
-    }
-
-    // ✅ WhatsApp Notification (before any return)
-   
-
-
-    // ✅ Funnel Event Logging
+    // funnel log
     await FunnelEvent.create({
       sessionId: req.sessionID,
       step: 'step3_complete',
       timestamp: new Date(),
     });
 
-    // ✅ Now handle payment redirection
-    if (draft.paymentOption === "receiver_pays") {
-      return res.render("parcel/waiting-payment", { parcel });
-    }
-
-    if (draft.paymentOption === "sender_pays") {
-      return res.render("parcel/payment", {
-        parcel,
-        razorpayKeyId: process.env.RAZORPAY_KEY_ID,
-        orderId: razorpayOrder.id,
-        amount: razorpayOrder.amount,
-        currency: razorpayOrder.currency,
-      });
-    }
-
-    // ✅ Final fallback redirect if payment is completed
-    return res.redirect(`/parcel/${parcel._id}/success`);
+    // Redirect directly to Razorpay payment page
+    return res.render("parcel/payment", {
+      parcel,
+      razorpayKeyId: process.env.RAZORPAY_KEY_ID,
+      orderId: razorpayOrder.id,
+      amount: razorpayOrder.amount,
+      currency: razorpayOrder.currency,
+    });
 
   } catch (error) {
     console.error("❌ Error in /send/step3:", error);
-    req.flash("error", "An unexpected error occurred. Please try again.");
+    req.flash("error", "Something went wrong. Please try again.");
     res.redirect("/dashboard");
   }
 });
+
+function getEstimatedCost(size) {
+  if (size === "small") return 10;
+  if (size === "medium") return 20;
+  return 30;
+}
+// app.post("/send/step3", isAuthenticated, async (req, res) => {
+//   try {
+//     const draft = req.session.parcelDraft;
+//     draft.paymentOption = req.body.paymentOption;
+//   const lockerId = draft.lockerId;
+    
+//     const user = await User.findById(req.session.user._id);
+//     const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
+//     const cost = getEstimatedCost(draft.size).toString();
+//    let qrImage; // declare it outside
+
+// if (draft.lockerId) {
+//   const qrPayload = JSON.stringify({ accessCode, lockerId });
+//   qrImage = await QRCode.toDataURL(qrPayload);
+// } else {
+//   const qrPayload = JSON.stringify({ accessCode });
+//   qrImage = await QRCode.toDataURL(qrPayload);
+// }
+    
+  
+    
+//     let status = "awaiting_drop";
+//     let paymentStatus = "completed";
+//     let expiresAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+//     let razorpayOrder = null;
+
+//     if (draft.paymentOption === "sender_pays" || draft.paymentOption === "receiver_pays") {
+//       status = "awaiting_payment";
+//       paymentStatus = "pending";
+//       expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
+//     }
+
+//     if (draft.paymentOption === "sender_pays") {
+//       razorpayOrder = await razorpay.orders.create({
+//         amount: parseFloat(cost) * 100,
+//         currency: "INR",
+//         receipt: `parcel_${Date.now()}`,
+//         payment_capture: 1,
+//       });
+//     }
+// if (draft.isSelf) {
+//   if (!draft.receiverPhone) draft.receiverPhone = user.phone;
+//   if (!draft.receiverName) draft.receiverName = user.username || "Self";
+// }
+
+// if (!draft.receiverPhone || draft.receiverPhone.trim() === "") {
+//   console.error("❌ Missing receiverPhone even after fallback:", draft);
+//   req.flash("error", "Receiver phone is required.");
+//   return res.redirect("/send/step2");
+// }
+// const parcel = new Parcel2({
+//   ...draft,
+//   senderId: req.user._id,
+//   senderName: req.user.username,
+//   senderPhone: user.phone,
+//   receiverName: draft.receiverName,
+//   receiverPhone: draft.receiverPhone,
+//   accessCode,
+//   qrImage : qrImage,
+//   lockerId: draft.lockerId || null,
+//   cost,
+//   status,
+//   paymentStatus,
+//   droppedAt: null,
+//   expiresAt,
+//   compartmentId: null,
+//   razorpayOrderId: razorpayOrder?.id || null,
+// });
+
+// await parcel.save();
+
+//     await parcel.save();
+//     delete req.session.parcelDraft;
+
+//     const updated = await incomingParcel.findOneAndUpdate(
+//       { receiverPhone: parcel.receiverPhone, status: "pending" },
+//       {
+//         receiverName: parcel.receiverName,
+//         parcelType: parcel.type,
+//         size: parcel.size,
+//         cost: parseFloat(parcel.cost),
+//         accessCode: parcel.accessCode,
+//         qrCodeUrl: parcel.qrImage,
+//         status: "awaiting_drop",
+//         lockerId: parcel.lockerId?.toString() || "",
+//         "metadata.description": parcel.description || "",
+//       },
+//       { new: true }
+//     );
+
+//     if (!updated) {
+//       await incomingParcel.create({
+//         senderPhone: user.phone || "unknown",
+//         receiverPhone: parcel.receiverPhone,
+//         senderName: user.username,
+//         receiverName: parcel.receiverName || "",
+//         parcelType: parcel.type,
+//         size: parcel.size,
+//         cost: parseFloat(parcel.cost),
+//         accessCode: parcel.accessCode,
+//         qrCodeUrl: parcel.qrImage,
+//         status: "awaiting_drop",
+//         lockerId: parcel.lockerId?.toString() || "",
+//         metadata: {
+//           description: parcel.description || "",
+//         },
+//         lockerLat: parcel.lockerLat,
+//         lockerLng: parcel.lockerLng,
+//       });
+//     }
+
+//     // ✅ WhatsApp Notification (before any return)
+   
+
+
+//     // ✅ Funnel Event Logging
+//     await FunnelEvent.create({
+//       sessionId: req.sessionID,
+//       step: 'step3_complete',
+//       timestamp: new Date(),
+//     });
+
+//     // ✅ Now handle payment redirection
+//     if (draft.paymentOption === "receiver_pays") {
+//       return res.render("parcel/waiting-payment", { parcel });
+//     }
+
+//     if (draft.paymentOption === "sender_pays") {
+//       return res.render("parcel/payment", {
+//         parcel,
+//         razorpayKeyId: process.env.RAZORPAY_KEY_ID,
+//         orderId: razorpayOrder.id,
+//         amount: razorpayOrder.amount,
+//         currency: razorpayOrder.currency,
+//       });
+//     }
+
+//     // ✅ Final fallback redirect if payment is completed
+//     return res.redirect(`/parcel/${parcel._id}/success`);
+
+//   } catch (error) {
+//     console.error("❌ Error in /send/step3:", error);
+//     req.flash("error", "An unexpected error occurred. Please try again.");
+//     res.redirect("/dashboard");
+//   }
+// });
 
 
 app.get("/send/select-locker/:lockerId", isAuthenticated, async (req, res) => {
