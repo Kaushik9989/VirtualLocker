@@ -411,6 +411,10 @@ document.addEventListener("DOMContentLoaded", function () {
           <a href="https://www.google.com/maps/dir/?api=1&destination=${locker.location?.lat},${locker.location?.lng}" target="_blank" class="btn btn-outline-dark">
             <i class="fas fa-location-arrow"></i> Directions
           </a>
+          <a href="/send/select-locker/${locker.lockerId}" class="btn btn-warning w-100">
+  <i class="fas fa-box-open"></i> Store at this Locker
+</a>
+
           
         </div>
       `;

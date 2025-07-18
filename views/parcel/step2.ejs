@@ -1,40 +1,70 @@
 <% layout("/layouts/boilerplate") %>
+
 <div class="container py-5">
   <div class="row justify-content-center">
     <div class="col-lg-7">
-      <h3 class="mb-4 fw-bold">👤 Step 2: Recipient Info</h3>
+      <h3 class="mb-4 fw-bold">📦 Step 2: Recipient Info</h3>
+
       <form action="/send/step2" method="POST">
-        <div class="mb-3">
-          <label class="form-label">Recipient Name</label>
-          <input type="text" name="receiverName" class="form-control" required />
+        <!-- Delivery Option Dropdown -->
+        <div class="mb-4">
+          <label class="form-label">Who are you sending this to?</label>
+          <select class="form-select" name="deliveryOption" id="deliveryOption" required>
+            <option value="receiver" selected>Someone Else</option>
+            <option value="self">Store for Myself</option>
+          </select>
         </div>
 
-        <div class="mb-3">
-          <label class="form-label">Recipient Phone</label>
+        <!-- Receiver Fields -->
+        <div id="receiverFields">
+          <div class="mb-3">
+            <label class="form-label">Recipient Name</label>
+            <input type="text" name="receiverName" class="form-control" required />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Recipient Phone</label>
             <div class="input-group">
-          <span class="input-group-text"><i class="fas fa-phone"></i>&nbsp; +91 -</span> 
-          <input type="tel" name="receiverPhone" class="form-control" required />
+              <span class="input-group-text"><i class="fas fa-phone"></i>&nbsp; +91 -</span>
+              <input type="tel" name="receiverPhone" class="form-control" required />
+            </div>
           </div>
         </div>
 
-        <button class="btn btn-primary w-100">Next</button>
+        <button class="btn btn-primary w-100 mt-3">Next</button>
       </form>
     </div>
   </div>
 </div>
- <script>
+
+<!-- Script: Auto-hide receiver fields if 'Self' is chosen -->
+<script>
+  const deliverySelect = document.getElementById("deliveryOption");
+  const receiverFields = document.getElementById("receiverFields");
+
+  deliverySelect.addEventListener("change", () => {
+    if (deliverySelect.value === "self") {
+      receiverFields.style.display = "none";
+      Array.from(receiverFields.querySelectorAll("input")).forEach(input => {
+        input.required = false;
+      });
+    } else {
+      receiverFields.style.display = "block";
+      Array.from(receiverFields.querySelectorAll("input")).forEach(input => {
+        input.required = true;
+      });
+    }
+  });
+</script>
+
+<!-- User Tracking -->
+<script>
   function trackUserAction(step, method = 'pageview') {
     fetch('/analytics/user-action', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        step,
-        method,
-        path: window.location.pathname
-      })
+      body: JSON.stringify({ step, method, path: window.location.pathname })
     });
   }
-</script>
-<script>
   trackUserAction('send_step_2');
 </script>

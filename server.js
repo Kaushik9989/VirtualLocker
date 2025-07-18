@@ -1535,6 +1535,40 @@ app.get("/map", async (req, res) => {
 
 /// updated locker flow
 
+// app.get("/send/step2", isAuthenticated, async (req, res) => {
+//   await FunnelEvent.create({
+//     sessionId: req.sessionID,
+//     userId: req.user?._id || null,
+//     step: "send_parcel_clicked",
+//     timestamp: new Date()
+//   });
+
+//   const user = await User.findById(req.session.user._id);
+//   const size = req.query.size;
+
+//   // ✅ Ensure parcelDraft exists before setting any properties
+//   if (!req.session.parcelDraft) {
+//     req.session.parcelDraft = {};
+//   }
+
+//   // ✅ If size is passed via query, store it in session
+//   if (size) {
+//     req.session.parcelDraft.size = size;
+//     req.session.parcelDraft.type = "package";  // Optional default
+//     req.session.parcelDraft.description = "";  // Optional default
+//   }
+
+//   // ✅ If phone not linked, save redirect and go to /link-phone
+//   if (!user.phone) {
+//     req.session.pendingRedirectAfterPhoneLink = `/send/step2${size ? `?size=${size}` : ""}`;
+//     req.flash("error", "Please verify your phone number to continue sending a parcel.");
+//     return res.redirect("/link-phone");
+//   }
+
+//   res.render("parcel/step2");
+// });
+
+
 app.get("/send/step2", isAuthenticated, async (req, res) => {
   await FunnelEvent.create({
     sessionId: req.sessionID,
@@ -1545,24 +1579,28 @@ app.get("/send/step2", isAuthenticated, async (req, res) => {
 
   const user = await User.findById(req.session.user._id);
   const size = req.query.size;
+  const isSelf = req.query.self === 'true';
 
-  // ✅ Ensure parcelDraft exists before setting any properties
-  if (!req.session.parcelDraft) {
-    req.session.parcelDraft = {};
-  }
+  if (!req.session.parcelDraft) req.session.parcelDraft = {};
 
-  // ✅ If size is passed via query, store it in session
   if (size) {
     req.session.parcelDraft.size = size;
-    req.session.parcelDraft.type = "package";  // Optional default
-    req.session.parcelDraft.description = "";  // Optional default
+    req.session.parcelDraft.type = "package";
+    req.session.parcelDraft.description = "";
   }
 
-  // ✅ If phone not linked, save redirect and go to /link-phone
   if (!user.phone) {
     req.session.pendingRedirectAfterPhoneLink = `/send/step2${size ? `?size=${size}` : ""}`;
-    req.flash("error", "Please verify your phone number to continue sending a parcel.");
+    req.flash("error", "Please verify your phone number to continue.");
     return res.redirect("/link-phone");
+  }
+
+  if (isSelf) {
+    req.session.parcelDraft.receiverName = user.username || "Self";
+    req.session.parcelDraft.receiverPhone = user.phone;
+    req.session.parcelDraft.isSelf = true;
+    console.log(user.phone);
+    return res.redirect("/send/step3");
   }
 
   res.render("parcel/step2");
@@ -1570,49 +1608,42 @@ app.get("/send/step2", isAuthenticated, async (req, res) => {
 
 
 
-
-
-
-
-// app.get("/send/step2", isAuthenticated, async(req, res) => {
-//   await FunnelEvent.create({
-//     sessionId: req.sessionID,
-//     userId: req.user?._id || null,
-//     step: "send_parcel_clicked",
-//     timestamp: new Date()
-//   });
-//   const user = await User.findById(req.session.user._id);
-//   req.session.parcelDraft.size = req.query.size;
-//   console.log(user.phone);
-//   if (!user.phone) {
-//     req.flash(
-//       "error",
-//       "Please verify your phone number to continue sending a parcel."
-//     );
-//     return res.redirect("/link-phone",);
+// app.post("/send/step2", isAuthenticated, (req, res) => {
+//   if (!req.session.parcelDraft) {
+//     req.session.parcelDraft = {};  // Initialize if missing
 //   }
- 
-//   if (size) {
-//     // Initialize draft session if not present
-//     if (!req.session.parcelDraft) {
-//       req.session.parcelDraft = {};
-//     }
-//     req.session.parcelDraft.size = size;
-//     // Optionally, you could also set defaults:
-//     req.session.parcelDraft.type = "package";
-//     req.session.parcelDraft.description = "";
-//   }
-//   res.render("parcel/step2");
+//   req.session.parcelDraft.receiverName = req.body.receiverName;
+//   req.session.parcelDraft.receiverPhone = req.body.receiverPhone;
+//   req.session.parcelDraft.isSelf = false;
+//   res.redirect("/send/step3");
 // });
-app.post("/send/step2", isAuthenticated, (req, res) => {
-  if (!req.session.parcelDraft) {
-    req.session.parcelDraft = {};  // Initialize if missing
+app.post("/send/step2", isAuthenticated, async (req, res) => {
+  const { receiverName, receiverPhone, deliveryOption } = req.body;
+  const user = await User.findById(req.session.user._id);
+
+  if (!req.session.parcelDraft) req.session.parcelDraft = {};
+
+  // Self flow
+  if (deliveryOption === "self") {
+    req.session.parcelDraft.isSelf = true;
+    req.session.parcelDraft.receiverName = user.username || "Self";
+    req.session.parcelDraft.receiverPhone = user.phone || "";
+  } else {
+    // Someone else
+    if (!receiverName || !receiverPhone) {
+      req.flash("error", "Please enter both name and phone for the recipient.");
+      return res.redirect("/send/step2");
+    }
+    req.session.parcelDraft.isSelf = false;
+    req.session.parcelDraft.receiverName = receiverName;
+    req.session.parcelDraft.receiverPhone = receiverPhone;
   }
-  req.session.parcelDraft.receiverName = req.body.receiverName;
-  req.session.parcelDraft.receiverPhone = req.body.receiverPhone;
 
   res.redirect("/send/step3");
 });
+
+
+
 app.get("/send/step3", isAuthenticated, (req, res) => {
   res.render("parcel/step3");
   
@@ -1626,12 +1657,23 @@ app.post("/send/step3", isAuthenticated, async (req, res) => {
   try {
     const draft = req.session.parcelDraft;
     draft.paymentOption = req.body.paymentOption;
+  const lockerId = draft.lockerId;
+    
     const user = await User.findById(req.session.user._id);
     const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
     const cost = getEstimatedCost(draft.size).toString();
-    const qrPayload = JSON.stringify({ accessCode });
-    const qrImage = await QRCode.toDataURL(qrPayload);
+   let qrImage; // declare it outside
+
+if (draft.lockerId) {
+  const qrPayload = JSON.stringify({ accessCode, lockerId });
+  qrImage = await QRCode.toDataURL(qrPayload);
+} else {
+  const qrPayload = JSON.stringify({ accessCode });
+  qrImage = await QRCode.toDataURL(qrPayload);
+}
+    
   
+    
     let status = "awaiting_drop";
     let paymentStatus = "completed";
     let expiresAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
@@ -1651,24 +1693,36 @@ app.post("/send/step3", isAuthenticated, async (req, res) => {
         payment_capture: 1,
       });
     }
+if (draft.isSelf) {
+  if (!draft.receiverPhone) draft.receiverPhone = user.phone;
+  if (!draft.receiverName) draft.receiverName = user.username || "Self";
+}
 
-    const parcel = new Parcel2({
-      ...draft,
-      senderId: req.user._id,
-      senderName: req.user.username,
-      senderPhone:user.phone,
-      accessCode,
-      unlockUrl: null,
-      qrImage,
-      cost,
-      status,
-      paymentStatus,
-      droppedAt: null,
-      expiresAt,
-      lockerId: null,
-      compartmentId: null,
-      razorpayOrderId: razorpayOrder?.id || null,
-    });
+if (!draft.receiverPhone || draft.receiverPhone.trim() === "") {
+  console.error("❌ Missing receiverPhone even after fallback:", draft);
+  req.flash("error", "Receiver phone is required.");
+  return res.redirect("/send/step2");
+}
+const parcel = new Parcel2({
+  ...draft,
+  senderId: req.user._id,
+  senderName: req.user.username,
+  senderPhone: user.phone,
+  receiverName: draft.receiverName,
+  receiverPhone: draft.receiverPhone,
+  accessCode,
+  qrImage : qrImage,
+  lockerId: draft.lockerId || null,
+  cost,
+  status,
+  paymentStatus,
+  droppedAt: null,
+  expiresAt,
+  compartmentId: null,
+  razorpayOrderId: razorpayOrder?.id || null,
+});
+
+await parcel.save();
 
     await parcel.save();
     delete req.session.parcelDraft;
@@ -1744,6 +1798,34 @@ app.post("/send/step3", isAuthenticated, async (req, res) => {
     req.flash("error", "An unexpected error occurred. Please try again.");
     res.redirect("/dashboard");
   }
+});
+
+
+app.get("/send/select-locker/:lockerId", isAuthenticated, async (req, res) => {
+  const lockerId = req.params.lockerId;
+  const locker = await Locker.findOne({ lockerId: lockerId });
+
+  if (!locker) {
+    req.flash("error", "Locker not found");
+    return res.redirect("/locations");
+  }
+
+  // Initialize parcelDraft with locker details
+  req.session.parcelDraft = {
+    isSelf: true,
+    type: "package",
+    size: "small", // Default; you can allow changing later
+    paymentOption: "sender_pays",
+    lockerId: locker.lockerId,
+    location_id: locker.location?._id || null,
+    lockerLat: locker.location?.lat,
+    lockerLng: locker.location?.lng,
+    description: "Stored via locker catalog",
+    receiverName: req.user.username,
+    receiverPhone: req.user.phone
+  };
+
+  res.redirect("/send/step3");
 });
 const UserAction = require('./models/userAction.js');
 
@@ -1837,6 +1919,7 @@ app.get("/action_funnel", async (req, res) => {
 
   res.render("funnelAction", { funnel });
 });
+
 
 
 
@@ -2116,7 +2199,12 @@ await SessionIntent.findOneAndUpdate(
 //   await parcel.save();
 //   res.redirect(`/parcel/${parcel._id}/success`);
 // });
-
+app.get("/parcel/view/:id/success", async (req, res) => {
+    const parcelid = req.params.id;
+  const parcel = await Parcel2.findById(req.params.id);
+  if (!parcel) return res.status(404).send("Parcel not found");
+  res.render("parcel/success", { parcel });
+});
 app.get("/:id/qrpage",async(req,res)=>{
   const parcel = await Parcel2.findById(req.params.id);
    if (!parcel) return res.status(404).send("Parcel not found");
