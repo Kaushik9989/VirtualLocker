@@ -2157,7 +2157,7 @@ async function generateShiprocketToken() {
 
 
 async function getShippingRates(fromPin, toPin, weight) {
-   const token = await generateShiprocketToken();
+   const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjcyODMwMzksInNvdXJjZSI6InNyLWF1dGgtaW50IiwiZXhwIjoxNzUzOTk2OTIzLCJqdGkiOiJTc29BdFBaOWpCaDFqeTVGIiwiaWF0IjoxNzUzMTMyOTIzLCJpc3MiOiJodHRwczovL3NyLWF1dGguc2hpcHJvY2tldC5pbi9hdXRob3JpemUvdXNlciIsIm5iZiI6MTc1MzEzMjkyMywiY2lkIjo3MDUxNjYyLCJ0YyI6MzYwLCJ2ZXJib3NlIjpmYWxzZSwidmVuZG9yX2lkIjowLCJ2ZW5kb3JfY29kZSI6IiJ9.JhXAQq7pIBdX8TYbcVwV79NApygAPcFhAoPrl5jWDLE";
   if (!token) return null;
 
   const headers = {
