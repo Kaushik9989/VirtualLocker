@@ -1,0 +1,29 @@
+<% layout("/layouts/boilerplate") %>
+<style>
+  @media (min-width: 768px) {
+    .helli {
+      margin-left: 200px;
+    }
+  }</style>
+<div class="helli">
+<div class="container mt-4">
+  <h4 class="mb-3">🚚 Choose Courier Service</h4>
+
+  <p><strong>From:</strong> <%= fromLocker.location.address %> (<%= fromLocker.location.pincode %>)</p>
+  <p><strong>To:</strong> <%= toLocker.location.address %> (<%= toLocker.location.pincode %>)</p>
+
+  <form action="/parcel/<%= parcel._id %>/confirm-move" method="POST">
+    <% courierOptions.forEach(option => { %>
+      <div class="form-check mb-2">
+        <input class="form-check-input" type="radio" name="courier" value="<%= option.courier_name %> - ₹<%= option.rate %>" required>
+        <label class="form-check-label">
+          <strong><%= option.courier_name %></strong> - ₹<%= option.rate %> | ETA: <%= option.estimated_delivery_days %> days
+        </label>
+      </div>
+    <% }) %>
+
+    <input type="hidden" name="newLockerId" value="<%= toLocker.lockerId %>" />
+    <button type="submit" class="btn btn-success mt-3 w-100">Confirm Move</button>
+  </form>
+</div>
+</div>

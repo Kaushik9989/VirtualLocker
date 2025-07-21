@@ -1,9 +1,24 @@
 <% layout("/layouts/boilerplate") %>
-<style>
+  <style>
+    .dropdown-menu.show {
+  z-index: 9999 !important;
+}
 
-  .glass-card {
-    
- 
+.dropdown {
+  position: relative;
+  z-index: 1 !important;
+}
+
+.dropdown-menu {
+  z-index: 1 !important;
+} 
+
+   .card {
+  position: relative;
+  overflow: visible !important;
+  z-index: 0;
+}
+.glass-card {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(25, 218, 151, 0.2);
@@ -11,155 +26,167 @@
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
 }
 
-  @media (min-width: 768px) {
+
+  .parcel-card-hover {
+  position: relative;
+  z-index: 10; /* Raised above other cards */
+  overflow: visible !important;
+}
+
+
+
     
-    .helli{
-     
-      margin-left: 250px;
-  }}
-  .gradient-card {
-    background: linear-gradient(90deg, #4e54c8, #ff6a00);
-    border-radius: 16px;
-    color: white;
-  }
 
-  .gradient-btn {
-    border-radius: 12px;
-    color: white;
-    font-weight: 500;
-    padding: 14px 0;
-  }
+   
+    @media (min-width: 768px) {
+      .helli {
+        margin-left: 250px;
+      }
+    }
 
-  .btn-send {
-    background-color: #16c784;
-  }
+    .gradient-card {
+      background: linear-gradient(90deg, #4e54c8, #ff6a00);
+      border-radius: 16px;
+      color: white;
+    }
 
-  .btn-locate {
-    background-color: #7e22ce;
-  }
+    .gradient-btn {
+      border-radius: 12px;
+      color: white;
+      font-weight: 500;
+      padding: 14px 0;
+    }
 
-  .incoming-card {
-    
-    border-radius: 14px;
-    background-color: #fff;
-    border: 1px solid #eee;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-  }
+    .btn-send {
+      background-color: #16c784;
+    }
 
-  .status-badge {
-    font-size: 0.75rem;
-    font-weight: 500;
-    padding: 3px 10px;
-    border-radius: 12px;
-  }
+    .btn-locate {
+      background-color: #7e22ce;
+    }
 
-  .custom-select-minimal {
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    background-color: #fff;
-    border: 1px solid #ddd;
-    padding: 0.4rem 1.75rem 0.4rem 0.75rem;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    color: #333;
-    cursor: pointer;
-    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23666' d='M6 8L0 0h12L6 8z'/%3E%3C/svg%3E");
-    background-position: right 0.6rem center;
-    background-repeat: no-repeat;
-    background-size: 1rem;
-    transition: border-color 0.2s, box-shadow 0.2s;
-  }
+    .incoming-card {
+      border-radius: 14px;
+      background-color: #fff;
+      border: 1px solid #eee;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+    }
 
-  .custom-select-minimal:focus {
-    outline: none;
-    border-color: #4e54c8;
-    box-shadow: 0 0 0 3px rgba(78, 84, 200, 0.2);
-  }
+    .status-badge {
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 12px;
+    }
 
-  .parcel-card-hover:hover {
-    background-color: #f8fafc;
-    transition: background-color 0.2s;
-  }
-</style>
+    .custom-select-minimal {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background-color: #fff;
+      border: 1px solid #ddd;
+      padding: 0.4rem 1.75rem 0.4rem 0.75rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: #333;
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23666' d='M6 8L0 0h12L6 8z'/%3E%3C/svg%3E");
+      background-position: right 0.6rem center;
+      background-repeat: no-repeat;
+      background-size: 1rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
 
-<div class="row">
-  <!-- Main content (full width on mobile) -->
-  <div class="col-12 col-md-9 mt-5 helli">
-    <!-- Welcome and credits -->
-    <div class="gradient-card p-4 mb-4 d-flex justify-content-between align-items-center">
-      <div>
-        <h5>Welcome back, <%= user.username %></h5>
-        <p id="parcelCountText" class="mb-0">Loading your parcels...</p>
+    .custom-select-minimal:focus {
+      outline: none;
+      border-color: #4e54c8;
+      box-shadow: 0 0 0 3px rgba(78, 84, 200, 0.2);
+    }
+
+    .parcel-card-hover:hover {
+      background-color: #f8fafc;
+      transition: background-color 0.2s;
+    }
+  </style>
+
+  <div class="row">
+    <!-- Main content (full width on mobile) -->
+    <div class="col-12 col-md-9 mt-5 helli">
+      <!-- Welcome and credits -->
+      <div class="gradient-card p-4 mb-4 d-flex justify-content-between align-items-center">
+        <div>
+          <h5>Welcome back, <%= user.username %>
+          </h5>
+          <p id="parcelCountText" class="mb-0">Loading your parcels...</p>
+        </div>
+        <h3 class="mb-0 fw-bold">
+          <%= user.wallet.credits %> <small style="font-size: 16px;">Credits</small>
+        </h3>
       </div>
-      <h3 class="mb-0 fw-bold">
-        <%= user.wallet.credits %> <small style="font-size: 16px;">Credits</small>
-      </h3>
-    </div>
 
-    <!-- Mobile buttons -->
-    <div class="row text-center mb-4 d-md-none">
-      <div class="col-6">
-        <a href="/sendParcel" onclick="fetch('/api/track-send-click')" class="btn gradient-btn btn-send w-100">Send Parcel</a>
+      <!-- Mobile buttons -->
+      <div class="row text-center mb-4 d-md-none">
+        <div class="col-6">
+          <a href="/sendParcel" onclick="fetch('/api/track-send-click')" class="btn gradient-btn btn-send w-100">Send
+            Parcel</a>
+        </div>
+        <div class="col-6">
+          <a href="/locations" onclick="fetch('/api/track-send-click')" class="btn gradient-btn btn-locate w-100">Find
+            Locations</a>
+        </div>
       </div>
-      <div class="col-6">
-        <a href="/locations" onclick="fetch('/api/track-send-click')" class="btn gradient-btn btn-locate w-100">Find Locations</a>
-      </div>
-    </div>
 
-    <!-- Alerts -->
-    <% if (messages.error && messages.error.length > 0) { %>
-      <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <%= messages.error[0] %>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-      </div>
-    <% } %>
-    <% if (messages.success && messages.success.length > 0) { %>
-      <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <%= messages.success[0] %>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-      </div>
-    <% } %>
+      <!-- Alerts -->
+      <% if (messages.error && messages.error.length> 0) { %>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          <%= messages.error[0] %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <% } %>
+          <% if (messages.success && messages.success.length> 0) { %>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+              <%= messages.success[0] %>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            <% } %>
 
-    <!-- Incoming Parcels Header and Filter -->
-    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-      <h5 class="mb-0">
-        Incoming Parcels
-        <span id="parcelCountBadge" class="badge bg-secondary">0</span>
-      </h5>
-      <div class="d-flex align-items-center gap-2">
-        <label for="statusFilter" class="mb-0 small text-muted">Filter:</label>
-        <select id="statusFilter" class="custom-select-minimal">
-          <option value="all">Show All</option>
-          <option value="awaiting_drop">Awaiting Drop</option>
-          <option value="awaiting_pick">Awaiting Pickup</option>
-          <option value="picked">Picked</option>
-        </select>
-      </div>
-    </div>
+              <!-- Incoming Parcels Header and Filter -->
+              <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <h5 class="mb-0">
+                  Incoming Parcels
+                  <span id="parcelCountBadge" class="badge bg-secondary">0</span>
+                </h5>
+                <div class="d-flex align-items-center gap-2">
+                  <label for="statusFilter" class="mb-0 small text-muted">Filter:</label>
+                  <select id="statusFilter" class="custom-select-minimal">
+                    <option value="all">Show All</option>
+                    <option value="awaiting_drop">Awaiting Drop</option>
+                    <option value="awaiting_pick">Awaiting Pickup</option>
+                    <option value="picked">Picked</option>
+                  </select>
+                </div>
+              </div>
 
-    <!-- Parcels list -->
-    <div id="parcelList">
-      <div class="text-muted text-center my-4">Loading your parcels...</div>
+              <!-- Parcels list -->
+              <div id="parcelList">
+                <div class="text-muted text-center my-4">Loading your parcels...</div>
+              </div>
     </div>
   </div>
-</div>
 
+  <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;"></div>
 
-
-
- <script>
-  try {
-    gtag('event', 'dashboard_loaded',{ 'debug_mode':true });
-    const loginTime = sessionStorage.getItem("login_time");
-    if (loginTime) {
-      const delta = Date.now() - parseInt(loginTime);
-      gtag('event', 'time_to_dashboard', { value: delta });
-      sessionStorage.removeItem("login_time");
-    }
-  } catch (e) {}
-</script>
-
+  <script>
+    try {
+      gtag('event', 'dashboard_loaded', { 'debug_mode': true });
+      const loginTime = sessionStorage.getItem("login_time");
+      if (loginTime) {
+        const delta = Date.now() - parseInt(loginTime);
+        gtag('event', 'time_to_dashboard', { value: delta });
+        sessionStorage.removeItem("login_time");
+      }
+    } catch (e) { }
+  </script>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
@@ -232,8 +259,6 @@
       showParcelToast(update);
     });
 
-
-
     document.getElementById("statusFilter").addEventListener("change", () => {
       const cachedParcels = JSON.parse(localStorage.getItem("incomingParcels") || "[]");
       renderParcels(cachedParcels);
@@ -249,11 +274,11 @@
 
       if (filtered.length === 0) {
         parcelContainer.innerHTML = `
-      <div class="text-center text-muted my-5">
-        <i class="fas fa-inbox fa-3x mb-3"></i>
-        <p class="mb-0">No parcels found.</p>
-      </div>
-    `;
+        <div class="text-center text-muted my-5">
+          <i class="fas fa-inbox fa-3x mb-3"></i>
+          <p class="mb-0">No parcels found.</p>
+        </div>
+      `;
         return;
       }
 
@@ -276,87 +301,108 @@
             : null;
         const cardLink = status === "awaiting_pick"
           ? `/incoming/${parcel._id}/qr`
-          : `/incomingdetails/${parcel._id}`;
+          : `/incomingdetails/${parcel._id}`; 
 
         return `
-<div class="card shadow-sm mb-2 parcel-card-hover glass-card" 
-     style="cursor: pointer;"
-     data-parcel-id="${parcel._id}"
-     data-parcel-status="${status}">
-  <div class="card-body py-2">
+        <div class="card shadow-sm mb-2 parcel-card-hover glass-card " style="z-index: 0;"
+             style="cursor: pointer;"
+             data-parcel-id="${parcel._id}"
+             data-parcel-status="${status}">
+          <div class="card-body py-2">
+            <!-- Desktop (Gmail-like single line) -->
+            <div class="d-none d-md-flex align-items-center justify-content-between flex-wrap gap-2">
+              <div class="d-flex align-items-center flex-wrap gap-2">
+                <span class="fw-bold">${parcel.senderName || "Unknown"}</span>
+                <span class="text-muted small">| Locker: ${parcel.lockerId || "N/A"}, Compartment: ${parcel.compartmentId || "N/A"}</span>
+                <span class="text-muted small">| Expires: ${expiresAt}</span>
+                <span class="text-muted small">| Access Code: <strong>${parcel.accessCode}</strong></span>
+              </div>
+              <div class="d-flex align-items-center flex-wrap gap-1">
+                <span class="badge text-bg-${badgeColor}">${statusText}</span>
+                ${parcel.qrCodeUrl
+            ? `<a href="${parcel.qrCodeUrl}" class="btn btn-sm btn-light border" target="_blank" onclick="event.stopPropagation();"><i class="fas fa-qrcode"></i></a>`
+            : ""}
+                ${status === "awaiting_pick"
+            ? `<a href="/incoming/${parcel._id}/qr" class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation();"><i class="fas fa-qrcode"></i></a>`
+            : `<a href="/incomingdetails/${parcel._id}" class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation();"><i class="fas fa-info-circle"></i></a>`}
+                ${mapsUrl
+            ? `<a href="${mapsUrl}" target="_blank" class="btn btn-sm btn-outline-success" onclick="event.stopPropagation();"><i class="fas fa-map-marker-alt"></i></a>`
+            : ""}
+                ${status === "awaiting_pick" ? `
+                 <!-- Default dropup button -->
+<div class="btn-group dropup">
+  <button type="button" class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" onclick="event.stopPropagation()">
+    Action
+  </button>
+   <ul class="dropdown-menu dropdown-menu-sm px-2 py-1 p-0" style="min-width: 8rem; font-size: 0.85rem;">
+           <li><a class="dropdown-item" href="/parcel/${parcel._id}/transfer">Transfer Ownership</a></li>
+    <li><a class="dropdown-item" href="/parcel/${parcel._id}/move">Move to Another Locker</a></li>
+  </ul>
+</div>
 
-    <!-- Desktop (Gmail-like single line) -->
-    <div class="d-none d-md-flex align-items-center justify-content-between flex-wrap gap-2">
-      <div class="d-flex align-items-center flex-wrap gap-2">
-        <span class="fw-bold">${parcel.senderName || "Unknown"}</span>
-        <span class="text-muted small">| Locker: ${parcel.lockerId || "N/A"}, Compartment: ${parcel.compartmentId || "N/A"}</span>
-        <span class="text-muted small">| Expires: ${expiresAt}</span>
-        <span class="text-muted small">| Access Code: <strong>${parcel.accessCode}</strong></span>
-      </div>
-      <div class="d-flex align-items-center flex-wrap gap-1">
-        <span class="badge text-bg-${badgeColor}">${statusText}</span>
-        ${parcel.qrCodeUrl
-          ? `<a href="${parcel.qrCodeUrl}" class="btn btn-sm btn-light border" target="_blank" onclick="event.stopPropagation();"><i class="fas fa-qrcode"></i></a>`
-          : ""}
-        ${status === "awaiting_pick"
-          ? `<a href="/incoming/${parcel._id}/qr" class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation();"><i class="fas fa-qrcode"></i></a>`
-          : `<a href="/incomingdetails/${parcel._id}" class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation();"><i class="fas fa-info-circle"></i></a>`}
-        ${mapsUrl
-          ? `<a href="${mapsUrl}" target="_blank" class="btn btn-sm btn-outline-success" onclick="event.stopPropagation();"><i class="fas fa-map-marker-alt"></i></a>`
-          : ""}
-      </div>
-    </div>
 
-    <!-- Mobile (stacked) -->
-    <div class="d-block d-md-none">
-      <div class="d-flex justify-content-between align-items-start mb-2">
-        <div>
-          <h6 class="fw-bold mb-1">From: ${parcel.senderName || "Unknown"}</h6>
-          <p class="mb-1 text-muted small">${parcel.description || "No description"}</p>
-          <div class="text-muted small mb-1">
-            <i class="fas fa-box me-1"></i> ${parcel.type || "N/A"} • ${parcel.size || "N/A"} • ₹${parcel.cost || "N/A"}
-          </div>
-          <div class="text-muted small">
-            Locker: <strong>${parcel.lockerId || "N/A"}</strong> | Compartment: <strong>${parcel.compartmentId || "N/A"}</strong><br/>
-            Expires: <strong>${expiresAt}</strong>
+` : ""}
+              </div>
+            </div>
+            <!-- Mobile (stacked) -->
+            <div class="d-block d-md-none">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                  <h6 class="fw-bold mb-1">From: ${parcel.senderName || "Unknown"}</h6>
+                  <p class="mb-1 text-muted small">${parcel.description || "No description"}</p>
+                  <div class="text-muted small mb-1">
+                    <i class="fas fa-box me-1"></i> ${parcel.type || "N/A"} • ${parcel.size || "N/A"} • ₹${parcel.cost || "N/A"}
+                  </div>
+                  <div class="text-muted small">
+                    Locker: <strong>${parcel.lockerId || "N/A"}</strong> | Compartment: <strong>${parcel.compartmentId || "N/A"}</strong><br/>
+                    Expires: <strong>${expiresAt}</strong>
+                  </div>
+                </div>
+                <span class="badge text-bg-${badgeColor} px-3 py-2 rounded-pill">${statusText}</span>
+              </div>
+              <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+                <span class="text-muted small">Access Code: <strong>${parcel.accessCode}</strong></span>
+                ${parcel.qrCodeUrl
+            ? `<a href="${parcel.qrCodeUrl}" class="btn btn-sm btn-primary" target="_blank" onclick="event.stopPropagation();"><i class="fas fa-qrcode me-1"></i> View QR</a>`
+            : ""}
+                ${status === "awaiting_pick"
+            ? `<a href="/incoming/${parcel._id}/qr" class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation();"><i class="fas fa-qrcode me-1"></i> QR Code</a>`
+            : `<a href="/incomingdetails/${parcel._id}" class="btn btn-sm btn-outline-secondary"onclick="event.stopPropagation();"><i class="fas fa-info-circle me-1"></i> Details</a>`}
+                ${status === "awaiting_pick" ? `
+              <div class="btn-group dropup">
+  <button type="button" class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" onclick="event.stopPropagation()">
+    Action
+  </button>
+  <ul class="dropdown-menu">
+           <li><a class="dropdown-item" href="/parcel/${parcel._id}/transfer" onclick="event.stopPropagation();">Transfer Ownership</a></li>
+    <li><a class="dropdown-item" href="/parcel/${parcel._id}/move" onclick="event.stopPropagation();">Move to Another Locker</a></li>
+  </ul>
+</div>
+
+` : ""}
+              </div>
+            </div>
           </div>
         </div>
-        <span class="badge text-bg-${badgeColor} px-3 py-2 rounded-pill">${statusText}</span>
-      </div>
-      <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
-        <span class="text-muted small">Access Code: <strong>${parcel.accessCode}</strong></span>
-        ${parcel.qrCodeUrl
-          ? `<a href="${parcel.qrCodeUrl}" class="btn btn-sm btn-primary" target="_blank" onclick="event.stopPropagation();"><i class="fas fa-qrcode me-1"></i> View QR</a>`
-          : ""}
-        ${status === "awaiting_pick"
-          ? `<a href="/incoming/${parcel._id}/qr" class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation();"><i class="fas fa-qrcode me-1"></i> QR Code</a>`
-          : `<a href="/incomingdetails/${parcel._id}" class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation();"><i class="fas fa-info-circle me-1"></i> Details</a>`}
-        ${mapsUrl
-          ? `<a href="${mapsUrl}" target="_blank" class="btn btn-sm btn-outline-success" onclick="event.stopPropagation();"><i class="fas fa-map-marker-alt me-1"></i> Show Directions</a>`
-          : ""}
-      </div>
-    </div>
-
-  </div>
-</div>
-`;
-
-
-
+      `;
       }).join("");
+      // Reinitialize Bootstrap dropdowns after rendering
+document.querySelectorAll('.dropdown-toggle').forEach((el) => {
+  new bootstrap.Dropdown(el);
+});
+
     }
-    // Delegate click event for all parcel cards
+
+
+
+    // Delegate click event for parcel cards
     parcelContainer.addEventListener("click", (e) => {
       const card = e.target.closest(".parcel-card-hover");
-      if (card) {
-        const parcelId = card.dataset.parcelId;
-        const status = card.dataset.parcelStatus;
-        if (status === "awaiting_pick") {
-          window.location.href = `/incoming/${parcelId}/qr`;
-        } else {
-          window.location.href = `/incomingdetails/${parcelId}`;
-        }
-      }
+      if (!card || e.target.closest(".dropdown") || e.target.closest("a.btn")) return;
+
+      const parcelId = card.dataset.parcelId;
+      const status = card.dataset.parcelStatus;
+      window.location.href = status === "awaiting_pick" ? `/incoming/${parcelId}/qr` : `/incomingdetails/${parcelId}`;
     });
 
     function showParcelToast(update) {
@@ -367,12 +413,10 @@
       toast.ariaLive = "assertive";
       toast.ariaAtomic = "true";
 
-      // Decide the message based on status
       let message = "";
       switch (update.status) {
         case "awaiting_pick":
-          message = `📦 Parcel has been <strong>dropped</strong> ${update.lockerId ? `at Locker <strong>${update.lockerId}</strong>` : ""
-            } and is ready for pickup.`;
+          message = `📦 Parcel has been <strong>dropped</strong> ${update.lockerId ? `at Locker <strong>${update.lockerId}</strong>` : ""} and is ready for pickup.`;
           break;
         case "awaiting_drop":
           message = `📦 Parcel is <strong>awaiting drop-off</strong>.`;
@@ -385,13 +429,13 @@
       }
 
       toast.innerHTML = `
-    <div class="d-flex">
-      <div class="toast-body">
-        ${message}
+      <div class="d-flex">
+        <div class="toast-body">
+          ${message}
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
       </div>
-      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-    </div>
-  `;
+    `;
 
       container.appendChild(toast);
 
@@ -401,299 +445,30 @@
         setTimeout(() => toast.remove(), 300);
       }, 6000);
     }
-
-
   </script>
   <script>
-  function trackUserAction(step, method = 'pageview') {
-    fetch('/analytics/user-action', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        step,
-        method,
-        path: window.location.pathname
-      })
-    });
-  }
-</script>
-  <script>
-  trackUserAction('dashboard');
-</script>
-
-
-
-
-
-  <!-- <% layout("/layouts/boilerplate") %>
-
-  <style>
-    .gradient-card {
-      background: linear-gradient(90deg, #4e54c8, #ff6a00);
-      border-radius: 16px;
-      color: white;
-    }
-
-    .gradient-btn {
-      border-radius: 12px;
-      color: white;
-      font-weight: 500;
-      padding: 14px 0;
-    }
-
-    .btn-send {
-      background-color: #16c784;
-    }
-
-    .btn-locate {
-      background-color: #7e22ce;
-    }
-
-    .incoming-card {
-      border-radius: 14px;
-      background-color: #fff;
-      border: 1px solid #eee;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-    }
-
-    .status-badge {
-      font-size: 0.75rem;
-      font-weight: 500;
-      padding: 3px 10px;
-      border-radius: 12px;
-    }
-
-    .bottom-nav {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      border-top: 1px solid #eee;
-      background-color: #fff;
-      padding: 10px 0;
-      display: flex;
-      justify-content: space-around;
-      z-index: 999;
-    }
-
-    .nav-item {
-      text-align: center;
-      font-size: 0.85rem;
-      color: #6b7280;
-    }
-
-    .nav-item.active {
-      color: #4e54c8;
-      font-weight: 600;
-    }
-
-    .notification-dot {
-      position: absolute;
-      top: 4px;
-      right: 4px;
-      background: red;
-      color: white;
-      font-size: 10px;
-      padding: 2px 6px;
-      border-radius: 50%;
-    }
-  </style>
-
-  <div class="gradient-card p-4 mb-4 d-flex justify-content-between align-items-center mt-5 mb-5">
-    <% if (messages.error && messages.error.length> 0) { %>
-      <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <%= messages.error[0] %>
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-      </div>
-      <% } %>
-
-        <% if (messages.success && messages.success.length> 0) { %>
-          <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <%= messages.success[0] %>
-              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-          </div>
-          <% } %>
-
-            <div>
-              <h5>Welcome back, <%= user.username %>
-              </h5>
-              <p id="parcelCountText" class="mb-0">Loading your parcels...</p>
-            </div>
-            <h3 class="mb-0 fw-bold">
-              <%= user.wallet.credits %> <small style="font-size: 16px;">Credits</small>
-            </h3>
-  </div>
-
-  <div class="row text-center mb-4">
-    <div class="col-6">
-      <a href="/sendParcel" class="btn gradient-btn btn-send w-100">Send Parcel</a>
-    </div>
-    <div class="col-6">
-      <a href="/locations" class="btn gradient-btn btn-locate w-100">Find Locations</a>
-    </div>
-  </div>
-
-  <h5 class="mb-3">
-    Incoming Parcels
-    <span id="parcelCountBadge" class="badge bg-secondary">0</span>
-  </h5>
-
-  <div id="parcelList">
-    <div class="text-muted text-center my-4">Loading your parcels...</div>
-  </div>
-  <script src="/socket.io/socket.io.js"></script>
-<script>
-  const socket = io();
-  socket.on("connect", () => console.log("✅ Connected to Socket.IO"));
-</script>
-  <script>
-    const parcelContainer = document.getElementById("parcelList");
-    const badge = document.getElementById("parcelCountBadge");
-
-    // Load cached parcels
-    const cached = localStorage.getItem("incomingParcels");
-    if (cached) {
-      try {
-        const data = JSON.parse(cached);
-        renderParcels(data);
-        console.log("✅ Loaded parcels from cache");
-      } catch (e) {
-        console.error("Cache parse error:", e);
-      }
-    }
-
-    // Always fetch fresh parcels from /api/incoming-parcels
-    fetch("/api/incoming-parcels")
-      .then(res => res.json())
-      .then(data => {
-        if (data.parcels) {
-          localStorage.setItem("incomingParcels", JSON.stringify(data.parcels));
-          renderParcels(data.parcels);
-          console.log("✅ Refreshed parcels from server");
-        } else {
-          console.warn("API returned no parcels field, rendering empty list.");
-          renderParcels([]);
-        }
-      })
-      .catch(err => {
-        console.error("Parcel fetch error:", err);
-        // Even on error, clear the loading state
-        renderParcels([]);
+    function trackUserAction(step, method = 'pageview') {
+      fetch('/analytics/user-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          step,
+          method,
+          path: window.location.pathname
+        })
       });
-      socket.on("parcelUpdated", (update) => {
-  console.log("🔄 Parcel update received:", update);
-
-  // Get cached parcels from localStorage
-  const cachedParcels = JSON.parse(localStorage.getItem("incomingParcels") || "[]");
-
-  // Find the index of the updated parcel
-  const idx = cachedParcels.findIndex(p => p._id === update.parcelId);
-
-  if (idx !== -1) {
-    // Update the parcel status
-    cachedParcels[idx].status = update.status;
-    cachedParcels[idx].lockerId = update.lockerId;
-    cachedParcels[idx].compartmentId = update.compartmentId;
-    cachedParcels[idx].pickedUpAt = update.pickedUpAt;
-    cachedParcels[idx].droppedAt = update.droppedAt;
-
-    // Save back to localStorage
-    localStorage.setItem("incomingParcels", JSON.stringify(cachedParcels));
-
-    // Re-render the parcels
-    renderParcels(cachedParcels);
-  } else {
-    console.warn("Parcel not found in cache; skipping update.");
-  }
-});
-
-
-
-    function renderParcels(parcels) {
-  badge.textContent = parcels.length;
-
-  const countText = document.getElementById("parcelCountText");
-  countText.textContent = `You have ${parcels.length} parcels waiting`;
-
-  if (parcels.length === 0) {
-    parcelContainer.innerHTML = `
-      <div class="text-center text-muted my-5">
-        <i class="fas fa-inbox fa-3x mb-3"></i>
-        <p class="mb-0">No incoming parcels found.</p>
-      </div>
-    `;
-    return;
-  }
-
-  parcelContainer.innerHTML = parcels.map(parcel => {
-    const status = parcel.status || "unknown";
-    const badgeColor =
-      status === "picked"
-        ? "success" 
-        : status === "awaiting_drop"
-          ? "warning"
-          : "danger";
-
-    const statusText =
-      status.charAt(0).toUpperCase() +
-      status.slice(1).replace("_", " ");
-
-    const expiresAt = parcel.expiresAt
-      ? new Date(parcel.expiresAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
-      : "N/A";
-
-    return `
-      <div class="card shadow-sm mb-4 border-start rounded-3">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-start mb-2">
-            <div>
-              <h6 class="fw-bold mb-1">
-                From: ${parcel.senderName || "Unknown"}
-              </h6>
-              <p class="mb-1 text-muted small">
-                ${parcel.metadata?.description || "No description provided"}
-              </p>
-              <div class="text-muted small mb-1">
-                <i class="fas fa-box me-1"></i>
-                ${parcel.type || "N/A"} • ${parcel.size || "N/A"} • ₹${parcel.cost || "N/A"}
-              </div>
-              <div class="text-muted small">
-                Locker: <strong>${parcel.lockerId || "N/A"}</strong>
-                &nbsp;|&nbsp;
-                Compartment: <strong>${parcel.compartmentId || "N/A"}</strong>
-                <br/>
-                Expires: <strong>${expiresAt}</strong>
-              </div>
-            </div>
-            <span class="badge text-bg-${badgeColor} px-3 py-2 rounded-pill">
-              ${statusText}
-            </span>
-          </div>
-
-          <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
-            <span class="text-muted small">
-              Access Code: <strong>${parcel.accessCode}</strong>
-            </span>
-            ${parcel.qrCodeUrl
-              ? `<a href="${parcel.qrCodeUrl}" class="btn btn-sm btn-primary" target="_blank">
-                    <i class="fas fa-qrcode me-1"></i> View QR
-                 </a>`
-              : ""
-            }
-            ${status === "awaiting_pick"
-              ? `<a href="/incoming/${parcel._id}/qr" class="btn btn-sm btn-outline-primary" target="_blank">
-                    <i class="fas fa-qrcode me-1"></i> QR Code
-                 </a>`
-              : `<a href="/incomingdetails/${parcel._id}" class="btn btn-sm btn-outline-secondary">
-                    <i class="fas fa-info-circle me-1"></i> Details
-                 </a>`
-            }
-          </div>
-        </div>
-      </div>
-    `;
-  }).join("");
-}
-
-
-  </script> -->
+    }
+  </script>
+  <script>
+    trackUserAction('dashboard');
+  </script>
+  <!-- Bootstrap Bundle with Popper (required for dropdowns) -->
+ <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Reinitialize all dropdowns after rendering dynamic content
+  document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll('.dropdown-toggle').forEach((dropdownToggleEl) => {
+      new bootstrap.Dropdown(dropdownToggleEl);
+    });
+  });
+</script>

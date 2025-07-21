@@ -20,7 +20,8 @@
     </div>
   </div>
 
-  <form action="/parcel/<%= parcel._id %>/move" method="POST">
+ <form action="/parcel/<%= parcel._id %>/move/" method="POST">
+
     <h6>Select New Locker Location:</h6>
     <select name="newLockerId" class="form-select mb-3" required>
       <% lockers.forEach(locker => { %>

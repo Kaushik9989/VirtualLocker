@@ -30,7 +30,8 @@ const LockerSchema = new mongoose.Schema({
   location: {
     lat: { type: Number },
     lng: { type: Number },
-    address: { type: String }
+    address: { type: String },
+     pincode: {type :String }
   },
   compartments: [CompartmentSchema]
 });

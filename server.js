@@ -9,7 +9,7 @@ const LRU = require("lru-cache");
 const Razorpay = require("razorpay");
 const Version = require("./models/Version.js");
 
-
+const axios = require("axios");
 const locationsCache = new LRU.LRUCache({
   max: 10,
   ttl: 1000 * 60 * 5, // 5 min
@@ -1617,31 +1617,72 @@ app.get("/send/step2", isAuthenticated, async (req, res) => {
 //   req.session.parcelDraft.isSelf = false;
 //   res.redirect("/send/step3");
 // });
+
 app.post("/send/step2", isAuthenticated, async (req, res) => {
-  const { receiverName, receiverPhone, deliveryOption } = req.body;
+  const { receiverName, receiverPhone, deliveryOption, receiverDeliveryMethod } = req.body;
   const user = await User.findById(req.session.user._id);
 
   if (!req.session.parcelDraft) req.session.parcelDraft = {};
 
-  // Self flow
+  // Self flow (store for myself)
   if (deliveryOption === "self") {
     req.session.parcelDraft.isSelf = true;
     req.session.parcelDraft.receiverName = user.username || "Self";
     req.session.parcelDraft.receiverPhone = user.phone || "";
+    req.session.parcelDraft.receiverDeliveryMethod = "self_pickup"; // default for self
   } else {
-    // Someone else
+    // Sending to someone else
     if (!receiverName || !receiverPhone) {
       req.flash("error", "Please enter both name and phone for the recipient.");
       return res.redirect("/send/step2");
     }
+    if (!receiverDeliveryMethod) {
+      req.flash("error", "Please select how the receiver will receive the parcel.");
+      return res.redirect("/send/step2");
+    }
+
     req.session.parcelDraft.isSelf = false;
     req.session.parcelDraft.receiverName = receiverName;
     req.session.parcelDraft.receiverPhone = receiverPhone;
+    req.session.parcelDraft.receiverDeliveryMethod = receiverDeliveryMethod;
     req.session.parcelDraft.paymentOption = "sender_pays";
   }
+  
 
   res.redirect("/send/step3");
 });
+
+
+
+
+
+
+
+// app.post("/send/step2", isAuthenticated, async (req, res) => {
+//   const { receiverName, receiverPhone, deliveryOption } = req.body;
+//   const user = await User.findById(req.session.user._id);
+
+//   if (!req.session.parcelDraft) req.session.parcelDraft = {};
+
+//   // Self flow
+//   if (deliveryOption === "self") {
+//     req.session.parcelDraft.isSelf = true;
+//     req.session.parcelDraft.receiverName = user.username || "Self";
+//     req.session.parcelDraft.receiverPhone = user.phone || "";
+//   } else {
+//     // Someone else
+//     if (!receiverName || !receiverPhone) {
+//       req.flash("error", "Please enter both name and phone for the recipient.");
+//       return res.redirect("/send/step2");
+//     }
+//     req.session.parcelDraft.isSelf = false;
+//     req.session.parcelDraft.receiverName = receiverName;
+//     req.session.parcelDraft.receiverPhone = receiverPhone;
+//     req.session.parcelDraft.paymentOption = "sender_pays";
+//   }
+
+//   res.redirect("/send/step3");
+// });
 
 
 
@@ -1707,9 +1748,48 @@ app.get("/send/step3", isAuthenticated, async (req, res) => {
       compartmentId: null,
       razorpayOrderId: razorpayOrder?.id || null,
     });
+    
+   await parcel.save();
+  //  if (draft.receiverDeliveryMethod === "whatsapp") {
+     const updateLink = `https://demo.droppoint.com/receiver/${parcel._id}/update-address`;
 
-    await parcel.save();
-    delete req.session.parcelDraft;
+  // try {
+  //   await client.messages.create({
+  //     from: 'whatsapp:+15558076515', // your Twilio WhatsApp number
+  //     to: `whatsapp:+91${draft.receiverPhone}`,
+  //     contentSid: 'HX0fa8fba404e89a0dec0e2a37532e6922', // Twilio Content Template SID (optional, if using content API)
+  //     contentVariables: JSON.stringify({
+  //       "1": draft.receiverName || "there",
+  //       "2": updateLink
+  //     }),
+  //     // Alternative if you're using Twilio template name (not Content API):
+  //     // contentSid: 'your_template_sid', OR use messagingServiceSid
+  //   });
+//     res.render("parcel/payment", {
+//       parcel,
+//       razorpayKeyId: process.env.RAZORPAY_KEY_ID,
+//       orderId: razorpayOrder.id,
+//       amount: razorpayOrder.amount,
+//       currency: razorpayOrder.currency,
+//     })
+//     console.log("✅ WhatsApp template message sent to receiver");
+//   } catch (err) {
+//     console.error("❌ Error sending WhatsApp template:", err.message);
+//   }
+  
+// }
+delete req.session.parcelDraft;
+
+// funnel log
+await FunnelEvent.create({
+  sessionId: req.sessionID,
+  step: 'step3_complete',
+  timestamp: new Date(),
+});
+
+// WhatsApp Link Handling
+
+
 
     // funnel log
     await FunnelEvent.create({
@@ -1889,6 +1969,120 @@ function getEstimatedCost(size) {
 
 // MOVE PARCEL USING 3P services
 
+// app.post("/parcel/:id/move/select", isAuthenticated, async (req, res) => {
+//   const parcelId = req.params.id;
+//   const newLockerId = req.body.newLockerId;
+
+//   const parcel = await Parcel2.findById(parcelId).populate("lockerLocation");
+//   const newLocker = await Locker.findOne({ lockerId: newLockerId }).populate("location");
+
+//   if (!parcel || !newLocker) {
+//     req.flash("error", "Invalid locker or parcel.");
+//     return res.redirect("/dashboard");
+//   }
+
+//   // Save data in session
+//   req.session.moveDetails = {
+//     parcelId,
+//     fromPincode: parcel.lockerLocation?.pincode,
+//     toPincode: newLocker.location?.pincode,
+//     parcelSize: parcel.size,
+//     parcelWeight: parcel.metadata?.weight || 1, // fallback
+//     newLockerId: newLockerId,
+//     toLocker: newLocker
+//   };
+
+//   res.redirect(`/parcel/${parcelId}/move/confirm`);
+// });
+
+
+app.get("/parcel/:id/move/confirm", isAuthenticated, async (req, res) => {
+  const { moveDetails } = req.session;
+  if (!moveDetails || moveDetails.parcelId !== req.params.id) {
+    req.flash("error", "No move details found.");
+    return res.redirect("/dashboard");
+  }
+
+  const {
+    fromPincode,
+    toPincode,
+    parcelWeight,
+    parcelSize
+  } = moveDetails;
+
+  const sizeMap = {
+    small: { length: 10, breadth: 10, height: 10 },
+    medium: { length: 20, breadth: 15, height: 15 },
+    large: { length: 30, breadth: 20, height: 20 }
+  };
+
+  const { length, breadth, height } = sizeMap[parcelSize] || sizeMap.small;
+
+  try {
+    const { data } = await axios.post("https://apiv2.shiprocket.in/v1/external/courier/serviceability/",
+      {
+        pickup_postcode: fromPincode,
+        delivery_postcode: toPincode,
+        cod: 0,
+        weight: parcelWeight,
+        length,
+        breadth,
+        height
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.SHIPROCKET_TOKEN}`
+        }
+      }
+    );
+
+    const parcel = await Parcel2.findById(req.params.id);
+    res.render("move_confirm", {
+      parcel,
+      deliveryOptions: data.data,
+      fromPincode,
+      toPincode
+    });
+  } catch (err) {
+    console.error("Shiprocket API error:", err?.response?.data || err.message);
+    req.flash("error", "Could not fetch delivery rates.");
+    return res.redirect("/dashboard");
+  }
+});
+
+app.post("/parcel/:id/move/confirm", isAuthenticated, async (req, res) => {
+  const { moveDetails } = req.session;
+  const { courier_code } = req.body;
+
+  if (!moveDetails) return res.redirect("/dashboard");
+
+  await Parcel2.findByIdAndUpdate(req.params.id, {
+    status: "in_transit",
+    deliveryPartner: courier_code,
+    destinationLockerId: moveDetails.newLockerId
+  });
+
+  // Optional: create a record in CourierMovement table
+
+  req.flash("success", "Move initiated. Parcel marked in transit.");
+  res.redirect("/dashboard");
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 app.get("/api/couriers", async (req, res) => {
   const couriers = [
     { name: "Delhivery", cost: 30, eta: "2-3 days" },
@@ -1927,6 +2121,89 @@ app.get("/services/transfer", isAuthenticated, async (req, res) => {
 });
 
 
+
+
+
+// utils/shiprocket.js
+
+require("dotenv").config();
+
+async function generateShiprocketToken() {
+  try {
+    const response = await axios.post("https://apiv2.shiprocket.in/v1/external/auth/login", {
+      email: process.env.SHIPROCKET_EMAIL,
+      password: process.env.SHIPROCKET_API_KEY,
+    });
+
+    const token = response.data.token;
+    console.log("✅ Shiprocket token:", token);
+    return token;
+  } catch (err) {
+    console.error("❌ Failed to generate Shiprocket token:", err.response?.data || err.message);
+    return null;
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+async function getShippingRates(fromPin, toPin, weight) {
+   const token = await generateShiprocketToken();
+  if (!token) return null;
+
+  const headers = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  };
+
+    const params = new URLSearchParams({
+    pickup_postcode: fromPin,
+    delivery_postcode: toPin,
+    weight: weight,
+    cod: 0
+  });
+
+   try {
+    const res = await axios.get(
+      `https://apiv2.shiprocket.in/v1/external/courier/serviceability?${params.toString()}`,
+      { headers }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("❌ Error fetching Shiprocket rates:", err.response?.data || err.message);
+    return null;
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 app.get("/parcel/:id/move", isAuthenticated, async (req, res) => {
   const parcelId = req.params.id;
   const parcel = await Parcel2.findById(parcelId);
@@ -1940,6 +2217,78 @@ app.get("/parcel/:id/move", isAuthenticated, async (req, res) => {
 
   res.render("moveLocker", { parcel, lockers });
 });
+app.post("/parcel/:id/move", isAuthenticated, async (req, res) => {
+  const parcelId = req.params.id;
+  const { newLockerId } = req.body;
+
+  const parcel = await Parcel2.findById(parcelId);
+  const newLocker = await Locker.findOne({ lockerId: newLockerId });
+  const oldLocker = await Locker.findOne({ lockerId: parcel.lockerId });
+
+  if (!parcel || !newLocker || !oldLocker) {
+    req.flash("error", "Invalid parcel or locker.");
+    return res.redirect("/services/transfer");
+  }
+
+  // Estimate cost
+  try {
+    const response = await getShippingRates(
+  oldLocker.location.pincode,
+  newLocker.location.pincode,
+  parcel.size === "small" ? 0.5 : parcel.size === "medium" ? 1.5 : 3
+);
+
+if (!response || !response.data || !response.data.available_courier_companies) {
+  req.flash("error", "Could not fetch courier options. Please try again.");
+  return res.redirect("/dashboard");
+}
+
+res.render("parcel/select-courier", {
+  parcel,
+  courierOptions: response.data.available_courier_companies,
+  fromLocker: oldLocker,
+  toLocker: newLocker
+});
+
+
+
+  } catch (err) {
+    console.error("Error fetching Shiprocket rates:", err.message);
+    req.flash("error", err.message);
+    res.redirect("/dashboard");
+  }
+});
+
+
+app.post("/parcel/:id/confirm-move", isAuthenticated, async (req, res) => {
+  const { newLockerId, courier } = req.body;
+  const parcel = await Parcel2.findById(req.params.id);
+  const newLocker = await Locker.findOne({ lockerId: newLockerId });
+
+  if (!parcel || !newLocker) {
+    req.flash("error", "Invalid parcel or locker.");
+    return res.redirect("/services/transfer");
+  }
+
+  parcel.status = "in_transit";
+  parcel.transitInfo = {
+    fromLockerId: parcel.lockerId,
+    toLockerId: newLockerId,
+    startedAt: new Date(),
+    courier,
+  };
+
+  await parcel.save();
+
+  req.flash("success", "Parcel marked in transit via " + courier);
+  res.redirect("/dashboard");
+});
+
+
+
+
+
+
 
 app.post("/parcel/:id/move", isAuthenticated, async (req, res) => {
   const parcelId = req.params.id;
@@ -1947,6 +2296,7 @@ app.post("/parcel/:id/move", isAuthenticated, async (req, res) => {
 
   const parcel = await Parcel2.findById(parcelId);
   const newLocker = await Locker.findOne({ lockerId: newLockerId });
+ const lockerAddress = locker?.location?.address;
   if (!parcel || !newLocker) {
     req.flash("error", "Invalid parcel or locker.");
     return res.redirect("/services/transfer");
@@ -1970,13 +2320,13 @@ app.post("/parcel/:id/move", isAuthenticated, async (req, res) => {
     1: parcel.receiverName,
     2: parcel.senderName,
     3: parcel.type || "Package",
-    4: newLocker.location.address, // replace with locker address
+    4: newLocker.location.address,  // replace with locker address
     5: "Today by 6 PM" // ETA or calculated estimate
   }),
 });
 
   req.flash("success", "Parcel marked as in transit.");
-  res.redirect("/services");
+  res.redirect("/dashboard");
 });
 
 
@@ -2019,7 +2369,7 @@ app.post("/send/select-locker/:lockerId", isAuthenticated, async (req, res) => {
     return res.redirect("/locations");
   }
 
-  req.session.parcelDraft = {
+  req.session.parcelDraft = { 
     isSelf: true,
     type: "package",
     size: size,
@@ -2128,47 +2478,6 @@ app.post("/parcel/:id/transfer", isAuthenticated, async (req, res) => {
   req.flash("success", "Ownership transferred successfully.");
   res.redirect("/dashboard");
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2509,6 +2818,7 @@ await SessionIntent.findOneAndUpdate(
     step: "send_parcel_submitted",
     timestamp: new Date()
   });
+
   res.redirect(`/parcel/${parcel._id}/success`);
 });
 // app.post("/payment/receiver/:id/success", isAuthenticated, async (req, res) => {
@@ -2527,6 +2837,41 @@ await SessionIntent.findOneAndUpdate(
 //   await parcel.save();
 //   res.redirect(`/parcel/${parcel._id}/success`);
 // });
+
+app.get("/receiver/:parcelId/update-address", async (req, res) => {
+  const parcel = await Parcel2.findById(req.params.parcelId);
+  if (!parcel) {
+    return res.status(404).send("Parcel not found");
+  }
+  res.render("receiver/update-address", { parcel });
+});
+
+app.post("/receiver/:parcelId/update-address", async (req, res) => {
+  const { receiverName, receiverPhone, deliveryAddress } = req.body;
+
+  await Parcel2.findByIdAndUpdate(req.params.parcelId, {
+    receiverName,
+    receiverPhone,
+    "transitInfo.recipientAddress": deliveryAddress,
+    status: "awaiting_pick"
+  });
+
+  res.render("receiver/success", {
+    message: "Your address has been updated. Your parcel will be dispatched shortly."
+  });
+});
+
+
+
+
+
+
+
+
+
+
+
+
 app.get("/parcel/view/:id/success", async (req, res) => {
     const parcelid = req.params.id;
   const parcel = await Parcel2.findById(req.params.id);

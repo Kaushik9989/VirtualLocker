@@ -1,0 +1,21 @@
+<% layout("/layouts/boilerplate") %>
+<style>
+  @media (min-width: 768px) {
+    .helli {
+      margin-left: 200px;
+    }
+  }</style>
+  <div class="helli">
+<div class="container py-5 text-center">
+  <h4 class="mb-4">✅ Parcel Created</h4>
+  <p>Your parcel has been created. Send this link to the receiver to update their delivery address:</p>
+
+  <a href="<%= whatsappUrl %>" class="btn btn-success btn-lg" target="_blank">
+    Send via WhatsApp <i class="fab fa-whatsapp ms-2"></i>
+  </a>
+
+  <div class="mt-4">
+    <small class="text-muted">Receiver: <%= parcel.receiverName %> | +91-<%= parcel.receiverPhone %></small>
+  </div>
+</div>
+</div>

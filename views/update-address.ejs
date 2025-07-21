@@ -1,0 +1,35 @@
+<% layout("/layouts/boilerplate") %>
+<style>
+  @media (min-width: 768px) {
+    .helli {
+      margin-left: 200px;
+    }
+  }</style>
+<div class="helli">
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <h4 class="mb-4">📦 Update Delivery Address</h4>
+
+      <form action="/receiver/<%= parcel._id %>/update-address" method="POST">
+        <div class="mb-3">
+          <label class="form-label">Full Name</label>
+          <input type="text" class="form-control" name="receiverName" value="<%= parcel.receiverName %>" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Phone Number</label>
+          <input type="tel" class="form-control" name="receiverPhone" value="<%= parcel.receiverPhone %>" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Full Address</label>
+          <textarea class="form-control" name="deliveryAddress" rows="4" placeholder="House no, Street, City, Pincode..." required></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100">Submit Delivery Info</button>
+      </form>
+    </div>
+  </div>
+</div>
+</div>

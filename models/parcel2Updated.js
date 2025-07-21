@@ -31,12 +31,34 @@ const ParcelSchema = new mongoose.Schema({
   default: "awaiting_payment",
 },
 transitInfo: {
-  courier: String,
-  fromLockerId: String,
-  toLockerId: String,
-  startedAt: Date,
-  deliveredAt: Date,
+  courier: { type: String },                    // e.g., "Delhivery"
+  courierCode: { type: String },                // e.g., "DLH"
+  shiprocketCourierId: { type: Number },        // Optional: store courier_company_id from API
+  fromLockerId: { type: String },
+  toLockerId: { type: String },
+  shiprocketOrderId: { type: String },          // If creating a full order via Shiprocket later
+  rate: { type: mongoose.Decimal128 },          // Courier price
+  etd: { type: String },                        // Estimated delivery time, like "2-3 days"
+  startedAt: { type: Date },
+  deliveredAt: { type: Date },
 },
+receiverDeliveryPending: { type: Boolean, default: false },
+receiverFormToken: String, // for secure form link
+receiverDeliveryMethod: { type: String,default: null },
+receiverAddress: {
+  addressLine: String,
+  city: String,
+  state: String,
+  pincode: String,
+  phone: String,
+  name: String,
+},
+shiprocketQuote: {
+  courier_name: String,
+  estimated_cost: Number,
+  etd: String
+},
+destinationLockerId: { type: String },
   cost: { type: mongoose.Decimal128, required: true, default : 0},
   paymentOption: { type: String, enum: ["sender_pays", "receiver_pays"], required: true },
   paymentStatus: { type: String, enum: ["pending", "completed"], default: "pending" },
