@@ -1,0 +1,36 @@
+<% layout("/layouts/boilerplate") %>
+<style>
+  @media (min-width: 768px) {
+    .helli {
+      margin-left: 200px;
+    }
+  }</style>
+
+
+<div class="helli">
+<div class="container mt-4">
+  <h4 class="mb-3">📦 Move Parcel to Another Locker</h4>
+
+  <div class="card shadow-sm border mb-4">
+    <div class="card-body">
+      <h6 class="card-title">Parcel: <%= parcel.type %> - <%= parcel.size %></h6>
+      <p class="mb-1"><strong>Receiver:</strong> <%= parcel.receiverName %></p>
+      <p class="mb-1"><strong>Phone:</strong> <%= parcel.receiverPhone %></p>
+      <p class="mb-0"><strong>Current Locker:</strong> <%= parcel.lockerId || "Not Assigned" %></p>
+    </div>
+  </div>
+
+  <form action="/parcel/<%= parcel._id %>/move" method="POST">
+    <h6>Select New Locker Location:</h6>
+    <select name="newLockerId" class="form-select mb-3" required>
+      <% lockers.forEach(locker => { %>
+        <option value="<%= locker.lockerId %>">
+          <%= locker.lockerId %> - <%= locker.location?.address || "Unnamed Location" %>
+        </option>
+      <% }) %>
+    </select>
+
+    <button type="submit" class="btn btn-primary w-100">Initiate Move</button>
+  </form>
+</div>
+</div>

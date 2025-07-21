@@ -1,0 +1,52 @@
+<% layout("/layouts/boilerplate") %>
+<style>
+  @media (min-width: 768px) {
+    .helli {
+      margin-left: 200px;
+    }
+  }</style>
+<div class="helli">
+
+
+<div class="container mt-5">
+  <h4 class="mb-4">🚚 Transfer Parcels</h4>
+
+  <% if (parcels.length === 0) { %>
+    <div class="alert alert-info">You have no parcels awaiting pickup.</div>
+  <% } else { %>
+    <div class="row g-3">
+      <% parcels.forEach(parcel => { %>
+        <div class="col-md-6 col-lg-4">
+          <div class="card shadow-sm border">
+            <div class="card-body">
+              <h6 class="card-title">Parcel: <%= parcel.type %> - <%= parcel.size %></h6>
+              <p class="mb-2">
+                <strong>Sender:</strong> <%= parcel.senderName || "Not Assigned" %><br/>
+                <strong>Phone:</strong> <%= parcel.senderPhone || "Not Assigned" %><br/>
+                <% 
+  const friendlyStatusMap = {
+    awaiting_payment: "Awaiting Payment",
+    awaiting_drop: "Awaiting Drop-Off",
+    awaiting_pick: "Ready for Pickup",
+    picked: "Picked Up",
+    expired: "Expired",
+    in_transit: "In Transit"
+  };
+
+  const friendlyStatus = friendlyStatusMap[parcel.status] || parcel.status;
+%>
+
+<strong>Status:</strong> <%= friendlyStatus %>
+
+              </p>
+              <a href="/parcel/<%= parcel._id %>/move" class="btn btn-outline-success w-100">
+                Move to Another Locker
+              </a>
+            </div>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+</div>
+</div>

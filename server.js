@@ -1887,6 +1887,114 @@ function getEstimatedCost(size) {
 // });
 
 
+// MOVE PARCEL USING 3P services
+
+app.get("/api/couriers", async (req, res) => {
+  const couriers = [
+    { name: "Delhivery", cost: 30, eta: "2-3 days" },
+    { name: "BlueDart", cost: 50, eta: "1-2 days" },
+    { name: "Xpressbees", cost: 40, eta: "2 days" },
+  ];
+  res.json(couriers);
+});
+
+
+// GET /services
+app.get("/services", isAuthenticated, async (req, res) => {
+  const userPhone = req.user.phone;
+
+  const parcels = await Parcel2.find({
+    receiverPhone: userPhone,
+    status: "awaiting_pick",
+  });
+
+  const lockers = await Locker.find();
+
+  res.render("services", { parcels, lockers,  activePage: "services" });
+});
+
+
+
+app.get("/services/transfer", isAuthenticated, async (req, res) => {
+  const userId = req.session.user._id;
+
+  const parcels = await Parcel2.find({
+    senderId: userId,
+    status: "awaiting_pick",
+  });
+
+  res.render("transferList", { parcels });
+});
+
+
+app.get("/parcel/:id/move", isAuthenticated, async (req, res) => {
+  const parcelId = req.params.id;
+  const parcel = await Parcel2.findById(parcelId);
+
+  if (!parcel || parcel.status !== "awaiting_pick") {
+    req.flash("error", "Parcel is not eligible for moving.");
+    return res.redirect("/services/transfer");
+  }
+
+  const lockers = await Locker.find({}); // You can filter by compatibility later
+
+  res.render("moveLocker", { parcel, lockers });
+});
+
+app.post("/parcel/:id/move", isAuthenticated, async (req, res) => {
+  const parcelId = req.params.id;
+  const { newLockerId } = req.body;
+
+  const parcel = await Parcel2.findById(parcelId);
+  const newLocker = await Locker.findOne({ lockerId: newLockerId });
+  if (!parcel || !newLocker) {
+    req.flash("error", "Invalid parcel or locker.");
+    return res.redirect("/services/transfer");
+  }
+
+  // Mark as in transit
+  parcel.status = "in_transit";
+  parcel.transitInfo = {
+    fromLockerId: parcel.lockerId,
+    toLockerId: newLockerId,
+    startedAt: new Date()
+  };
+  await parcel.save();
+
+ // Optional: Notify receiver via WhatsApp that it is on the way
+  await client.messages.create({
+  to: `whatsapp:+91${parcel.receiverPhone}`,
+  from: 'whatsapp:+15558076515', // your approved Twilio number
+  contentSid: 'HX62901ad08f763acb2e42347ce24e529a',
+  contentVariables: JSON.stringify({
+    1: parcel.receiverName,
+    2: parcel.senderName,
+    3: parcel.type || "Package",
+    4: newLocker.location.address, // replace with locker address
+    5: "Today by 6 PM" // ETA or calculated estimate
+  }),
+});
+
+  req.flash("success", "Parcel marked as in transit.");
+  res.redirect("/services");
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 app.get("/send/select-locker/:lockerId", isAuthenticated, async (req, res) => {
   const lockerId = req.params.lockerId;
   const locker = await Locker.findOne({ lockerId: lockerId });

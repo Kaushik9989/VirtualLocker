@@ -1,0 +1,33 @@
+<!-- services.ejs -->
+<% layout("/layouts/boilerplate") %>
+<style>
+  @media (min-width: 768px) {
+    .helli {
+      margin-left: 200px;
+      margin-top: 100px;
+    }
+  }
+</style>
+<div class="helli mt-5">
+     <% if (messages.error && messages.error.length > 0) { %>
+      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <%= messages.error[0] %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <% } %>
+    <% if (messages.success && messages.success.length > 0) { %>
+      <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <%= messages.success[0] %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <% } %>
+<div class="container mt-5">
+  <h4 class="mb-4">📦 Services Menu</h4>
+
+  <a href="/services/transfer" class="btn btn-outline-primary mb-3">
+    <i class="fas fa-exchange-alt"></i> Move a Parcel
+  </a>
+
+  <!-- You can add more service cards/buttons here later -->
+</div>
+</div>

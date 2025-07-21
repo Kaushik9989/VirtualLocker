@@ -20,8 +20,22 @@ const ParcelSchema = new mongoose.Schema({
   razorpayOrderId : {type : String, },
  status: {
   type: String,
-  enum: ["awaiting_payment", "awaiting_drop", "awaiting_pick", "picked", "expired"],
-  default: "awaiting_drop",
+  enum: [
+    "awaiting_payment",
+    "awaiting_drop",
+    "awaiting_pick",
+    "picked",
+    "expired",
+    "in_transit", // ✅ added
+  ],
+  default: "awaiting_payment",
+},
+transitInfo: {
+  courier: String,
+  fromLockerId: String,
+  toLockerId: String,
+  startedAt: Date,
+  deliveredAt: Date,
 },
   cost: { type: mongoose.Decimal128, required: true, default : 0},
   paymentOption: { type: String, enum: ["sender_pays", "receiver_pays"], required: true },
