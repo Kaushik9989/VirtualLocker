@@ -13,14 +13,27 @@
   <p><strong>To:</strong> <%= toLocker.location.address %> (<%= toLocker.location.pincode %>)</p>
 
   <form action="/parcel/<%= parcel._id %>/confirm-move" method="POST">
-    <% courierOptions.forEach(option => { %>
-      <div class="form-check mb-2">
-        <input class="form-check-input" type="radio" name="courier" value="<%= option.courier_name %> - ₹<%= option.rate %>" required>
-        <label class="form-check-label">
-          <strong><%= option.courier_name %></strong> - ₹<%= option.rate %> | ETA: <%= option.estimated_delivery_days %> days
-        </label>
-      </div>
-    <% }) %>
+   <% courierOptions.forEach((option, index) => { %>
+  <div class="form-check mb-2">
+    <input 
+      class="form-check-input" 
+      type="radio" 
+      name="courierIndex" 
+      value="<%= index %>" 
+      id="courier_<%= index %>" 
+      required
+    >
+    <label class="form-check-label" for="courier_<%= index %>">
+      <strong><%= option.courier_name %></strong> - ₹<%= option.rate %> | ETA: <%= option.estimated_delivery_days %> days
+    </label>
+
+    <!-- Hidden fields to store courier data -->
+    <input type="hidden" name="courier_<%= index %>_name" value="<%= option.courier_name %>">
+    <input type="hidden" name="courier_<%= index %>_rate" value="<%= option.rate %>">
+    <input type="hidden" name="courier_<%= index %>_eta" value="<%= option.estimated_delivery_days %>">
+  </div>
+<% }) %>
+
 
     <input type="hidden" name="newLockerId" value="<%= toLocker.lockerId %>" />
     <button type="submit" class="btn btn-success mt-3 w-100">Confirm Move</button>

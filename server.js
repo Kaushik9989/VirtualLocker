@@ -2261,7 +2261,7 @@ res.render("parcel/select-courier", {
 
 
 app.post("/parcel/:id/confirm-move", isAuthenticated, async (req, res) => {
-  const { newLockerId, courier } = req.body;
+  const { newLockerId, courierIndex } = req.body;
   const parcel = await Parcel2.findById(req.params.id);
   const newLocker = await Locker.findOne({ lockerId: newLockerId });
 
@@ -2270,19 +2270,40 @@ app.post("/parcel/:id/confirm-move", isAuthenticated, async (req, res) => {
     return res.redirect("/services/transfer");
   }
 
+  const courierName = req.body[`courier_${courierIndex}_name`];
+  const rate = req.body[`courier_${courierIndex}_rate`];
+  const eta = req.body[`courier_${courierIndex}_eta`];
+
   parcel.status = "in_transit";
   parcel.transitInfo = {
     fromLockerId: parcel.lockerId,
     toLockerId: newLockerId,
     startedAt: new Date(),
-    courier,
+    courier: courierName,
+    rate,
+    etd: eta,
   };
-
+  
   await parcel.save();
 
-  req.flash("success", "Parcel marked in transit via " + courier);
+  // Send WhatsApp
+  await client.messages.create({
+    to: `whatsapp:+91${parcel.receiverPhone}`,
+    from: 'whatsapp:+15558076515',
+    contentSid: 'HX3a4f9ef7ea9e8469c8811204abc8599b',
+    contentVariables: JSON.stringify({
+      1: parcel.receiverName,
+      2: parcel.senderName,
+      3: courierName,
+      4: newLocker.location.address,
+      5: `Within ${eta} Day(s)`,
+    }),
+  });
+
+  req.flash("success", `Parcel marked in transit via ${courierName}`);
   res.redirect("/dashboard");
 });
+
 
 
 
