@@ -1896,11 +1896,25 @@ app.get("/send/select-locker/:lockerId", isAuthenticated, async (req, res) => {
     return res.redirect("/locations");
   }
 
-  // Initialize parcelDraft with locker details
+  res.render("parcel/select-size", { locker });
+});
+
+
+app.post("/send/select-locker/:lockerId", isAuthenticated, async (req, res) => {
+  const lockerId = req.params.lockerId;
+  const size = req.body.size;
+
+  const locker = await Locker.findOne({ lockerId });
+
+  if (!locker) {
+    req.flash("error", "Locker not found");
+    return res.redirect("/locations");
+  }
+
   req.session.parcelDraft = {
     isSelf: true,
     type: "package",
-    size: "small", // Default; you can allow changing later
+    size: size,
     paymentOption: "sender_pays",
     lockerId: locker.lockerId,
     location_id: locker.location?._id || null,
@@ -1913,6 +1927,38 @@ app.get("/send/select-locker/:lockerId", isAuthenticated, async (req, res) => {
 
   res.redirect("/send/step3");
 });
+
+
+
+
+
+
+// app.get("/send/select-locker/:lockerId", isAuthenticated, async (req, res) => {
+//   const lockerId = req.params.lockerId;
+//   const locker = await Locker.findOne({ lockerId: lockerId });
+
+//   if (!locker) {
+//     req.flash("error", "Locker not found");
+//     return res.redirect("/locations");
+//   }
+
+//   // Initialize parcelDraft with locker details
+//   req.session.parcelDraft = {
+//     isSelf: true,
+//     type: "package",
+//     size: "small", // Default; you can allow changing later
+//     paymentOption: "sender_pays",
+//     lockerId: locker.lockerId,
+//     location_id: locker.location?._id || null,
+//     lockerLat: locker.location?.lat,
+//     lockerLng: locker.location?.lng,
+//     description: "Stored via locker catalog",
+//     receiverName: req.user.username,
+//     receiverPhone: req.user.phone
+//   };
+
+//   res.redirect("/send/step3");
+// });
 const UserAction = require('./models/userAction.js');
 
 app.post("/analytics/user-action", async (req, res) => {
@@ -1930,6 +1976,94 @@ app.post("/analytics/user-action", async (req, res) => {
 }
   res.sendStatus(200);
 });
+app.get("/parcel/my-awaiting-drop", isAuthenticated, async (req, res) => {
+  const parcels = await Parcel2.find({
+    senderId: req.user._id,
+    status: "awaiting_drop"
+  });
+  res.render("parcel/my-awaiting-drop", { parcels });
+});
+
+
+// Show form to reassign parcel
+app.get("/parcel/:id/transfer", isAuthenticated, async (req, res) => {
+  const parcel = await Parcel2.findById(req.params.id);
+  if (!parcel || parcel.senderId.toString() !== req.user._id.toString()) {
+    req.flash("error", "Parcel not found or unauthorized.");
+    return res.redirect("/dashboard");
+  }
+  res.render("parcel/transfer", { parcel });
+});
+
+// Handle transfer POST
+app.post("/parcel/:id/transfer", isAuthenticated, async (req, res) => {
+  const { receiverName, receiverPhone } = req.body;
+  const parcel = await Parcel2.findById(req.params.id);
+
+  if (!parcel || parcel.senderId.toString() !== req.user._id.toString()) {
+    req.flash("error", "Unauthorized action.");
+    return res.redirect("/dashboard");
+  }
+
+  parcel.receiverName = receiverName;
+  parcel.receiverPhone = receiverPhone;
+  parcel.isSelf = false; // clear self mode
+  await parcel.save();
+
+  await FunnelEvent.create({
+    sessionId: req.sessionID,
+    step: "transfer_ownership",
+    parcelId: parcel._id,
+    timestamp: new Date(),
+  });
+
+  req.flash("success", "Ownership transferred successfully.");
+  res.redirect("/dashboard");
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 app.get("/action_funnel", async (req, res) => {
   const now = new Date();
 

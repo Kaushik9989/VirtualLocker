@@ -1,0 +1,26 @@
+<% layout("/layouts/boilerplate") %>
+<style>
+    @media (min-width: 768px) {
+      .helli {
+        margin-left: 200px;
+       
+      }
+    }
+</style>
+<!-- views/parcel/transfer-ownership.ejs -->
+<div class="helli mt-5"><form action="/parcel/<%= parcel._id %>/transfer" method="POST" class="p-4 border rounded shadow-sm bg-light">
+  <h5 class="mb-3">Transfer Ownership</h5>
+
+  <div class="mb-3">
+    <label for="receiverName" class="form-label">Receiver Name</label>
+    <input type="text" class="form-control" name="receiverName" required>
+  </div>
+
+  <div class="mb-3">
+    <label for="receiverPhone" class="form-label">Receiver Phone</label>
+    <input type="text" class="form-control" name="receiverPhone" required>
+  </div>
+
+  <button type="submit" class="btn btn-success w-100">Transfer Ownership</button>
+</form>
+</div>

@@ -1,0 +1,80 @@
+<% layout("/layouts/boilerplate") %>
+
+<style>
+  .parcel-card {
+    border-radius: 10px;
+    transition: box-shadow 0.2s ease;
+    border-left: 5px solid #0d6efd;
+  }
+
+  .parcel-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  }
+
+  .parcel-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #555;
+  }
+
+  .parcel-value {
+    font-size: 1rem;
+    color: #222;
+  }
+
+  .parcel-icon {
+    width: 20px;
+    margin-right: 6px;
+    color: #0d6efd;
+  }
+
+  @media (min-width: 768px) {
+    .helli {
+      margin-left: 200px;
+    }
+  }
+</style>
+
+<div class="helli">
+  <div class="container mt-4">
+    <h4 class="mb-4">📦 Your Parcels Awaiting Drop-Off</h4>
+
+    <% if (parcels.length === 0) { %>
+      <div class="alert alert-info">You have no parcels in <strong>awaiting_drop</strong> status.</div>
+    <% } %>
+
+    <div class="row g-4">
+      <% parcels.forEach(parcel => { %>
+        <div class="col-md-6 col-lg-4">
+          <div class="card parcel-card p-3">
+            <div class="mb-2">
+              <span class="parcel-label"><i class="fas fa-hashtag parcel-icon"></i>Parcel</span>
+              PKL-<%= parcel._id.toString().slice(-6).toUpperCase() %>
+
+            </div>
+            <div class="mb-2">
+              <span class="parcel-label"><i class="fas fa-box-open parcel-icon"></i>Type</span>
+              <div class="parcel-value text-capitalize"><%= parcel.type %></div>
+            </div>
+            <div class="mb-2">
+              <span class="parcel-label"><i class="fas fa-ruler-combined parcel-icon"></i>Size</span>
+              <div class="parcel-value text-capitalize"><%= parcel.size %></div>
+            </div>
+            <div class="mb-2">
+              <span class="parcel-label"><i class="fas fa-user parcel-icon"></i>Receiver</span>
+              <div class="parcel-value"><%= parcel.receiverName || "Not Assigned" %></div>
+            </div>
+            <div class="mb-2">
+              <span class="parcel-label"><i class="fas fa-phone parcel-icon"></i>Receiver Phone</span>
+              <div class="parcel-value"><%= parcel.receiverPhone || "Not Assigned" %></div>
+            </div>
+            <hr>
+            <a href="/parcel/<%= parcel._id %>/transfer" class="btn btn-outline-primary w-100">
+              🔁 Transfer Ownership
+            </a>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+</div>
