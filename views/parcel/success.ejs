@@ -4,16 +4,26 @@
     .helli{
     margin-left: 200px;
   }}
+    .top-dashboard-btn {
+    margin-top: 20px;
+    margin-left: 15px;
+  }
 </style>
-<div class="helli">
+<div class="helli mt-5">
+  <div class="top-dashboard-btn">
+    <a href="/dashboard" class="btn btn-success">
+     Visit DropPoint Systems
+    </a>
+  </div>
 <div class="container py-5">
     <% if (parcel.paymentOption === "receiver_pays") { %>
-  <div class="alert alert-warning">
+  <div class="alert alert-warning alert-dismissible">
     🚧 Waiting for receiver's payment. Once they pay, you'll be notified to drop off the parcel.
   </div>
 <% } else { %>
-  <div class="alert alert-success">
+  <div class="alert alert-success alert-dismissible">
     ✅ QR is active! Drop your parcel at any nearby locker by scanning it.
+     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
   </div>
 <% } %>
   <div class="text-center">
