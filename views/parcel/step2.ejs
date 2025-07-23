@@ -1,82 +1,206 @@
 <% layout("/layouts/boilerplate") %>
 
-  <div class="container py-5">
-    <div class="row justify-content-center">
-      <div class="col-lg-7">
-        <h3 class="mb-4 fw-bold">📦 Step 2: Recipient Info</h3>
-        <form action="/send/step2" method="POST">
-          <!-- Delivery Option Dropdown -->
-          <div class="mb-4">
-            <label class="form-label">Who are you sending this to?</label>
-            <select class="form-select" name="deliveryOption" id="deliveryOption" required>
-              <option value="receiver" selected>Someone Else</option>
-              <option value="self">Store for Myself</option>
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+        <% if (messages.error && messages.error.length> 0) { %>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          <%= messages.error[0] %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <% } %>
+          <% if (messages.success && messages.success.length> 0) { %>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+              <%= messages.success[0] %>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            <% } %>
+      <h3 class="mb-4 fw-bold">📦 Step 2: Recipient Info</h3>
+      <form action="/send/step2" method="POST">
+        <!-- Delivery Option Dropdown -->
+        <div class="mb-4">
+          <label class="form-label">Who are you sending this to?</label>
+          <select
+            class="form-select"
+            name="deliveryOption"
+            id="deliveryOption"
+            required
+          >
+            <option value="receiver" selected>Someone Else</option>
+            <option value="self">Store for Myself</option>
+          </select>
+        </div>
+
+        <!-- Receiver Fields -->
+        <div id="receiverFields">
+          <!-- Basic Info -->
+          <div class="mb-3">
+            <label class="form-label">Recipient Name</label>
+            <input type="text" name="receiverName" class="form-control" />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Recipient Phone</label>
+            <div class="input-group">
+              <span class="input-group-text"
+                ><i class="fas fa-phone"></i>&nbsp; +91 -</span
+              >
+              <input type="tel" name="receiverPhone" class="form-control" />
+            </div>
+          </div>
+
+          <!-- Delivery Method Choice -->
+          <div class="mb-3">
+            <label class="form-label"
+              >How should the recipient receive the parcel?</label
+            >
+            <select
+              class="form-select"
+              name="receiverDeliveryMethod"
+              id="receiverDeliveryMethod"
+              required
+            >
+              <option value="" disabled selected>Select an option</option>
+              <option value="self_pickup">Self Pickup (from a locker)</option>
+              <option value="address_delivery">Enter recipient address</option>
             </select>
           </div>
-
-          <!-- Receiver Fields -->
-          <div id="receiverFields">
-            <!-- Basic Info -->
+          <!-- Address Delivery Fields (Hidden by default) -->
+          <div id="addressDeliveryFields" style="display: none">
             <div class="mb-3">
-              <label class="form-label">Recipient Name</label>
-              <input type="text" name="receiverName" class="form-control" />
+              <label class="form-label">Recipient Address</label>
+              <textarea
+                class="form-control"
+                name="recipientAddress"
+                rows="3"
+                placeholder="House No, Street, City, Pincode"
+              ></textarea>
             </div>
-
             <div class="mb-3">
-              <label class="form-label">Recipient Phone</label>
-              <div class="input-group">
-                <span class="input-group-text"><i class="fas fa-phone"></i>&nbsp; +91 -</span>
-                <input type="tel" name="receiverPhone" class="form-control" />
-              </div>
+            <label class="form-label">Recipient Pincode</label>
+            <input type="text" class="form-control" name="recipientPincode" pattern="\d{6}" placeholder="Enter 6-digit Pincode" required />
             </div>
+            
 
-            <!-- Delivery Method Choice -->
-            <div class="mb-3">
-              <label class="form-label">How should the recipient receive the parcel?</label>
-              <select class="form-select" name="receiverDeliveryMethod" id="receiverDeliveryMethod" required>
-                <option value="" disabled selected>Select an option</option>
-                <option value="self_pickup">Self Pickup (from a locker)</option>
-                <option value="self_pickup">Enter recipient address</option>
-                <option value="whatsapp">Let them decide (via WhatsApp)</option>
-              </select>
+            <!-- Locker Dropdown -->
+<div class="mb-3">
+  <label class="form-label">Select Locker for Dispatch</label>
+  <select class="form-select" name="selectedLocker" id="lockerSelect" required>
+    <% lockers.forEach(locker => { %>
+      <option value="<%= locker._id %>" data-pincode="<%= locker.location.pincode %>">
+        <%= locker.location.name %> - <%= locker.location.address %> (Pincode: <%= locker.location.pincode %>)
+      </option>
+    <% }); %>
+  </select>
+</div>
+
+
+            <div id="estimateBox" class="alert alert-info d-none">
+              Estimated delivery charge: ₹<span id="estimateAmount">...</span>
+              <br />Final charge (including ₹10 service fee): ₹<span
+                id="finalAmount"
+                >...</span
+              >
             </div>
           </div>
+        </div>
 
-          <button class="btn btn-primary w-100 mt-3">Next</button>
-        </form>
-
-      </div>
+        <button class="btn btn-primary w-100 mt-3">Next</button>
+      </form>
     </div>
   </div>
+</div>
 
-  <!-- Script: Auto-hide receiver fields if 'Self' is chosen -->
-  <script>
-    const deliverySelect = document.getElementById("deliveryOption");
-    const receiverFields = document.getElementById("receiverFields");
+<!-- Script: Auto-hide receiver fields if 'Self' is chosen -->
+<script>
+  const deliveryToSelect = document.getElementById("deliveryOption");
+  const receiverFields = document.getElementById("receiverFields");
+  const deliveryMethod = document.getElementById("receiverDeliveryMethod");
+  const addressFields = document.getElementById("addressDeliveryFields");
+  const estimateBox = document.getElementById("estimateBox");
+  const estimateAmount = document.getElementById("estimateAmount");
+  const finalAmount = document.getElementById("finalAmount");
+  const lockerSelect = document.getElementById("lockerSelect");
 
-    deliverySelect.addEventListener("change", () => {
-      if (deliverySelect.value === "self") {
-        receiverFields.style.display = "none";
-        Array.from(receiverFields.querySelectorAll("input")).forEach(input => {
-          input.required = false;
-        });
-      } else {
-        receiverFields.style.display = "block";
-        Array.from(receiverFields.querySelectorAll("input")).forEach(input => {
-          input.required = true;
-        });
-      }
-    });
-  </script>
+  const recipientAddressInput = document.querySelector("[name='recipientAddress']");
+  const recipientPincodeInput = document.querySelector("[name='recipientPincode']");
 
-  <!-- User Tracking -->
-  <script>
-    function trackUserAction(step, method = 'pageview') {
-      fetch('/analytics/user-action', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ step, method, path: window.location.pathname })
-      });
+  function toggleAddressFields(show) {
+    if (show) {
+      addressFields.style.display = "block";
+      recipientAddressInput.required = true;
+      recipientPincodeInput.required = true;
+      lockerSelect.required = true;
+    } else {
+      addressFields.style.display = "none";
+      recipientAddressInput.required = false;
+      recipientPincodeInput.required = false;
+      lockerSelect.required = false;
+      recipientAddressInput.value = "";
+      recipientPincodeInput.value = "";
+      lockerSelect.selectedIndex = 0;
+      estimateBox.classList.add("d-none");
     }
-    trackUserAction('send_step_2');
-  </script>
+  }
+
+  function toggleReceiverFields(show) {
+    if (show) {
+      receiverFields.style.display = "block";
+      deliveryMethod.required = true;
+    } else {
+      receiverFields.style.display = "none";
+      deliveryMethod.required = false;
+      toggleAddressFields(false);
+    }
+  }
+
+  deliveryMethod.addEventListener("change", () => {
+    toggleAddressFields(deliveryMethod.value === "address_delivery");
+  });
+
+  deliveryToSelect.addEventListener("change", () => {
+    toggleReceiverFields(deliveryToSelect.value === "receiver");
+  });
+
+  // Estimate delivery on locker change
+  lockerSelect?.addEventListener("change", async () => {
+    const lockerId = lockerSelect.value;
+    const address = recipientAddressInput.value;
+
+    if (!lockerId || !address.trim()) return;
+
+    const res = await fetch('/estimate-delivery-cost', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lockerId, recipientAddress: address })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      estimateBox.classList.remove("d-none");
+      estimateAmount.textContent = data.estimate;
+      finalAmount.textContent = data.estimate + 10;
+    }
+  });
+
+  // Initial state on page load
+  window.addEventListener("DOMContentLoaded", () => {
+    toggleReceiverFields(deliveryToSelect.value === "receiver");
+    toggleAddressFields(deliveryMethod.value === "address_delivery");
+  });
+</script>
+
+
+
+
+<!-- User Tracking -->
+<script>
+  function trackUserAction(step, method = "pageview") {
+    fetch("/analytics/user-action", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ step, method, path: window.location.pathname }),
+    });
+  }
+  trackUserAction("send_step_2");
+</script>

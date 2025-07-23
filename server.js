@@ -1569,6 +1569,8 @@ app.get("/map", async (req, res) => {
 // });
 
 
+
+
 app.get("/send/step2", isAuthenticated, async (req, res) => {
   await FunnelEvent.create({
     sessionId: req.sessionID,
@@ -1603,39 +1605,45 @@ app.get("/send/step2", isAuthenticated, async (req, res) => {
     return res.redirect("/send/step3");
   }
 
-  res.render("parcel/step2");
+  // 🆕 Fetch available lockers
+  const lockers = await Locker.find({
+  "compartments.isBooked": false
 });
 
-
-
-// app.post("/send/step2", isAuthenticated, (req, res) => {
-//   if (!req.session.parcelDraft) {
-//     req.session.parcelDraft = {};  // Initialize if missing
-//   }
-//   req.session.parcelDraft.receiverName = req.body.receiverName;
-//   req.session.parcelDraft.receiverPhone = req.body.receiverPhone;
-//   req.session.parcelDraft.isSelf = false;
-//   res.redirect("/send/step3");
-// });
+  // Render with lockers
+  res.render("parcel/step2", { lockers });
+});
 
 app.post("/send/step2", isAuthenticated, async (req, res) => {
-  const { receiverName, receiverPhone, deliveryOption, receiverDeliveryMethod } = req.body;
-  const user = await User.findById(req.session.user._id);
+  const {
+    receiverName,
+    receiverPhone,
+    deliveryOption,
+    receiverDeliveryMethod,
+    recipientAddress,
+    recipientPincode,
+    selectedLocker,
+    
+  } = req.body;
 
+  const user = await User.findById(req.session.user._id);
+  const locker = await Locker.findById(selectedLocker);
+  const lockerPincode = locker?.location?.pincode || "";
   if (!req.session.parcelDraft) req.session.parcelDraft = {};
 
-  // Self flow (store for myself)
+  // Self Flow (Store for Myself)
   if (deliveryOption === "self") {
     req.session.parcelDraft.isSelf = true;
     req.session.parcelDraft.receiverName = user.username || "Self";
     req.session.parcelDraft.receiverPhone = user.phone || "";
-    req.session.parcelDraft.receiverDeliveryMethod = "self_pickup"; // default for self
+    req.session.parcelDraft.receiverDeliveryMethod = "self_pickup";
   } else {
-    // Sending to someone else
+    // Validate name/phone
     if (!receiverName || !receiverPhone) {
       req.flash("error", "Please enter both name and phone for the recipient.");
       return res.redirect("/send/step2");
     }
+
     if (!receiverDeliveryMethod) {
       req.flash("error", "Please select how the receiver will receive the parcel.");
       return res.redirect("/send/step2");
@@ -1646,10 +1654,97 @@ app.post("/send/step2", isAuthenticated, async (req, res) => {
     req.session.parcelDraft.receiverPhone = receiverPhone;
     req.session.parcelDraft.receiverDeliveryMethod = receiverDeliveryMethod;
     req.session.parcelDraft.paymentOption = "sender_pays";
+
+    // 🔁 Extra logic for address delivery
+    if (receiverDeliveryMethod === "address_delivery") {
+      if (!recipientAddress || !recipientPincode || !selectedLocker) {
+        req.flash("error", "Please fill in recipient address, pincode, and select a dispatch locker.");
+        return res.redirect("/send/step2");
+      }
+
+      // Save address and locker info
+      req.session.parcelDraft.recipientAddress = recipientAddress;
+      req.session.parcelDraft.recipientPincode = recipientPincode;
+      req.session.parcelDraft.selectedLocker = selectedLocker;
+      req.session.parcelDraft.selectedLockerPincode =lockerPincode;
+
+ 
+      
+
+      
+    }
   }
+
+  if (receiverDeliveryMethod === "address_delivery") {
+  return res.redirect("/send/estimate");
+} else {
+  return res.redirect("/send/step3");
+}
+
+});
+
+
+
+app.get("/send/estimate", isAuthenticated, async (req, res) => {
+  try {
+    const draft = req.session.parcelDraft;
+
+    if (
+      !draft ||
+      !draft.selectedLockerPincode ||
+      !draft.recipientPincode ||
+      draft.receiverDeliveryMethod !== "address_delivery"
+    ) {
+      req.flash("error", "Incomplete data for delivery estimation.");
+      return res.redirect("/send/step2");
+    }
+
+    // Prepare request to Shiprocket
+    const token  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjcyODMwMzksInNvdXJjZSI6InNyLWF1dGgtaW50IiwiZXhwIjoxNzU0MTUwODA1LCJqdGkiOiJvc1R3VFNWWFQ4YnNObG9GIiwiaWF0IjoxNzUzMjg2ODA1LCJpc3MiOiJodHRwczovL3NyLWF1dGguc2hpcHJvY2tldC5pbi9hdXRob3JpemUvdXNlciIsIm5iZiI6MTc1MzI4NjgwNSwiY2lkIjo3MDUxNjYyLCJ0YyI6MzYwLCJ2ZXJib3NlIjpmYWxzZSwidmVuZG9yX2lkIjowLCJ2ZW5kb3JfY29kZSI6IiJ9.kds27l6abl8baauEq4PvpbtVXHUmUFkw7FBsjZ8ZYsY';
+    
+     const headers = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  };
+   const params = new URLSearchParams({
+    pickup_postcode: draft.selectedLockerPincode,
+    delivery_postcode: draft.recipientPincode,
+    weight: 1,
+    cod: 0
+  });
+    
+    const response = await axios.get(
+      `https://apiv2.shiprocket.in/v1/external/courier/serviceability?${params.toString()}`,
+      { headers }
+    );
   
 
-  res.redirect("/send/step3");
+const courierOptions = response.data.data.available_courier_companies;
+
+    if (!courierOptions || courierOptions.length === 0) {
+      req.flash("error", "No delivery service available for the selected address.");
+      return res.redirect("/send/step2");
+    }
+
+    // Choose cheapest option
+    const bestOption = courierOptions.sort((a, b) => a.rate - b.rate)[0];
+
+    // Save delivery estimate + courier name in session draft
+    req.session.parcelDraft.deliveryCost = bestOption.rate;
+    req.session.parcelDraft.deliveryCompany = bestOption.courier_name;
+
+    // Show estimate page
+    res.render("parcel/estimate", {
+      courierOptions,
+      platformFee: 10,
+      totalCost: bestOption.rate + 10
+    });
+
+  } catch (err) {
+    console.error("❌ Error fetching estimate:", err);
+    req.flash("error", "Error fetching delivery estimate.");
+    res.redirect("/send/step2");
+  }
 });
 
 
@@ -1658,31 +1753,9 @@ app.post("/send/step2", isAuthenticated, async (req, res) => {
 
 
 
-// app.post("/send/step2", isAuthenticated, async (req, res) => {
-//   const { receiverName, receiverPhone, deliveryOption } = req.body;
-//   const user = await User.findById(req.session.user._id);
 
-//   if (!req.session.parcelDraft) req.session.parcelDraft = {};
 
-//   // Self flow
-//   if (deliveryOption === "self") {
-//     req.session.parcelDraft.isSelf = true;
-//     req.session.parcelDraft.receiverName = user.username || "Self";
-//     req.session.parcelDraft.receiverPhone = user.phone || "";
-//   } else {
-//     // Someone else
-//     if (!receiverName || !receiverPhone) {
-//       req.flash("error", "Please enter both name and phone for the recipient.");
-//       return res.redirect("/send/step2");
-//     }
-//     req.session.parcelDraft.isSelf = false;
-//     req.session.parcelDraft.receiverName = receiverName;
-//     req.session.parcelDraft.receiverPhone = receiverPhone;
-//     req.session.parcelDraft.paymentOption = "sender_pays";
-//   }
 
-//   res.redirect("/send/step3");
-// });
 
 
 
@@ -1693,8 +1766,11 @@ app.get("/send/step3", isAuthenticated, async (req, res) => {
     const lockerId = draft.lockerId;
     const user = await User.findById(req.session.user._id);
     const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const cost = getEstimatedCost(draft.size).toString();
-
+    let cost = getEstimatedCost(draft.size);
+    if (draft.receiverDeliveryMethod === "address_delivery") {
+      cost += (draft.deliveryCost || 0) + 10; // Add delivery + platform fee
+    }
+    
     let qrImage;
     if (lockerId) {
       qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode, lockerId }));
@@ -1737,10 +1813,15 @@ app.get("/send/step3", isAuthenticated, async (req, res) => {
       senderPhone: user.phone,
       receiverName: draft.receiverName,
       receiverPhone: draft.receiverPhone,
+       // Save address and locker info
+      recipientAddress : draft.recipientAddress,
+    recipientPincode : draft.recipientPincode,
+    selectedLocker : draft.selectedLocker,
+    selectedLockerPincode : draft.selectedLockerPincode,
       accessCode,
       qrImage,
       lockerId: draft.lockerId || null,
-      cost,
+      cost: cost.toString(),
       status,
       paymentStatus,
       droppedAt: null,
@@ -1750,34 +1831,6 @@ app.get("/send/step3", isAuthenticated, async (req, res) => {
     });
     
    await parcel.save();
-  //  if (draft.receiverDeliveryMethod === "whatsapp") {
-     const updateLink = `https://demo.droppoint.com/receiver/${parcel._id}/update-address`;
-
-  // try {
-  //   await client.messages.create({
-  //     from: 'whatsapp:+15558076515', // your Twilio WhatsApp number
-  //     to: `whatsapp:+91${draft.receiverPhone}`,
-  //     contentSid: 'HX0fa8fba404e89a0dec0e2a37532e6922', // Twilio Content Template SID (optional, if using content API)
-  //     contentVariables: JSON.stringify({
-  //       "1": draft.receiverName || "there",
-  //       "2": updateLink
-  //     }),
-  //     // Alternative if you're using Twilio template name (not Content API):
-  //     // contentSid: 'your_template_sid', OR use messagingServiceSid
-  //   });
-//     res.render("parcel/payment", {
-//       parcel,
-//       razorpayKeyId: process.env.RAZORPAY_KEY_ID,
-//       orderId: razorpayOrder.id,
-//       amount: razorpayOrder.amount,
-//       currency: razorpayOrder.currency,
-//     })
-//     console.log("✅ WhatsApp template message sent to receiver");
-//   } catch (err) {
-//     console.error("❌ Error sending WhatsApp template:", err.message);
-//   }
-  
-// }
 delete req.session.parcelDraft;
 
 // funnel log
@@ -1786,11 +1839,6 @@ await FunnelEvent.create({
   step: 'step3_complete',
   timestamp: new Date(),
 });
-
-// WhatsApp Link Handling
-
-
-
     // funnel log
     await FunnelEvent.create({
       sessionId: req.sessionID,
@@ -1814,187 +1862,64 @@ await FunnelEvent.create({
   }
 });
 
+
+
+app.get("/payment/success", isAuthenticated, async (req, res) => {
+  const { order_id, payment_id, signature } = req.query;
+
+  // Verify signature
+  const generatedSignature = crypto.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+    .update(order_id + "|" + payment_id)
+    .digest("hex");
+
+  if (generatedSignature !== signature) {
+    req.flash("error", "Payment verification failed.");
+    return res.redirect("/dashboard");
+  }
+
+  // Mark parcel as paid
+  const parcel = await Parcel2.findOneAndUpdate(
+    { razorpayOrderId: order_id },
+    {
+      paymentStatus: "completed",
+      status: "awaiting_drop"
+    },
+    { new: true }
+  );
+
+  if (!parcel) {
+    req.flash("error", "Parcel not found.");
+    return res.redirect("/dashboard");
+  }
+await SessionIntent.findOneAndUpdate(
+  { sessionId: req.sessionID, completed: false },
+  { completed: true, endedAt: new Date() }
+);
+  await FunnelEvent.create({
+    sessionId: req.sessionID,
+    userId: req.user?._id || null,
+    step: "send_parcel_submitted",
+    timestamp: new Date()
+  });
+
+  res.redirect(`/parcel/${parcel._id}/success`);
+});
+
+
+
+
+
+
+
+
+
+
+
 function getEstimatedCost(size) {
   if (size === "small") return 10;
   if (size === "medium") return 20;
   return 30;
 }
-// app.post("/send/step3", isAuthenticated, async (req, res) => {
-//   try {
-//     const draft = req.session.parcelDraft;
-//     draft.paymentOption = req.body.paymentOption;
-//   const lockerId = draft.lockerId;
-    
-//     const user = await User.findById(req.session.user._id);
-//     const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
-//     const cost = getEstimatedCost(draft.size).toString();
-//    let qrImage; // declare it outside
-
-// if (draft.lockerId) {
-//   const qrPayload = JSON.stringify({ accessCode, lockerId });
-//   qrImage = await QRCode.toDataURL(qrPayload);
-// } else {
-//   const qrPayload = JSON.stringify({ accessCode });
-//   qrImage = await QRCode.toDataURL(qrPayload);
-// }
-    
-  
-    
-//     let status = "awaiting_drop";
-//     let paymentStatus = "completed";
-//     let expiresAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
-//     let razorpayOrder = null;
-
-//     if (draft.paymentOption === "sender_pays" || draft.paymentOption === "receiver_pays") {
-//       status = "awaiting_payment";
-//       paymentStatus = "pending";
-//       expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
-//     }
-
-//     if (draft.paymentOption === "sender_pays") {
-//       razorpayOrder = await razorpay.orders.create({
-//         amount: parseFloat(cost) * 100,
-//         currency: "INR",
-//         receipt: `parcel_${Date.now()}`,
-//         payment_capture: 1,
-//       });
-//     }
-// if (draft.isSelf) {
-//   if (!draft.receiverPhone) draft.receiverPhone = user.phone;
-//   if (!draft.receiverName) draft.receiverName = user.username || "Self";
-// }
-
-// if (!draft.receiverPhone || draft.receiverPhone.trim() === "") {
-//   console.error("❌ Missing receiverPhone even after fallback:", draft);
-//   req.flash("error", "Receiver phone is required.");
-//   return res.redirect("/send/step2");
-// }
-// const parcel = new Parcel2({
-//   ...draft,
-//   senderId: req.user._id,
-//   senderName: req.user.username,
-//   senderPhone: user.phone,
-//   receiverName: draft.receiverName,
-//   receiverPhone: draft.receiverPhone,
-//   accessCode,
-//   qrImage : qrImage,
-//   lockerId: draft.lockerId || null,
-//   cost,
-//   status,
-//   paymentStatus,
-//   droppedAt: null,
-//   expiresAt,
-//   compartmentId: null,
-//   razorpayOrderId: razorpayOrder?.id || null,
-// });
-
-// await parcel.save();
-
-//     await parcel.save();
-//     delete req.session.parcelDraft;
-
-//     const updated = await incomingParcel.findOneAndUpdate(
-//       { receiverPhone: parcel.receiverPhone, status: "pending" },
-//       {
-//         receiverName: parcel.receiverName,
-//         parcelType: parcel.type,
-//         size: parcel.size,
-//         cost: parseFloat(parcel.cost),
-//         accessCode: parcel.accessCode,
-//         qrCodeUrl: parcel.qrImage,
-//         status: "awaiting_drop",
-//         lockerId: parcel.lockerId?.toString() || "",
-//         "metadata.description": parcel.description || "",
-//       },
-//       { new: true }
-//     );
-
-//     if (!updated) {
-//       await incomingParcel.create({
-//         senderPhone: user.phone || "unknown",
-//         receiverPhone: parcel.receiverPhone,
-//         senderName: user.username,
-//         receiverName: parcel.receiverName || "",
-//         parcelType: parcel.type,
-//         size: parcel.size,
-//         cost: parseFloat(parcel.cost),
-//         accessCode: parcel.accessCode,
-//         qrCodeUrl: parcel.qrImage,
-//         status: "awaiting_drop",
-//         lockerId: parcel.lockerId?.toString() || "",
-//         metadata: {
-//           description: parcel.description || "",
-//         },
-//         lockerLat: parcel.lockerLat,
-//         lockerLng: parcel.lockerLng,
-//       });
-//     }
-
-//     // ✅ WhatsApp Notification (before any return)
-   
-
-
-//     // ✅ Funnel Event Logging
-//     await FunnelEvent.create({
-//       sessionId: req.sessionID,
-//       step: 'step3_complete',
-//       timestamp: new Date(),
-//     });
-
-//     // ✅ Now handle payment redirection
-//     if (draft.paymentOption === "receiver_pays") {
-//       return res.render("parcel/waiting-payment", { parcel });
-//     }
-
-//     if (draft.paymentOption === "sender_pays") {
-//       return res.render("parcel/payment", {
-//         parcel,
-//         razorpayKeyId: process.env.RAZORPAY_KEY_ID,
-//         orderId: razorpayOrder.id,
-//         amount: razorpayOrder.amount,
-//         currency: razorpayOrder.currency,
-//       });
-//     }
-
-//     // ✅ Final fallback redirect if payment is completed
-//     return res.redirect(`/parcel/${parcel._id}/success`);
-
-//   } catch (error) {
-//     console.error("❌ Error in /send/step3:", error);
-//     req.flash("error", "An unexpected error occurred. Please try again.");
-//     res.redirect("/dashboard");
-//   }
-// });
-
-
-// MOVE PARCEL USING 3P services
-
-// app.post("/parcel/:id/move/select", isAuthenticated, async (req, res) => {
-//   const parcelId = req.params.id;
-//   const newLockerId = req.body.newLockerId;
-
-//   const parcel = await Parcel2.findById(parcelId).populate("lockerLocation");
-//   const newLocker = await Locker.findOne({ lockerId: newLockerId }).populate("location");
-
-//   if (!parcel || !newLocker) {
-//     req.flash("error", "Invalid locker or parcel.");
-//     return res.redirect("/dashboard");
-//   }
-
-//   // Save data in session
-//   req.session.moveDetails = {
-//     parcelId,
-//     fromPincode: parcel.lockerLocation?.pincode,
-//     toPincode: newLocker.location?.pincode,
-//     parcelSize: parcel.size,
-//     parcelWeight: parcel.metadata?.weight || 1, // fallback
-//     newLockerId: newLockerId,
-//     toLocker: newLocker
-//   };
-
-//   res.redirect(`/parcel/${parcelId}/move/confirm`);
-// });
-
 
 app.get("/parcel/:id/move/confirm", isAuthenticated, async (req, res) => {
   const { moveDetails } = req.session;
@@ -2019,6 +1944,7 @@ app.get("/parcel/:id/move/confirm", isAuthenticated, async (req, res) => {
   const { length, breadth, height } = sizeMap[parcelSize] || sizeMap.small;
 
   try {
+    const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjcyODMwMzksInNvdXJjZSI6InNyLWF1dGgtaW50IiwiZXhwIjoxNzU0MTUwODA1LCJqdGkiOiJvc1R3VFNWWFQ4YnNObG9GIiwiaWF0IjoxNzUzMjg2ODA1LCJpc3MiOiJodHRwczovL3NyLWF1dGguc2hpcHJvY2tldC5pbi9hdXRob3JpemUvdXNlciIsIm5iZiI6MTc1MzI4NjgwNSwiY2lkIjo3MDUxNjYyLCJ0YyI6MzYwLCJ2ZXJib3NlIjpmYWxzZSwidmVuZG9yX2lkIjowLCJ2ZW5kb3JfY29kZSI6IiJ9.kds27l6abl8baauEq4PvpbtVXHUmUFkw7FBsjZ8ZYsY'
     const { data } = await axios.post("https://apiv2.shiprocket.in/v1/external/courier/serviceability/",
       {
         pickup_postcode: fromPincode,
@@ -2031,7 +1957,7 @@ app.get("/parcel/:id/move/confirm", isAuthenticated, async (req, res) => {
       },
       {
         headers: {
-          Authorization: `Bearer ${process.env.SHIPROCKET_TOKEN}`
+          Authorization: `Bearer ${token}`
         }
       }
     );
@@ -2157,7 +2083,7 @@ async function generateShiprocketToken() {
 
 
 async function getShippingRates(fromPin, toPin, weight) {
-   const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjcyODMwMzksInNvdXJjZSI6InNyLWF1dGgtaW50IiwiZXhwIjoxNzUzOTk2OTIzLCJqdGkiOiJTc29BdFBaOWpCaDFqeTVGIiwiaWF0IjoxNzUzMTMyOTIzLCJpc3MiOiJodHRwczovL3NyLWF1dGguc2hpcHJvY2tldC5pbi9hdXRob3JpemUvdXNlciIsIm5iZiI6MTc1MzEzMjkyMywiY2lkIjo3MDUxNjYyLCJ0YyI6MzYwLCJ2ZXJib3NlIjpmYWxzZSwidmVuZG9yX2lkIjowLCJ2ZW5kb3JfY29kZSI6IiJ9.JhXAQq7pIBdX8TYbcVwV79NApygAPcFhAoPrl5jWDLE";
+   const token = " eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjcyODMwMzksInNvdXJjZSI6InNyLWF1dGgtaW50IiwiZXhwIjoxNzU0MTUwODA1LCJqdGkiOiJvc1R3VFNWWFQ4YnNObG9GIiwiaWF0IjoxNzUzMjg2ODA1LCJpc3MiOiJodHRwczovL3NyLWF1dGguc2hpcHJvY2tldC5pbi9hdXRob3JpemUvdXNlciIsIm5iZiI6MTc1MzI4NjgwNSwiY2lkIjo3MDUxNjYyLCJ0YyI6MzYwLCJ2ZXJib3NlIjpmYWxzZSwidmVuZG9yX2lkIjowLCJ2ZW5kb3JfY29kZSI6IiJ9.kds27l6abl8baauEq4PvpbtVXHUmUFkw7FBsjZ8ZYsY"
   if (!token) return null;
 
   const headers = {
@@ -2802,46 +2728,7 @@ app.get("/action_funnel", async (req, res) => {
 
 //   res.redirect(`/parcel/${parcel._id}/success`);
 // });
-app.get("/payment/success", isAuthenticated, async (req, res) => {
-  const { order_id, payment_id, signature } = req.query;
 
-  // Verify signature
-  const generatedSignature = crypto.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
-    .update(order_id + "|" + payment_id)
-    .digest("hex");
-
-  if (generatedSignature !== signature) {
-    req.flash("error", "Payment verification failed.");
-    return res.redirect("/dashboard");
-  }
-
-  // Mark parcel as paid
-  const parcel = await Parcel2.findOneAndUpdate(
-    { razorpayOrderId: order_id },
-    {
-      paymentStatus: "completed",
-      status: "awaiting_drop"
-    },
-    { new: true }
-  );
-
-  if (!parcel) {
-    req.flash("error", "Parcel not found.");
-    return res.redirect("/dashboard");
-  }
-await SessionIntent.findOneAndUpdate(
-  { sessionId: req.sessionID, completed: false },
-  { completed: true, endedAt: new Date() }
-);
-  await FunnelEvent.create({
-    sessionId: req.sessionID,
-    userId: req.user?._id || null,
-    step: "send_parcel_submitted",
-    timestamp: new Date()
-  });
-
-  res.redirect(`/parcel/${parcel._id}/success`);
-});
 // app.post("/payment/receiver/:id/success", isAuthenticated, async (req, res) => {
 //   const parcel = await Parcel1.findById(req.params.id);
 //   if (!parcel) return res.status(404).send("Parcel not found");
@@ -2910,16 +2797,16 @@ app.get("/parcel/:id/success", async (req, res) => {
     const parcelid = req.params.id;
   const parcel = await Parcel2.findById(req.params.id);
   if (!parcel) return res.status(404).send("Parcel not found");
-//      await client.messages.create({
-//   to: `whatsapp:+91${user.phone}`,
-//   from: 'whatsapp:+15558076515',
-//   contentSid: 'HX8dc7a5b23a3a6a2a7ce8a4d2e577ac3c', 
-//   contentVariables: JSON.stringify({
-//   1: `${user.username}`, // Sender name
-//   2: `${parcelid}/qrpage` // Parcel ID
-// })// Template SID
-// }).then(message => console.log('✅ WhatsApp Message Sent:', message.sid))
-// .catch(error => console.error('❌ WhatsApp Message Error:', error));
+     await client.messages.create({
+  to: `whatsapp:+91${user.phone}`,
+  from: 'whatsapp:+15558076515',
+  contentSid: 'HX8dc7a5b23a3a6a2a7ce8a4d2e577ac3c', 
+  contentVariables: JSON.stringify({
+  1: `${user.username}`, // Sender name
+  2: `${parcelid}/qrpage` // Parcel ID
+})// Template SID
+}).then(message => console.log('✅ WhatsApp Message Sent:', message.sid))
+.catch(error => console.error('❌ WhatsApp Message Error:', error));
   parcel.location = {
     lat: 20.5937,
     lng: 78.9629,

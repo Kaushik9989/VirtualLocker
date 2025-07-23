@@ -1,0 +1,21 @@
+<% layout("/layouts/boilerplate") %>
+<style>
+     @media (min-width: 768px) {
+    .helli{
+    margin-left: 200px;
+  }}
+</style>
+<div class="helli mt-5">
+<div class="container mt-4">
+  <h4>Select a Courier</h4>
+  <form action="/send/estimate" method="POST">
+    <% couriers.forEach(courier => { %>
+      <div class="card mb-2 p-3">
+        <input type="radio" name="selectedCourier" value="<%= courier.courier_name %>__<%= courier.rate %>" required />
+        <strong><%= courier.courier_name %></strong> — ₹<%= courier.rate %> — ETA: <%= courier.estimated_delivery_days %> days
+      </div>
+    <% }) %>
+    <button class="btn btn-primary">Proceed to Pay</button>
+  </form>
+</div>
+</div>

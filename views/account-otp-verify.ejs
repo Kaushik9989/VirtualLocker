@@ -1,0 +1,16 @@
+<% layout("layouts/boilerplate") %>
+<style>
+     @media (min-width: 768px) {
+    .helli{
+    margin-left: 200px;
+  }}
+</style>
+<div class="helli mt-5">
+<div class="container mt-5">
+  <h4>🔐 Enter OTP sent to <%= phone %></h4>
+  <form action="/verify-phone-acc" method="POST" class="mt-3">
+    <input type="text" name="otp" class="form-control" placeholder="Enter 6-digit OTP" required>
+    <button class="btn btn-success mt-2">Verify</button>
+  </form>
+</div>
+</div>
