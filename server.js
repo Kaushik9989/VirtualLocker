@@ -34,6 +34,7 @@ const Parcel1 = require("./models/ParcelUpdated.js");
 const Parcel2 = require("./models/parcel2Updated.js");
 const User = require("./models/User/UserUpdated.js");
 const Courier = require("./models/Courier.js");
+const SavedAddress = require("./models/savedAddress.js");
 const Parcel = require("./models/Parcel");
 const Analytics = require("./models/Analytics.js");
 const SessionIntent = require("./models/sessionIntent.js");
@@ -1453,7 +1454,7 @@ app.post("/set-username", async (req, res) => {
       wallet: user.wallet || { credits: 0 },
     };
 
-    delete req.session.phone;
+    
     res.redirect("/dashboard");
   } catch (err) {
     res.render("set-username", {
@@ -1577,6 +1578,7 @@ app.get("/send/step2", isAuthenticated, async (req, res) => {
 
   const user = await User.findById(req.session.user._id);
   const size = req.query.size;
+  const savedAddresses = await SavedAddress.find({ userId: req.user._id });
   const isSelf = req.query.self === 'true';
 
   if (!req.session.parcelDraft) req.session.parcelDraft = {};
@@ -1607,7 +1609,7 @@ app.get("/send/step2", isAuthenticated, async (req, res) => {
 });
 
   // Render with lockers
-  res.render("parcel/step2", { lockers });
+  res.render("parcel/step2", { lockers, savedAddresses, });
 });
 
 app.post("/send/step2", isAuthenticated, async (req, res) => {
@@ -1663,7 +1665,34 @@ app.post("/send/step2", isAuthenticated, async (req, res) => {
       req.session.parcelDraft.recipientPincode = recipientPincode;
       req.session.parcelDraft.selectedLocker = selectedLocker;
       req.session.parcelDraft.selectedLockerPincode =lockerPincode;
+      if (receiverDeliveryMethod === "address_delivery") {
+  // Save address to DB (if not already saved)
+  
 
+if (
+  req.body.saveAddress === "true" &&
+  req.body.recipientAddress &&
+  req.body.recipientPincode &&
+  req.body.receiverName
+) {
+  const alreadyExists = await SavedAddress.findOne({
+    userId: req.user._id,
+    address: req.body.recipientAddress.trim(),
+    pincode: req.body.recipientPincode.trim()
+  });
+
+  if (!alreadyExists) {
+    await SavedAddress.create({
+      userId: req.user._id,
+      address: req.body.recipientAddress.trim(),
+      pincode: req.body.recipientPincode.trim(),
+      ownerName : req.body.receiverName,
+      label: "Saved on " + new Date().toLocaleDateString()
+    });
+  }
+}
+
+}
  
       
 
@@ -1716,17 +1745,18 @@ app.get("/send/estimate", isAuthenticated, async (req, res) => {
   
 
     const courierOptions = response.data.data.available_courier_companies;
-
+      const bestOption = courierOptions.sort((a, b) => a.rate - b.rate)[0];
     if (!courierOptions || courierOptions.length === 0) {
       req.flash("error", "No delivery service available for the selected address.");
       return res.redirect("/send/step2");
     }
-   
+    
     // Show estimate page
     res.render("parcel/estimate", {
+      courier: bestOption,
       courierOptions,
-      platformFee: 30,
-      totalCost: courierOptions.rate + 30
+      platformFee: 10,
+      totalCost: courierOptions.rate + 10
     });
 
   } catch (err) {
@@ -1750,14 +1780,15 @@ app.get("/send/estimate", isAuthenticated, async (req, res) => {
 
 app.get("/send/step3", isAuthenticated, async (req, res) => {
   try {
+    const { rate } = req.query;
     const draft = req.session.parcelDraft;
-
+    console.log(rate);
     const lockerId = draft.lockerId;
     const user = await User.findById(req.session.user._id);
     const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
     let cost = getEstimatedCost(draft.size);
     if (draft.receiverDeliveryMethod === "address_delivery") {
-      cost += (draft.deliveryCost || 0) + 10; // Add delivery + platform fee
+      cost += parseFloat(rate); // Add delivery + platform fee
     }
     
     let qrImage;
@@ -1779,7 +1810,7 @@ app.get("/send/step3", isAuthenticated, async (req, res) => {
     expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
 
     razorpayOrder = await razorpay.orders.create({
-      amount: parseFloat(cost) * 100,
+      amount: Math.round(parseFloat(cost) * 100),
       currency: "INR",
       receipt: `parcel_${Date.now()}`,
       payment_capture: 1,
@@ -2760,22 +2791,11 @@ app.post("/receiver/:parcelId/update-address", async (req, res) => {
   });
 });
 
-
-
-
-
-
-
-
-
-
-
-
 app.get("/parcel/view/:id/success", async (req, res) => {
     const parcelid = req.params.id;
   const parcel = await Parcel2.findById(req.params.id);
   if (!parcel) return res.status(404).send("Parcel not found");
-  res.render("parcel/success", { parcel });
+  res.render("parcel/successView", { parcel });
 });
 app.get("/:id/qrpage",async(req,res)=>{
   const parcel = await Parcel2.findById(req.params.id);
@@ -2788,16 +2808,16 @@ app.get("/parcel/:id/success", async (req, res) => {
     const parcelid = req.params.id;
   const parcel = await Parcel2.findById(req.params.id);
   if (!parcel) return res.status(404).send("Parcel not found");
-     await client.messages.create({
-  to: `whatsapp:+91${user.phone}`,
-  from: 'whatsapp:+15558076515',
-  contentSid: 'HX8dc7a5b23a3a6a2a7ce8a4d2e577ac3c', 
-  contentVariables: JSON.stringify({
-  1: `${user.username}`, // Sender name
-  2: `${parcelid}/qrpage` // Parcel ID
-})// Template SID
-}).then(message => console.log('✅ WhatsApp Message Sent:', message.sid))
-.catch(error => console.error('❌ WhatsApp Message Error:', error));
+//      await client.messages.create({
+//   to: `whatsapp:+91${user.phone}`,
+//   from: 'whatsapp:+15558076515',
+//   contentSid: 'HX8dc7a5b23a3a6a2a7ce8a4d2e577ac3c', 
+//   contentVariables: JSON.stringify({
+//   1: `${user.username}`, // Sender name
+//   2: `${parcelid}/qrpage` // Parcel ID
+// })// Template SID
+// }).then(message => console.log('✅ WhatsApp Message Sent:', message.sid))
+// .catch(error => console.error('❌ WhatsApp Message Error:', error));
   parcel.location = {
     lat: 20.5937,
     lng: 78.9629,
