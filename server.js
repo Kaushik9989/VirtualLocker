@@ -571,11 +571,8 @@ app.get("/account", isAuthenticated, async (req, res) => {
   const cacheKey = "account:" + req.session.user._id;
 
   // Check cache
-  const cachedHtml = accountCache.get(cacheKey);
-  if (cachedHtml) {
-    console.log("✅ Served /account from cache for user", req.session.user._id);
-    return res.send(cachedHtml);
-  }
+  
+ 
 
   try {
     const user = await User.findById(req.session.user._id).lean();
@@ -586,8 +583,7 @@ app.get("/account", isAuthenticated, async (req, res) => {
         return res.status(500).send("Internal Server Error");
       }
 
-      accountCache.set(cacheKey, html);
-      console.log("✅ Cached /account HTML for user", req.session.user._id);
+      
 
       res.send(html);
     });
@@ -1060,7 +1056,7 @@ app.post("/verify-link-phone", async (req, res) => {
 
     // Update session
     req.session.phone = phone;
-
+    req.session.user.phone = phone;
     delete req.session.linkPhone;
     accountCache.delete("account:" + req.session.user._id);
     req.flash("success", "✅ Phone linked successfully.");
@@ -1168,7 +1164,7 @@ app.get("/api/incoming-parcels", isAuthenticated, async (req, res) => {
   try {
     // Step 1: Find parcels
     const parcelsRaw = await Parcel2.find({
-      receiverPhone: req.session.user.phone,
+      receiverPhone: req.session.user.phone || user.phone,
     })
       .sort({ createdAt: -1 })
       .select(
@@ -1719,25 +1715,18 @@ app.get("/send/estimate", isAuthenticated, async (req, res) => {
     );
   
 
-const courierOptions = response.data.data.available_courier_companies;
+    const courierOptions = response.data.data.available_courier_companies;
 
     if (!courierOptions || courierOptions.length === 0) {
       req.flash("error", "No delivery service available for the selected address.");
       return res.redirect("/send/step2");
     }
-
-    // Choose cheapest option
-    const bestOption = courierOptions.sort((a, b) => a.rate - b.rate)[0];
-
-    // Save delivery estimate + courier name in session draft
-    req.session.parcelDraft.deliveryCost = bestOption.rate;
-    req.session.parcelDraft.deliveryCompany = bestOption.courier_name;
-
+   
     // Show estimate page
     res.render("parcel/estimate", {
       courierOptions,
-      platformFee: 10,
-      totalCost: bestOption.rate + 10
+      platformFee: 30,
+      totalCost: courierOptions.rate + 30
     });
 
   } catch (err) {
@@ -2168,10 +2157,12 @@ if (!response || !response.data || !response.data.available_courier_companies) {
   req.flash("error", "Could not fetch courier options. Please try again.");
   return res.redirect("/dashboard");
 }
+let courierOptions = response.data.available_courier_companies;
+courierOptions.sort((a, b) => a.rate - b.rate);
 
 res.render("parcel/select-courier", {
   parcel,
-  courierOptions: response.data.available_courier_companies,
+  courierOptions,
   fromLocker: oldLocker,
   toLocker: newLocker
 });
@@ -3278,10 +3269,11 @@ app.get("/parcel/:id/success", isAuthenticated, async (req, res) => {
 
 app.get("/history", isAuthenticated, async (req, res) => {
   try {
-    const parcels = await Parcel1.find({ senderId: req.user._id })
+    const user  = await User.find({ _id : req.user._id})
+    const parcels = await Parcel2.find({ senderName : user.username  })
       .sort({ createdAt: -1 })
       .populate("location_id")
-      .populate("lockerId");
+      .populate("lockerId");  
 
     res.render("parcel/history", { parcels });
   } catch (err) {

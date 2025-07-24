@@ -163,6 +163,7 @@
                     <option value="awaiting_drop">Awaiting Drop</option>
                     <option value="awaiting_pick">Awaiting Pickup</option>
                     <option value="picked">Picked</option>
+                    <option value="in_transit">In Transit</option>
                   </select>
                 </div>
               </div>
@@ -213,7 +214,6 @@
       .then(res => res.json())
       .then(data => {
         if (data.parcels) {
-          localStorage.setItem("incomingParcels", JSON.stringify(data.parcels));
           renderParcels(data.parcels);
           console.log("✅ Refreshed parcels from server");
         } else {
@@ -335,7 +335,6 @@
     Action
   </button>
    <ul class="dropdown-menu dropdown-menu-sm px-2 py-1 p-0" style="min-width: 8rem; font-size: 0.85rem;">
-           <li><a class="dropdown-item" href="/parcel/${parcel._id}/transfer">Transfer Ownership</a></li>
     <li><a class="dropdown-item" href="/parcel/${parcel._id}/move">Move to Another Locker</a></li>
   </ul>
 </div>

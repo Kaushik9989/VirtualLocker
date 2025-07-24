@@ -1,42 +1,72 @@
 <% layout("/layouts/boilerplate") %>
-<style>
-  @media (min-width: 768px) {
-    .helli {
-      margin-left: 200px;
+  <style>
+    @media (min-width: 768px) {
+      .helli {
+        margin-left: 200px;
+      }
     }
-  }</style>
-<div class="helli">
-<div class="container mt-5">
-  <h4 class="mb-3">🚚 Choose Courier Service</h4>
+  </style>
+  <div class="helli">
+    <div class="container mt-5">
+      <h4 class="mb-3">🚚 Choose Courier Service</h4>
 
-  <p><strong>From:</strong> <%= fromLocker.location.address %> (<%= fromLocker.location.pincode %>)</p>
-  <p><strong>To:</strong> <%= toLocker.location.address %> (<%= toLocker.location.pincode %>)</p>
+      <p><strong>From:</strong>
+        <%= fromLocker.location.address %> (<%= fromLocker.location.pincode %>)
+      </p>
+      <p><strong>To:</strong>
+        <%= toLocker.location.address %> (<%= toLocker.location.pincode %>)
+      </p>
 
-  <form action="/parcel/<%= parcel._id %>/confirm-move" method="POST">
-   <% courierOptions.forEach((option, index) => { %>
-  <div class="form-check mb-2">
-    <input 
-      class="form-check-input" 
-      type="radio" 
-      name="courierIndex" 
-      value="<%= index %>" 
-      id="courier_<%= index %>" 
-      required
-    >
-    <label class="form-check-label" for="courier_<%= index %>">
-      <strong><%= option.courier_name %></strong> - ₹<%= option.rate %> | ETA: <%= option.estimated_delivery_days %> days
-    </label>
+      <form action="/parcel/<%= parcel._id %>/confirm-move" method="POST">
+        <% courierOptions.forEach((option, index)=> { %>
+          <div class="card mb-3">
+            <div class="card-body">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="courierIndex" value="<%= index %>"
+                  id="courier_<%= index %>" required>
+                <label class="form-check-label w-100" for="courier_<%= index %>">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h5><strong>
+                          <%= option.courier_name %>
+                        </strong></h5>
+                      <p class="mb-1">ETA: <%= option.estimated_delivery_days %> days | ₹<%= option.rate %>
+                      </p>
+                      <p class="mb-0">
+                        COD: <%= option.cod ? 'Yes' : 'No' %> |
+                          Mode: <%= option.is_surface ? 'Surface' : 'Air' %> |
+                            Max Weight: <%= option.surface_max_weight || option.air_max_weight %> kg
+                      </p>
+                    </div>
+                    <% let ratingClass='bg-secondary' ; if (option.rating>= 4.0) {
+                      ratingClass = 'bg-success'; // green
+                      } else if (option.rating >= 2.5) {
+                      ratingClass = 'bg-warning'; // yellow
+                      } else {
+                      ratingClass = 'bg-danger'; // red
+                      }
+                      %>
+                      <span class="badge <%= ratingClass %>">
+                        <%= option.rating %> ★
+                      </span>
 
-    <!-- Hidden fields to store courier data -->
-    <input type="hidden" name="courier_<%= index %>_name" value="<%= option.courier_name %>">
-    <input type="hidden" name="courier_<%= index %>_rate" value="<%= option.rate %>">
-    <input type="hidden" name="courier_<%= index %>_eta" value="<%= option.estimated_delivery_days %>">
+                  </div>
+                  <small class="text-muted">Realtime Tracking: <%= option.realtime_tracking %></small>
+                </label>
+              </div>
+
+              <!-- Hidden fields for backend -->
+              <input type="hidden" name="courier_<%= index %>_name" value="<%= option.courier_name %>">
+              <input type="hidden" name="courier_<%= index %>_rate" value="<%= option.rate %>">
+              <input type="hidden" name="courier_<%= index %>_eta" value="<%= option.estimated_delivery_days %>">
+            </div>
+          </div>
+          <% }) %>
+
+
+
+            <input type="hidden" name="newLockerId" value="<%= toLocker.lockerId %>" />
+            <button type="submit" class="btn btn-success mt-3 w-100">Confirm Move</button>
+      </form>
+    </div>
   </div>
-<% }) %>
-
-
-    <input type="hidden" name="newLockerId" value="<%= toLocker.lockerId %>" />
-    <button type="submit" class="btn btn-success mt-3 w-100">Confirm Move</button>
-  </form>
-</div>
-</div>
