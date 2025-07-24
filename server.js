@@ -1165,7 +1165,7 @@ app.get("/api/incoming-parcels", isAuthenticated, async (req, res) => {
   try {
     // Step 1: Find parcels
     const parcelsRaw = await Parcel2.find({
-      receiverPhone: req.session.user.phone || user.phone,
+      receiverPhone: req.session.user.phone 
     })
       .sort({ createdAt: -1 })
       .select(
@@ -2808,16 +2808,16 @@ app.get("/parcel/:id/success", async (req, res) => {
     const parcelid = req.params.id;
   const parcel = await Parcel2.findById(req.params.id);
   if (!parcel) return res.status(404).send("Parcel not found");
-//      await client.messages.create({
-//   to: `whatsapp:+91${user.phone}`,
-//   from: 'whatsapp:+15558076515',
-//   contentSid: 'HX8dc7a5b23a3a6a2a7ce8a4d2e577ac3c', 
-//   contentVariables: JSON.stringify({
-//   1: `${user.username}`, // Sender name
-//   2: `${parcelid}/qrpage` // Parcel ID
-// })// Template SID
-// }).then(message => console.log('✅ WhatsApp Message Sent:', message.sid))
-// .catch(error => console.error('❌ WhatsApp Message Error:', error));
+     await client.messages.create({
+  to: `whatsapp:+91${user.phone}`,
+  from: 'whatsapp:+15558076515',
+  contentSid: 'HX8dc7a5b23a3a6a2a7ce8a4d2e577ac3c', 
+  contentVariables: JSON.stringify({
+  1: `${user.username}`, // Sender name
+  2: `${parcelid}/qrpage` // Parcel ID
+})// Template SID
+}).then(message => console.log('✅ WhatsApp Message Sent:', message.sid))
+.catch(error => console.error('❌ WhatsApp Message Error:', error));
   parcel.location = {
     lat: 20.5937,
     lng: 78.9629,
