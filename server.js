@@ -34,6 +34,7 @@ const Parcel1 = require("./models/ParcelUpdated.js");
 const Parcel2 = require("./models/parcel2Updated.js");
 const User = require("./models/User/UserUpdated.js");
 const Courier = require("./models/Courier.js");
+const Contact = require("./models/contacts.js");
 const SavedAddress = require("./models/savedAddress.js");
 const Parcel = require("./models/Parcel");
 const Analytics = require("./models/Analytics.js");
@@ -60,14 +61,6 @@ require("dotenv").config();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// Set up a cache for rendered HTML
-
-//const { client, serviceSid } = require("./twilio");
-
-// const razorpay = new Razorpay({
-//   key_id: process.env.RAZORPAY_KEY_ID,
-//   key_secret: process.env.RAZORPAY_KEY_SECRET,
-// });
 
 app.engine("ejs", ejsMate); // Set ejs-mate as the EJS engine
 app.set("view engine", "ejs");
@@ -162,13 +155,7 @@ const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID || "your_key_id",
   key_secret: process.env.RAZORPAY_KEY_SECRET || "your_key_secret",
 });
-// // MIDDLEWARES
-// app.use((req, res, next) => {
-//   console.log("🌐", req.method, req.originalUrl);
-//   console.log("🔐 Session user:", req.session.user);
-//   console.log("➡️ redirectTo in session:", req.session.redirectTo);
-//   next();
-// });
+
 function isAuthenticated(req, res, next) {
   if (req.session.user) {
     return next();
@@ -632,6 +619,10 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
   }
 
   try {
+     if (req.session.inProgressParcelId) {
+    await Parcel2.findByIdAndDelete(req.session.inProgressParcelId);
+    delete req.session.inProgressParcelId;
+  }
     const user = await User.findById(req.session.user._id).lean();
     if (!user) return res.redirect("/login");
 
@@ -646,17 +637,7 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
     const userPhone = user.phone;
     const userName = user.username;
 
-    // const incomingParcels = await incomingParcel.find({
-    //   receiverPhone: userPhone,
-    // }).sort({ createdAt: -1 });
-
-    // const lockers = lockersRaw.map((locker) => ({
-    //   lockerId: locker.lockerId,
-    //   compartments: locker.compartments,
-    //   location: locker.location || { lat: null, lng: null, address: "" },
-    // }));
-
-    // Render the EJS template to HTML string instead of sending immediately
+ 
      
 
     const incomingParcels = await Parcel2.find({
@@ -1279,60 +1260,7 @@ app.post("/verify", async (req, res) => {
   }
 });
 
-// app.get("/set-username", (req, res) => {
-//   if (!req.session.phone) return res.redirect("/register");
-//   res.render("set-username", { error: null });
-// });
 
-// app.post("/set-username", async (req, res) => {
-//   const { username } = req.body;
-//   const phone = req.session.phone;
-
-//   try {
-//     // Check if username already exists
-//     const existingUsername = await User.findOne({ username });
-//     if (existingUsername) {
-//       return res.render("set-username", {
-//         error: "❌ Username already taken.",
-//       });
-//     }
-
-//     // Create new user
-//     const user = new User({
-//       phone,
-//       username,
-//       isPhoneVerified: true,
-//       uid: "user_" + Math.random().toString(36).substr(2, 9),
-//     });
-
-//     await user.save();
-
-//     // Set session user
-//     req.session.user = {
-//       _id: user._id,
-//       uid: user.uid,
-//       username: user.username,
-//       phone: user.phone,
-//       email: user.email || null,
-//       wallet: user.wallet || { credits: 0 },
-//     };
-
-//     // Clean up session
-//     delete req.session.phone;
-//     const redirectTo = req.session.redirectTo || "/dashboard";
-//     delete req.session.redirectTo;
-
-//     // 🚫 REMOVE this line - it is causing the error
-//     // req.user.phone = user.phone;
-//     accountCache.delete("account:" + req.session.user._id);
-//     res.redirect(redirectTo);
-//   } catch (err) {
-//     console.error("User Save Error:", err.message);
-//     res.render("set-username", {
-//       error: "❌ Failed to save user. Try again.",
-//     });
-//   }
-// });
 app.get("/verify-login", (req, res) => {
   const phone = req.session.phone; // saved from login step
   res.render("verify-login", { error: null, phone });
@@ -1530,40 +1458,6 @@ app.get("/map", async (req, res) => {
   }
 });
 
-/// updated locker flow
-
-// app.get("/send/step2", isAuthenticated, async (req, res) => {
-//   await FunnelEvent.create({
-//     sessionId: req.sessionID,
-//     userId: req.user?._id || null,
-//     step: "send_parcel_clicked",
-//     timestamp: new Date()
-//   });
-
-//   const user = await User.findById(req.session.user._id);
-//   const size = req.query.size;
-
-//   // ✅ Ensure parcelDraft exists before setting any properties
-//   if (!req.session.parcelDraft) {
-//     req.session.parcelDraft = {};
-//   }
-
-//   // ✅ If size is passed via query, store it in session
-//   if (size) {
-//     req.session.parcelDraft.size = size;
-//     req.session.parcelDraft.type = "package";  // Optional default
-//     req.session.parcelDraft.description = "";  // Optional default
-//   }
-
-//   // ✅ If phone not linked, save redirect and go to /link-phone
-//   if (!user.phone) {
-//     req.session.pendingRedirectAfterPhoneLink = `/send/step2${size ? `?size=${size}` : ""}`;
-//     req.flash("error", "Please verify your phone number to continue sending a parcel.");
-//     return res.redirect("/link-phone");
-//   }
-
-//   res.render("parcel/step2");
-// });
 
 
 
@@ -1575,12 +1469,11 @@ app.get("/send/step2", isAuthenticated, async (req, res) => {
     step: "send_parcel_clicked",
     timestamp: new Date()
   });
-
+   const savedContacts = await Contact.find({ userId: req.user._id }).sort({ createdAt: -1 });
   const user = await User.findById(req.session.user._id);
   const size = req.query.size;
   const savedAddresses = await SavedAddress.find({ userId: req.user._id });
   const isSelf = req.query.self === 'true';
-
   if (!req.session.parcelDraft) req.session.parcelDraft = {};
 
   if (size) {
@@ -1609,7 +1502,7 @@ app.get("/send/step2", isAuthenticated, async (req, res) => {
 });
 
   // Render with lockers
-  res.render("parcel/step2", { lockers, savedAddresses, });
+  res.render("parcel/step2", { lockers, savedAddresses,savedContacts });
 });
 
 app.post("/send/step2", isAuthenticated, async (req, res) => {
@@ -1621,8 +1514,31 @@ app.post("/send/step2", isAuthenticated, async (req, res) => {
     recipientAddress,
     recipientPincode,
     selectedLocker,
+    saveContact,
     
   } = req.body;
+   if (saveContact === 'true' && receiverName && receiverPhone) {
+  try {
+    // Check if contact already exists for this user
+    const existingContact = await Contact.findOne({
+      userId: req.user._id,
+      phone: receiverPhone.trim(),
+    });
+
+    if (!existingContact) {
+      const newContact = new Contact({
+        userId: req.user._id,
+        name: receiverName.trim(),
+        phone: receiverPhone.trim(),
+      });
+      await newContact.save();
+    } else {
+      console.log("Contact already exists. Skipping save.");
+    }
+  } catch (err) {
+    console.error("Error saving contact:", err);
+  }
+}
 
   const user = await User.findById(req.session.user._id);
   const locker = await Locker.findById(selectedLocker);
@@ -1743,7 +1659,7 @@ app.get("/send/estimate", isAuthenticated, async (req, res) => {
       { headers }
     );
   
-
+    let lockercost = getEstimatedCost(draft.size);
     const courierOptions = response.data.data.available_courier_companies;
       const bestOption = courierOptions.sort((a, b) => a.rate - b.rate)[0];
     if (!courierOptions || courierOptions.length === 0) {
@@ -1755,8 +1671,8 @@ app.get("/send/estimate", isAuthenticated, async (req, res) => {
     res.render("parcel/estimate", {
       courier: bestOption,
       courierOptions,
-      platformFee: 10,
-      totalCost: courierOptions.rate + 10
+      lockercost,
+      totalCost: courierOptions.rate
     });
 
   } catch (err) {
@@ -1767,30 +1683,21 @@ app.get("/send/estimate", isAuthenticated, async (req, res) => {
 });
 
 
-
-
-
-
-
-
-
-
-
-
-
 app.get("/send/step3", isAuthenticated, async (req, res) => {
   try {
+     
     const { rate } = req.query;
     const draft = req.session.parcelDraft;
     console.log(rate);
-    const lockerId = draft.lockerId;
+    const lockerId = draft.selectedLocker; // because that's where you're storing it
+
     const user = await User.findById(req.session.user._id);
     const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
     let cost = getEstimatedCost(draft.size);
     if (draft.receiverDeliveryMethod === "address_delivery") {
       cost += parseFloat(rate); // Add delivery + platform fee
     }
-    
+
     let qrImage;
     if (lockerId) {
       qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode, lockerId }));
@@ -1827,6 +1734,7 @@ app.get("/send/step3", isAuthenticated, async (req, res) => {
     }
 
     const parcel = new Parcel2({
+      
       ...draft,
       senderId: req.user._id,
       senderName: user.username,
@@ -1849,9 +1757,9 @@ app.get("/send/step3", isAuthenticated, async (req, res) => {
       compartmentId: null,
       razorpayOrderId: razorpayOrder?.id || null,
     });
-    
+    req.session.inProgressParcelId = parcel._id;
    await parcel.save();
-delete req.session.parcelDraft;
+
 
 // funnel log
 await FunnelEvent.create({
@@ -1865,7 +1773,7 @@ await FunnelEvent.create({
       step: 'step3_complete',
       timestamp: new Date(),
     });
-
+    delete req.session.inProgressParcelId;
     // Redirect directly to Razorpay payment page
     return res.render("parcel/payment", {
       parcel,
@@ -1921,7 +1829,7 @@ await SessionIntent.findOneAndUpdate(
     step: "send_parcel_submitted",
     timestamp: new Date()
   });
-
+  delete req.session.parcelDraft;
   res.redirect(`/parcel/${parcel._id}/success`);
 });
 
@@ -2530,243 +2438,7 @@ app.get("/action_funnel", async (req, res) => {
 
 
 
-// app.post("/send/step3", isAuthenticated, async (req, res) => {
-//   try {
-//     const draft = req.session.parcelDraft;
-//     draft.paymentOption = req.body.paymentOption;
-//     const user = await User.findById(req.session.user._id);
-//     const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
-//     const cost = getEstimatedCost(draft.size).toString();
-//     const qrPayload = JSON.stringify({
-//       accessCode: accessCode,
-//     });
-//     const qrImage = await QRCode.toDataURL(qrPayload);
 
-//     let status = "awaiting_drop";
-//     let paymentStatus = "completed";
-//     let expiresAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
-//     let razorpayOrder = null;
-
-//     if (draft.paymentOption === "sender_pays") {
-//       // Create Razorpay order
-//       razorpayOrder = await razorpay.orders.create({
-//         amount: parseFloat(cost) * 100,
-//         currency: "INR",
-//         receipt: `parcel_${Date.now()}`,
-//         payment_capture: 1,
-//       });
-//       status = "awaiting_payment";
-//       paymentStatus = "pending";
-//       expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
-//     } else if (draft.paymentOption === "receiver_pays") {
-//       status = "awaiting_payment";
-//       paymentStatus = "pending";
-//       expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
-//     }
-
-//     const parcel = new Parcel2({
-//       ...draft,
-//       senderId: req.user._id,
-//       senderName: req.user.username,
-//       accessCode,
-//       unlockUrl: null,
-//       qrImage,
-//       cost,
-//       status,
-//       paymentStatus,
-//       droppedAt: null,
-//       expiresAt,
-//       lockerId: null,
-//       compartmentId: null,
-//       razorpayOrderId: razorpayOrder?.id || null,
-//     });
-
-//     await parcel.save();
-//     delete req.session.parcelDraft;
-
-//     const updated = await incomingParcel.findOneAndUpdate(
-//       { receiverPhone: parcel.receiverPhone, status: "pending" },
-//       {
-//         receiverName: parcel.receiverName,
-//         parcelType: parcel.type,
-//         size: parcel.size,
-//         cost: parseFloat(parcel.cost),
-//         accessCode: parcel.accessCode,
-//         qrCodeUrl: parcel.qrImage,
-//         status: "awaiting_drop",
-//         lockerId: parcel.lockerId?.toString() || "",
-//         "metadata.description": parcel.description || "",
-//       },
-//       { new: true }
-//     );
-
-//     if (!updated) {
-//       await incomingParcel.create({
-//         senderPhone: user.phone || "unknown",
-//         receiverPhone: parcel.receiverPhone,
-//         senderName: user.username,
-//         receiverName: parcel.receiverName || "",
-//         parcelType: parcel.type,
-//         size: parcel.size,
-//         cost: parseFloat(parcel.cost),
-//         accessCode: parcel.accessCode,
-//         qrCodeUrl: parcel.qrImage,
-//         status: "awaiting_drop",
-//         lockerId: parcel.lockerId?.toString() || "",
-//         metadata: {
-//           description: parcel.description || "",
-//         },
-//         lockerLat: parcel.lockerLat,
-//         lockerLng: parcel.lockerLng,
-//       });
-//     }
-
-//     if (draft.paymentOption === "receiver_pays") {
-//       return res.render("parcel/waiting-payment", { parcel });
-//     }
-
-//     if (draft.paymentOption === "sender_pays") {
-//       return res.render("parcel/payment", {
-//         parcel,
-//         razorpayKeyId: process.env.RAZORPAY_KEY_ID,
-//         orderId: razorpayOrder.id,
-//         amount: razorpayOrder.amount,
-//         currency: razorpayOrder.currency,
-//       });
-//     }
-//     client.messages
-//   .create({
-//     from: 'whatsapp:+15558076515', // Twilio's sandbox or your approved number
-//     to: `whatsapp:+91${user.phone}`, // User's WhatsApp number
-//     body: 'Your Parcel has been booked, Please go to your nearest locker to place it!',
-//   })
-//   .then(message => console.log('Message sent:',message.sid))
-//   .catch(error => console.error('Error:', error));
-// await FunnelEvent.create({
-//   sessionId: req.sessionID,
-//   step,
-//   timestamp: new Date(),
-// });
-    
-//     res.redirect(`/parcel/${parcel._id}/success`);
-//   } catch (error) {
-//     console.error("Error in /send/step3:", error);
-//     req.flash("error", "An unexpected error occurred. Please try again.");
-//     res.redirect("/dashboard");
-//   }
-// });
-
-// app.post("/send/step3", isAuthenticated, async (req, res) => {
-//   const draft = req.session.parcelDraft;
-//   draft.paymentOption = req.body.paymentOption;
-//   const user = await User.findById(req.session.user._id);
-//   const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
-//   const cost = getEstimatedCost(draft.size).toString();
-//   const qrPayload = JSON.stringify({
-//     accessCode: accessCode,
-//   });
-//   const qrImage = await QRCode.toDataURL(qrPayload);
-//   const status =
-//     draft.paymentOption === "receiver_pays"
-//       ? "awaiting_payment"
-//       : "awaiting_drop";
-//   const paymentStatus =
-//     draft.paymentOption === "receiver_pays" ? "pending" : "completed";
-//   const droppedAt = null;
-//   const expiresAt =
-//     draft.paymentOption === "receiver_pays"
-//       ? new Date(Date.now() + 2 * 60 * 60 * 1000)
-//       : new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
-
-//   const parcel = new Parcel2({
-//     ...draft,
-//     senderId: req.user._id,
-//     senderName: req.user.username,
-//     accessCode,
-//     unlockUrl: null,
-//     qrImage,
-//     cost,
-//     status,
-//     paymentStatus,
-//     droppedAt,
-//     expiresAt,
-//     lockerId: null,
-//     compartmentId: null,
-//   });
-
-//   await parcel.save();
-//   delete req.session.parcelDraft;
-
-//   // ✅ Sync with IncomingParcel
-//   const updated = await incomingParcel.findOneAndUpdate(
-//     {
-//       receiverPhone: parcel.receiverPhone,
-//       status: "pending",
-//     },
-//     {
-//       receiverName: parcel.receiverName,
-//       parcelType: parcel.type,
-//       size: parcel.size,
-//       cost: parseFloat(parcel.cost.toString()),
-//       accessCode: parcel.accessCode,
-//       qrCodeUrl: parcel.qrImage,
-//       status: "awaiting_drop", // Corrected
-//       lockerId: parcel.lockerId?.toString() || "",
-//       "metadata.description": parcel.description || "",
-//     },
-//     { new: true }
-//   );
-
-//   // ✅ If no matching incoming parcel found, create new
-//   if (!updated) {
-//     await incomingParcel.create({
-//       senderPhone: user.phone || "unknown",
-//       receiverPhone: parcel.receiverPhone,
-//       senderName: user.username,
-//       receiverName: parcel.receiverName || "",
-//       parcelType: parcel.type,
-//       size: parcel.size,
-//       cost: parseFloat(parcel.cost.toString()),
-//       accessCode: parcel.accessCode,
-//       qrCodeUrl: parcel.qrImage,
-//       status: "awaiting_drop", // Corrected
-//       lockerId: parcel.lockerId?.toString() || "",
-//       metadata: {
-//         description: parcel.description || "",
-//       },
-//       lockerLat: parcel.lockerLat,
-//       lockerLng: parcel.lockerLng,
-//     });
-//   }
-
-//   // ✅ Payment redirection
-//   if (draft.paymentOption === "receiver_pays") {
-//     const link = `${req.protocol}://${req.get("host")}/payment/receiver/${
-//       parcel._id
-//     }`;
-//     return res.render("parcel/waiting-payment", { parcel });
-//   }
-
-
-//   res.redirect(`/parcel/${parcel._id}/success`);
-// });
-
-// app.post("/payment/receiver/:id/success", isAuthenticated, async (req, res) => {
-//   const parcel = await Parcel1.findById(req.params.id);
-//   if (!parcel) return res.status(404).send("Parcel not found");
-
-//   if (parcel.paymentStatus === "completed") {
-//     return res.send("Payment already completed.");
-//   }
-
-//   parcel.status = "awaiting_drop";
-//   parcel.paymentStatus = "completed";
-//   parcel.droppedAt = new Date();
-//   parcel.expiresAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000); // extend after payment
-
-//   await parcel.save();
-//   res.redirect(`/parcel/${parcel._id}/success`);
-// });
 
 app.get("/receiver/:parcelId/update-address", async (req, res) => {
   const parcel = await Parcel2.findById(req.params.parcelId);
@@ -4105,47 +3777,7 @@ app.post("/user/dropoff", async (req, res) => {
   }
 });
 
-// app.post("/user/dropoff", async (req, res) => {
-//   const userId = req.session.userId;
-//   const { lockerCompartment, otp } = req.body;
 
-//   if (!userId) {
-//     req.flash("error", "Session expired. Please login again.");
-//     return res.redirect("/login");
-//   }
-
-//   const [lockerId, compartmentId] = lockerCompartment.split("|");
-
-//   const locker = await Locker.findOne({ lockerId });
-
-//   if (!locker) {
-//     req.flash("error", "Locker not found.");
-//     return res.redirect("/user/dropoff");
-//   }
-
-//   const compartment = locker.compartments.find(c =>
-//     c.compartmentId === compartmentId &&
-//     c.bookingInfo?.userId?.toString() === userId.toString()
-//   );
-
-//   if (!compartment) {
-//     req.flash("error", "Compartment not found or not booked by you.");
-//     return res.redirect("/user/dropoff");
-//   }
-
-//   if (compartment.bookingInfo.otp !== otp) {
-//     req.flash("error", "Incorrect OTP.");
-//     return res.redirect("/user/dropoff");
-//   }
-
-//   // ✅ Unlock the compartment
-//   compartment.isLocked = false;
-//   compartment.isBooked = false;
-//   await locker.save();
-
-//   req.flash("success", `Compartment ${compartmentId} unlocked successfully!`);
-//   res.redirect("/user/dropoff");
-// });
 
 // ------------------------------------------------- ADMIN ROUTES ---------------------------------------------------------
 
@@ -4399,159 +4031,6 @@ app.get("/technician/dashboard", async (req, res) => {
 
 // -------------------------------------------BACKEND MISCELLANEOUS ROUTES-----------------------------------------------------------
 
-// app.get(
-//   "/locker/access/:lockerId/:compartmentId",
-//   isAuthenticated,
-//   async (req, res) => {
-//     const { lockerId, compartmentId } = req.params;
-//     const locker = await Locker.findOne({ lockerId });
-
-//     if (!locker) return res.status(404).send("Locker not found");
-
-//     const compartment = locker.compartments.find(
-//       (c) => c.compartmentId === compartmentId
-//     );
-//     if (!compartment) return res.status(404).send("Compartment not found");
-
-//     if (compartment.isBooked) {
-//       if (
-//         compartment.bookingInfo.userId.toString() === req.user._id.toString()
-//       ) {
-//         // Authenticated and authorized
-//         // Unlock the compartment (via MQTT or whatever system you use)
-//         // You can also log access time
-//         res.send("unlockSuccess");
-//       } else {
-//         return res
-//           .status(403)
-//           .send("Access Denied: You haven't booked this compartment.");
-//       }
-//     }
-//     app.get(
-//       "/locker/book/:lockerId/:compartmentId",
-//       isAuthenticated,
-//       async (req, res) => {
-//         const { lockerId, compartmentId } = req.params;
-//         // Show booking UI for the given compartment
-//         res.send("bookYourCompartment");
-//       }
-//     );
-
-//     // If not booked, redirect to booking page for this compartment
-//     res.send("Not Booked");
-//   }
-// );
-// app.get("/locker/status/:lockerId", async (req, res) => {
-//   try {
-//     const locker = await Locker.findOne({ lockerId: req.params.lockerId });
-//     if (!locker) return res.status(404).json({ message: "Locker not found" });
-//     res.json(locker);
-//   } catch (err) {
-//     res.status(500).json({ message: "Server error", error: err });
-//   }
-// });
-
-// app.post("/locker/access", async (req, res) => {
-//   const { lockerId, compartmentId, otp } = req.body;
-//   try {
-//     const locker = await Locker.findOne({ lockerId });
-//     if (!locker) return res.status(404).json({ message: "Locker not found" });
-
-//     const compartment = locker.compartments.find(
-//       (c) => c.compartmentId === compartmentId
-//     );
-//     if (!compartment || !compartment.isBooked) {
-//       return res
-//         .status(400)
-//         .json({ message: "Invalid or unbooked compartment" });
-//     }
-
-//     if (compartment.bookingInfo.otp !== otp) {
-//       return res.status(401).json({ message: "Invalid OTP" });
-//     }
-
-//     compartment.isLocked = false;
-//     await locker.save();
-//     res.json({ message: "Compartment unlocked" });
-//   } catch (err) {
-//     res.status(500).json({ message: "Server error", error: err });
-//   }
-// });
-
-/// ---------------------------------------------------PAYMENT ROUTES------------------------------------------------
-
-// app.post("/payment/create-order", async (req, res) => {
-//   const { lockerId, compartmentId } = req.body;
-
-//   const options = {
-//     amount: 5000, // ₹50 = 50 * 100 in paise
-//     currency: "INR",
-//     receipt: `receipt_${Date.now()}`,
-//     payment_capture: 1,
-//   };
-
-//   try {
-//     const response = await razorpay.orders.create(options);
-//     res.render("paymentPage", {
-//       key: process.env.RAZORPAY_KEY_ID,
-//       order: response,
-//       lockerId,
-//       compartmentId,
-//     });
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).send("Error creating Razorpay order");
-//   }
-// });
-
-// app.post("/payment/verify", async (req, res) => {
-//   const {
-//     razorpay_order_id,
-//     razorpay_payment_id,
-//     razorpay_signature,
-//     lockerId,
-//     compartmentId,
-//   } = req.body;
-
-//   const generatedSignature = crypto
-//     .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
-//     .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-//     .digest("hex");
-
-//   if (generatedSignature === razorpay_signature) {
-//     try {
-//       const locker = await Locker.findOne({ lockerId });
-
-//       const compartment = locker.compartments.find(
-//         (c) => c.compartmentId === compartmentId
-//       );
-
-//       if (compartment) {
-//         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-//         compartment.isBooked = true;
-//         compartment.bookingInfo = {
-//           userId: req.session.userId,
-//           bookingTime: new Date(),
-//           otp,
-//         };
-
-//         await locker.save();
-
-//         return res.redirect(
-//           `/locker/qr?lockerId=${lockerId}&compartmentId=${compartmentId}&otp=${otp}`
-//         );
-//       } else {
-//         return res.status(404).send("Compartment not found");
-//       }
-//     } catch (error) {
-//       console.error("Booking error:", error);
-//       return res.status(500).send("Internal Server Error");
-//     }
-//   } else {
-//     return res.status(400).send("Payment verification failed");
-//   }
-// });
 
 // -------------------------------------------Error-handling middleware------------------------------------------------------
 app.use((err, req, res, next) => {

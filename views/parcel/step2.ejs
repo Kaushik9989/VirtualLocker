@@ -31,6 +31,24 @@
                   <!-- Receiver Info Section -->
                   <div id="receiverFields">
                     <div class="mb-3">
+                      <% if (savedContacts && savedContacts.length > 0) { %>
+  <div class="mb-3">
+    <label class="form-label">Select a saved Contact</label>
+    <select class="form-select" id="savedContactSelect">
+      <option value="">-</option>
+      <% savedContacts.forEach(contact => { %>
+        <option
+          value="<%= contact.name %>"
+          data-phone="<%= contact.phone %>"
+          data-address="<%= contact.address %>"
+          data-pincode="<%= contact.pincode %>">
+          <%= contact.name %> - <%= contact.phone %> 
+        </option>
+      <% }) %>
+    </select>
+  </div>
+<% } %>
+
                       <label class="form-label">Recipient Name</label>
                       <input type="text" name="receiverName" class="form-control" />
                     </div>
@@ -42,6 +60,12 @@
                         <input type="tel" name="receiverPhone" class="form-control" />
                       </div>
                     </div>
+                    <div class="form-check mb-3">
+  <input class="form-check-input" type="checkbox" name="saveContact" id="saveContactCheckbox" value="true">
+  <label class="form-check-label" for="saveContactCheckbox">
+    📇 Save this contact for future use
+  </label>
+</div>
 
                     <!-- Delivery Method Choice -->
                     <div class="mb-3">
@@ -123,6 +147,44 @@
   </div>
 
   <!-- JS Logic -->
+   <script>
+    const savedContactSelect = document.getElementById("savedContactSelect");
+const receiverNameInput = document.querySelector("[name='receiverName']");
+const receiverPhoneInput = document.querySelector("[name='receiverPhone']");
+
+savedContactSelect?.addEventListener("change", () => {
+  const selected = savedContactSelect.options[savedContactSelect.selectedIndex];
+  if (!selected.value) return;
+
+  receiverNameInput.value = selected.value;
+  receiverPhoneInput.value = selected.getAttribute("data-phone") || '';
+});
+
+   </script>
+   <script>
+  let isFormSubmitted = false;
+
+  // If user tries to go back or refresh
+  window.addEventListener("beforeunload", (e) => {
+    if (!isFormSubmitted) {
+      e.preventDefault();
+      e.returnValue = "Your parcel will be deleted if you leave this page.";
+    }
+  });
+
+  // On form submit, don't show warning
+  document.querySelectorAll("form").forEach(form => {
+    form.addEventListener("submit", () => {
+      isFormSubmitted = true;
+    });
+  });
+
+  // If user clicks browser back button or navigates away
+
+  // Push a dummy state to detect back
+  history.pushState(null, '', location.href);
+</script>
+
   <script>
     const savedAddressSelect = document.getElementById("savedAddressSelect");
 const savedAddressIdInput = document.getElementById("savedAddressId");

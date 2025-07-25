@@ -70,3 +70,14 @@
       </form>
     </div>
   </div>
+
+<script>
+  history.pushState(null, null, location.href);
+  window.onpopstate = function () {
+    if (confirm("If you go back, this parcel will be deleted. Continue?")) {
+      window.location.href = "/dashboard"; // or wherever
+    } else {
+      history.pushState(null, null, location.href);
+    }
+  };
+</script>

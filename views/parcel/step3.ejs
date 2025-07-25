@@ -20,6 +20,38 @@
             </div>
         </div>
     </div>
+    <script>
+  let isFormSubmitted = false;
+
+  // If user tries to go back or refresh
+  window.addEventListener("beforeunload", (e) => {
+    if (!isFormSubmitted) {
+      e.preventDefault();
+      e.returnValue = "Your parcel will be deleted if you leave this page.";
+    }
+  });
+
+  // On form submit, don't show warning
+  document.querySelectorAll("form").forEach(form => {
+    form.addEventListener("submit", () => {
+      isFormSubmitted = true;
+    });
+  });
+
+  // If user clicks browser back button or navigates away
+  window.addEventListener("popstate", () => {
+    const confirmLeave = confirm("Going back will delete this parcel. Are you sure?");
+    if (!confirmLeave) {
+      history.pushState(null, '', location.href); // Stay on the page
+    } else {
+      // Optionally trigger parcel deletion here using AJAX
+    }
+  });
+
+  // Push a dummy state to detect back
+  history.pushState(null, '', location.href);
+</script>
+
  <script>
   function trackUserAction(step, method = 'pageview') {
     fetch('/analytics/user-action', {
