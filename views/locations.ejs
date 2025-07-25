@@ -262,6 +262,10 @@ backdrop-filter: blur(12px) saturate(150%);
       </div>
     </div>
   </div>
+  <script>
+
+</script>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-1A4e1S43i+rpymzKQ8CE2Y8GABZ1p26b0gShmYPQHsg=" crossorigin=""></script>
 
@@ -311,6 +315,11 @@ document.addEventListener("DOMContentLoaded", function () {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18
     }).addTo(map);
+    const search = new GeoSearch.GeoSearchControl({
+  provider: new GeoSearch.OpenStreetMapProvider(),
+});
+
+map.addControl(search);
 
     const RecenterControl = L.Control.extend({
       options: { position: 'topright' },
@@ -342,10 +351,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const userMarker = L.marker([userLat, userLng], { icon: userIcon })
       .addTo(map)
-      .bindPopup(`<b>📍 You are here</b><br><a href="/account">View account</a>`)
+      .bindPopup(`<b>📍 You are here</b><br>`)
       .openPopup();
 
-    userMarker.on("click", () => window.location.href = "/profile");
+    userMarker.on("click", () => window.location.href = "/account");
 
     // Calculate distances
     lockers = lockers.map(locker => {

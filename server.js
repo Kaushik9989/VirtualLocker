@@ -25,6 +25,8 @@ const MongoStore = require("connect-mongo");
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
 const bodyParser = require("body-parser");
+
+ 
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 const Locker = require("./models/locker.js");
@@ -478,14 +480,12 @@ app.get("/api/locations", isAuthenticated, async (req, res) => {
 });
 
 app.get("/locations", isAuthenticated, async (req, res) => {
-  const cacheKey = "locationsPage";
-  console.log("location cache size: ", locationsCache.size);
-  // Check cache
-  const cachedHtml = locationsCache.get(cacheKey);
-  if (cachedHtml) {
-    console.log("✅ Served /locations from cache");
-    return res.send(cachedHtml);
-  }
+  
+  // const cachedHtml = locationsCache.get(cacheKey);
+  // if (cachedHtml) {
+  //   console.log("✅ Served /locations from cache");
+  //   return res.send(cachedHtml);
+  // }
 
   try {
     const lockersRaw = await Locker.find({}).lean();
@@ -518,8 +518,8 @@ app.get("/locations", isAuthenticated, async (req, res) => {
         }
 
         // Cache HTML
-        locationsCache.set(cacheKey, html);
-        console.log("✅ Cached /locations HTML");
+        // locationsCache.set(cacheKey, html);
+        // console.log("✅ Cached /locations HTML");
 
         res.send(html);
       }
@@ -1153,7 +1153,7 @@ app.get("/api/incoming-parcels", isAuthenticated, async (req, res) => {
   try {
     // Step 1: Find parcels
     const parcelsRaw = await Parcel2.find({
-      receiverPhone: req.session.user.phone 
+      
     })
       .sort({ createdAt: -1 })
       .select(
@@ -1465,7 +1465,46 @@ app.get("/map", async (req, res) => {
   }
 });
 
+app.get("/location-select",isAuthenticated, async(req,res)=>{
+    try {
+    const lockersRaw = await Locker.find({}).lean();
+    const locationsRaw = await DropLocation.find({ status: "active" }).lean();
 
+    // Precompute enriched data only once
+    const enrichedLocations = locationsRaw.map((loc) => ({
+      ...loc,
+      distance: Math.floor(Math.random() * 20) + 1,
+      rating: (Math.random() * 2 + 3).toFixed(1),
+    }));
+
+    const lockers = lockersRaw.map((locker) => ({
+      lockerId: locker.lockerId,
+      compartments: locker.compartments,
+      location: locker.location || { lat: null, lng: null, address: "" },
+    }));
+
+    res.render(
+      "locations-select",
+      {
+        lockers,
+        activePage: "locations",
+        locations: enrichedLocations,
+      },
+      (err, html) => {
+        if (err) {
+          console.error("Error rendering locations:", err);
+          return res.status(500).send("Internal Server Error");
+        }
+
+
+        res.send(html);
+      }
+    );
+  } catch (err) {
+    console.error("Error loading locations:", err);
+    res.status(500).send("Internal Server Error");
+  }
+})
 
 
 
@@ -1616,10 +1655,7 @@ if (
 }
 
 }
- 
-      
 
-      
     }
   }
 
@@ -1796,6 +1832,23 @@ await FunnelEvent.create({
     res.redirect("/dashboard");
   }
 });
+
+app.get("/parcel/:id/modify",async(req,res)=>{
+    const parcel = await Parcel2.findById(req.params.id).lean();
+  const parcelLocker = parcel.lockerId || "";
+  const accessCode = parcel.accessCode;
+  const modifystatus = "modify"
+  let qrImage;
+    if (parcelLocker != "") {
+      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode, parcelLocker, modifystatus }));
+    } else {
+      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode }));
+    }
+  if (!parcel) return res.status(404).send("Parcel not found");
+  if (!parcel.qrImage)
+    return res.status(400).send("No QR code saved for this parcel");
+  res.render("qrPage", { parcel,qrImage });
+})
 
 
 
@@ -2505,11 +2558,7 @@ app.get("/parcel/:id/success", async (req, res) => {
   res.render("parcel/success", { parcel });
 });
 
-function getEstimatedCost(size) {
-  if (size === "small") return 10;
-  if (size === "medium") return 20;
-  return 30;
-}
+
 
 app.get("/parcel/:id/success", isAuthenticated, async (req, res) => {
   const parcel = await Parcel1.findById(req.params.id);

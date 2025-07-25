@@ -120,6 +120,7 @@
 
                           <div class="mb-3">
                             <label class="form-label">Select Locker for Dispatch</label>
+                            <a href="/location-select">Select from Map</a>
                             <select class="form-select" name="selectedLocker" id="lockerSelect">
                               <% lockers.forEach(locker=> { %>
                                 <option value="<%= locker._id %>" data-pincode="<%= locker.location.pincode %>">
@@ -129,6 +130,9 @@
                                 <% }) %>
                             </select>
                           </div>
+                          <input type="hidden" name="selectedLocker" id="selectedLockerHidden" />
+                          <input type="hidden" name="selectedLockerAddress" id="selectedLockerAddress" />
+
 
                           <div id="estimateBox" class="alert alert-info d-none">
                             Estimated delivery charge: ₹<span id="estimateAmount">...</span><br />
@@ -159,29 +163,8 @@
     });
 
   </script>
-  <script>
-    let isFormSubmitted = false;
-
-    // If user tries to go back or refresh
-    window.addEventListener("beforeunload", (e) => {
-      if (!isFormSubmitted) {
-        e.preventDefault();
-        e.returnValue = "Your parcel will be deleted if you leave this page.";
-      }
-    });
-
-    // On form submit, don't show warning
-    document.querySelectorAll("form").forEach(form => {
-      form.addEventListener("submit", () => {
-        isFormSubmitted = true;
-      });
-    });
-
-    // If user clicks browser back button or navigates away
-
-    // Push a dummy state to detect back
-    history.pushState(null, '', location.href);
-  </script>
+  
+ 
 
   <script>
     const savedAddressSelect = document.getElementById("savedAddressSelect");
@@ -298,3 +281,25 @@
     }
     trackUserAction("send_step_2");
   </script>
+
+  <script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const lockerId = urlParams.get("lockerId");
+    const lockerAddress = urlParams.get("lockerAddress");
+
+    if (lockerId && lockerAddress) {
+      // Set hidden inputs
+      const idInput = document.getElementById("selectedLockerHidden");
+      const addressInput = document.getElementById("selectedLockerAddress");
+      if (idInput) idInput.value = lockerId;
+      if (addressInput) addressInput.value = lockerAddress;
+
+      // Set dropdown value if present
+      const dropdown = document.getElementById("lockerSelect");
+      if (dropdown) {
+        dropdown.value = lockerId;
+      }
+    }
+  });
+</script>

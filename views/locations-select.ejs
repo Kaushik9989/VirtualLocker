@@ -1,0 +1,575 @@
+<% layout("/layouts/boilerplate") %>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-Vt4yZf+0dsN0I4WIEzYf7Y9mHAX9rKkRQ06uO42L5bI=" crossorigin="" />
+
+  <style>
+    @media (min-width: 768px) {
+      .helli {
+        margin-left: 200px;
+      }
+
+
+
+
+    }
+
+    .location-card.highlighted {
+      outline: 3px solid #007bff;
+      transition: outline 0.3s ease;
+    }
+
+    html,
+    body {
+      margin: 0 !important;
+      padding: 0 !important;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+
+
+    .main-layout {
+      position: relative;
+      width: 100vw !important;
+      /* ✅ Fixed */
+      height: 100vh;
+    }
+
+    body {
+      overflow-x: hidden;
+    }
+
+    #locker-map {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+    }
+
+    .left-sidebar {
+      position: fixed;
+      margin-top: 8px;
+      margin-left: 8px;
+      top: 70px;
+      width: 340px;
+      max-height: calc(100vh - 140px);
+      overflow-y: auto;
+    
+      
+      background: rgba(255, 255, 255, 0.50);
+backdrop-filter: blur(12px) saturate(150%);
+      
+      border-radius: 5px 5px;
+      padding: 1rem;
+      padding-bottom: 70px;
+      z-index: 1001;
+       transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .left-sidebar:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
+}
+.left-sidebar {
+  scroll-behavior: smooth;
+}
+
+    .location-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
+      padding: 1rem;
+      margin-bottom: 1rem;
+      transition: transform 0.2s ease;
+    }
+
+    .location-card:hover {
+      transform: translateY(-4px);
+    }
+
+    .location-header {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .location-sub {
+      color: #6b7280;
+      margin-bottom: 0.4rem;
+      font-size: 0.85rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .location-details {
+      font-size: 0.8rem;
+      color: #4b5563;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .card-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .leaflet-control-recenter {
+      position: fixed;
+      top: 80px;
+      /* desktop */
+      right: 20px;
+      z-index: 2000 !important;
+      /* <- bumped */
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      z-index: 1002 !important;
+      position: fixed;
+      top: 80px;
+      right: 20px;
+    }
+
+    .leaflet-control-recenter:hover {
+      background: #0056b3;
+    }
+
+    @media (max-width: 768px) {
+      .leaflet-control-recenter {
+        top: 80px !important;
+        /* just below header */
+        right: 16px !important;
+        bottom: auto !important;
+        background-color: black;
+      }
+    }
+
+    .leaflet-marker-bounce {
+      animation: bounce 0.6s infinite alternate;
+      z-index: 1003 !important;
+    }
+
+    @keyframes bounce {
+      0% {
+        transform: translateY(0);
+      }
+
+      100% {
+        transform: translateY(-15px);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .left-sidebar {
+        width: 90%;
+        left: 5%;
+        top: auto !important;
+        bottom: 70px;
+        max-height: 36vh;
+        padding-bottom: 80px;
+      }
+
+
+      .location-card {
+        padding: 0.75rem;
+      }
+
+      .location-header {
+        flex-direction: column;
+        font-size: 0.9rem;
+        gap: 0.25rem;
+      }
+
+      .location-sub {
+        font-size: 0.8rem;
+        white-space: normal;
+      }
+
+      .location-details {
+        font-size: 0.75rem;
+        gap: 0.3rem;
+      }
+
+      .card-actions {
+        gap: 0.3rem;
+      }
+
+      .card-actions .btn {
+        font-size: 0.8rem;
+        padding: 0.4rem;
+      }
+    }
+  </style>
+
+  <div class="helli">
+    <div class="main-layout">
+      <div id="locker-map"></div>
+
+      <div class="left-sidebar">
+        <h5 class="fw-bold mb-3">📍 Nearby Lockers</h5>
+        <% lockers.forEach(locker=> { %>
+          <div class="location-card" data-locker-id="<%= locker.lockerId %>">
+            <div class="location-header">
+              <span>
+                <%= locker.lockerId %>
+              </span>
+              <span class="text-success fw-semibold">
+                Available: <%= locker.compartments.filter(c=> !c.isBooked).length %>/<%= locker.compartments.length %>
+              </span>
+            </div>
+            <div class="location-sub">
+              <%= locker.location?.address || 'Address not available' %>
+            </div>
+            <div class="location-details">
+              <% if (locker.location?.lat && locker.location?.lng) { %>
+                <span>
+                  <i class="fas fa-map-marker-alt"></i>
+                  <%= locker.location.lat.toFixed(5) %>, <%= locker.location.lng.toFixed(5) %>
+                </span>
+                <% } else { %>
+                  <span>No Coordinates</span>
+                  <% } %>
+            </div>
+            <div class="card-actions">
+              <a href="https://www.google.com/maps/dir/?api=1&destination=<%= locker.location.lat %>,<%= locker.location.lng %>"
+                target="_blank" class="btn btn-outline-dark">
+                <i class="fas fa-location-arrow"></i> Directions
+              </a>
+              <a href="/locker/<%= locker.lockerId %>" class="btn btn-warning">
+                <i class="fas fa-check-circle"></i> Select Locker
+              </a>
+            </div>
+          </div>
+          <% }) %>
+      </div>
+    </div>
+  </div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-1A4e1S43i+rpymzKQ8CE2Y8GABZ1p26b0gShmYPQHsg=" crossorigin=""></script>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-1A4e1S43i+rpymzKQ8CE2Y8GABZ1p26b0gShmYPQHsg=" crossorigin=""></script>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-1A4e1S43i+rpymzKQ8CE2Y8GABZ1p26b0gShmYPQHsg="
+  crossorigin=""></script>
+
+<script>
+let map;
+
+
+const markerMap = {};
+let isManualScroll = false;
+
+const CACHE_KEY = "lockerCache";
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+// Load cached lockers
+let lockers = [];
+const cached = localStorage.getItem(CACHE_KEY);
+if (cached) {
+  const { data, timestamp } = JSON.parse(cached);
+  if (Date.now() - timestamp < CACHE_TTL_MS) {
+    lockers = data;
+  } else {
+    localStorage.removeItem(CACHE_KEY);
+  }
+}
+if (!lockers || lockers.length === 0) {
+  lockers = <%- JSON.stringify(lockers) %>;
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  const sidebar = document.querySelector(".left-sidebar");
+  sidebar.innerHTML = `
+    <div class="text-center text-muted my-5">
+      <div class="spinner-border text-primary mb-3"></div>
+      <div>Detecting your location...</div>
+    </div>
+  `;
+
+  navigator.geolocation.getCurrentPosition(success, error, {timeout:8000});
+
+  function initMap(lat, lng) {
+    map = L.map('locker-map').setView([lat - 0.01, lng], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18
+    }).addTo(map);
+
+    const RecenterControl = L.Control.extend({
+      options: { position: 'topright' },
+      onAdd: function () {
+        const container = L.DomUtil.create('div', 'leaflet-control-recenter');
+        container.innerHTML = '<i class="fas fa-crosshairs"></i>';
+        container.onclick = () => recenterToUser();
+        L.DomEvent.disableClickPropagation(container);
+        return container;
+      }
+    });
+    map.addControl(new RecenterControl());
+
+    map.on('moveend', debounce(handleMoveEnd, 300));
+  }
+
+  function success(position) {
+    const userLat = position.coords.latitude;
+    const userLng = position.coords.longitude;
+
+    initMap(userLat, userLng);
+
+    const userIcon = L.icon({
+      iconUrl: "https://static.thenounproject.com/png/2181483-200.png",
+      iconSize: [35, 35],
+      iconAnchor: [17, 34],
+      popupAnchor: [0, -30],
+    });
+
+    const userMarker = L.marker([userLat, userLng], { icon: userIcon })
+      .addTo(map)
+      .bindPopup(`<b>📍 You are here</b><br><a href="/account">View account</a>`)
+      .openPopup();
+
+    userMarker.on("click", () => window.location.href = "/profile");
+
+    // Calculate distances
+    lockers = lockers.map(locker => {
+      if (locker.location?.lat && locker.location?.lng) {
+        const distance = getDistance(userLat, userLng, locker.location.lat, locker.location.lng);
+        return {...locker, distance};
+      }
+      return {...locker, distance: Infinity};
+    }).sort((a,b)=>a.distance - b.distance);
+
+    localStorage.setItem(CACHE_KEY, JSON.stringify({data:lockers, timestamp:Date.now()}));
+
+    renderSidebar(lockers);
+    document.addEventListener("click", function (e) {
+  if (e.target.closest(".select-locker-btn")) {
+    const btn = e.target.closest(".select-locker-btn");
+    const lockerId = btn.getAttribute("data-locker-id");
+    const lockerAddress = btn.getAttribute("data-locker-address");
+
+    // Set hidden inputs
+    const idInput = document.querySelector("#selectedLockerHidden");
+    const addressInput = document.querySelector("#selectedLockerAddress");
+
+    if (idInput) idInput.value = lockerId;
+    if (addressInput) addressInput.value = lockerAddress;
+
+    // Optional: Update select dropdown visually
+    const dropdown = document.querySelector("#lockerSelect");
+    if (dropdown) {
+      dropdown.value = lockerId;
+    }
+
+    // Optional: Scroll or show confirmation
+   window.location.href = `/step2?lockerId=${encodeURIComponent(lockerId)}&lockerAddress=${encodeURIComponent(lockerAddress)}`;
+
+  }
+});
+
+    addMarkers(lockers);
+  }
+
+  function error() {
+    alert("Could not get your location. Showing default view.");
+    initMap(20.5937, 78.9629);
+    renderSidebar(lockers);
+    document.addEventListener("click", function (e) {
+  if (e.target.closest(".select-locker-btn")) {
+    const btn = e.target.closest(".select-locker-btn");
+    const lockerId = btn.getAttribute("data-locker-id");
+    const lockerAddress = btn.getAttribute("data-locker-address");
+
+    // Set hidden inputs
+    const idInput = document.querySelector("#selectedLockerHidden");
+    const addressInput = document.querySelector("#selectedLockerAddress");
+
+    if (idInput) idInput.value = lockerId;
+    if (addressInput) addressInput.value = lockerAddress;
+
+    // Optional: Update select dropdown visually
+    const dropdown = document.querySelector("#lockerSelect");
+    if (dropdown) {
+      dropdown.value = lockerId;
+    }
+
+    // Optional: Scroll or show confirmation
+    alert("Locker selected: " + lockerAddress);
+  }
+});
+
+    addMarkers(lockers);
+  }
+
+  function recenterToUser() {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          map.setView([lat - 0.01, lng], 14, { animate: true });
+        },
+        () => alert("Unable to access your location.")
+      );
+    } else {
+      alert("Geolocation is not supported by your browser.");
+    }
+  }
+
+  function renderSidebar(lockers) {
+    const sidebar = document.querySelector(".left-sidebar");
+    sidebar.innerHTML = `<h5 class="fw-bold mb-3">📍 Nearby Lockers</h5>`;
+    lockers.forEach(locker => {
+      const available = locker.compartments.filter(c => !c.isBooked).length;
+      const card = document.createElement("div");
+      card.className = "location-card";
+      card.setAttribute("data-locker-id", locker.lockerId);
+      card.innerHTML = `
+        <div class="location-header">
+          <span>${locker.lockerId}</span>
+          <span class="text-success fw-semibold">
+            Available: ${available}/${locker.compartments.length}
+          </span>
+        </div>
+        <div class="location-sub">
+          ${locker.location?.address || 'Address not available'}
+        </div>
+        <div class="location-details">
+          ${locker.location?.lat && locker.location?.lng
+            ? `<span><i class="fas fa-map-marker-alt"></i> ${locker.location.lat.toFixed(5)}, ${locker.location.lng.toFixed(5)}</span>`
+            : `<span>No Coordinates</span>`}
+        </div>
+        <div class="card-actions">
+          <a href="https://www.google.com/maps/dir/?api=1&destination=${locker.location?.lat},${locker.location?.lng}" target="_blank" class="btn btn-outline-dark">
+            <i class="fas fa-location-arrow"></i> Directions
+          </a>
+          <button class="btn btn-warning w-100 select-locker-btn"
+        data-locker-id="${ locker.lockerId}"
+        data-locker-address=" ${locker.location.name} - ${locker.location.address} (Pincode:  ${locker.location.pincode})">
+        <i class="fas fa-box-open"></i> Select this locker to dropoff
+      </button>
+          
+        </div>
+      `;
+      card.addEventListener("click", () => {
+        if (locker.location?.lat && locker.location?.lng) {
+          highlightCard(locker.lockerId);
+          map.panTo([locker.location.lat, locker.location.lng]);
+        }
+      });
+      sidebar.appendChild(card);
+    });
+
+    sidebar.addEventListener("scroll", debounce(handleScroll, 200));
+  }
+
+  function addMarkers(lockers) {
+    lockers.forEach(locker => {
+      if (locker.location?.lat && locker.location?.lng) {
+        const lat = locker.location.lat;
+        const lng = locker.location.lng;
+        const marker = L.marker([lat, lng]).addTo(map);
+        markerMap[locker.lockerId] = marker;
+        marker.on("click", () => {
+          highlightCard(locker.lockerId);
+          map.panTo([lat, lng]);
+        });
+      }
+    });
+  }
+
+  function highlightCard(lockerId) {
+    const card = document.querySelector(`.location-card[data-locker-id="${lockerId}"]`);
+    if (card) {
+      const offset = card.offsetTop;
+      isManualScroll = true;
+      document.querySelector(".left-sidebar").scrollTo({ top: offset - 12, behavior: 'smooth' });
+      card.classList.add("highlighted");
+      setTimeout(() => card.classList.remove("highlighted"), 1500);
+      setTimeout(() => isManualScroll = false, 500);
+    }
+  }
+
+  function handleMoveEnd() {
+    if (isManualScroll) return;
+    const center = map.getCenter();
+    let closest = null;
+    let minDist = Infinity;
+    lockers.forEach(locker => {
+      if (locker.location?.lat && locker.location?.lng) {
+        const dist = getDistance(center.lat, center.lng, locker.location.lat, locker.location.lng);
+        if (dist < minDist) {
+          minDist = dist;
+          closest = locker;
+        }
+      }
+    });
+    if (closest) highlightCard(closest.lockerId);
+  }
+
+  function handleScroll() {
+    if (isManualScroll) return;
+    const sidebar = document.querySelector(".left-sidebar");
+    const cards = Array.from(document.querySelectorAll(".location-card"));
+    const sidebarTop = sidebar.getBoundingClientRect().top;
+    let closest = null;
+    let minOffset = Infinity;
+    cards.forEach(card => {
+      const offset = Math.abs(card.getBoundingClientRect().top - sidebarTop);
+      if (offset < minOffset) {
+        minOffset = offset;
+        closest = card;
+      }
+    });
+    if (closest) {
+      const lockerId = closest.getAttribute("data-locker-id");
+      const locker = lockers.find(l => l.lockerId === lockerId);
+      if (locker?.location?.lat && locker?.location?.lng) {
+        isManualScroll = true;
+        map.panTo([locker.location.lat, locker.location.lng]);
+        setTimeout(() => isManualScroll = false, 300);
+      }
+    }
+  }
+
+  function getDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
+    const a = Math.sin(dLat/2)**2 + Math.cos(deg2rad(lat1))*Math.cos(deg2rad(lat2))*Math.sin(dLon/2)**2;
+    const c = 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  }
+
+  function deg2rad(deg) {
+    return deg * (Math.PI/180);
+  }
+
+  function debounce(func, delay) {
+    let timeout;
+    return function(...args) {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(this, args), delay);
+    };
+  }
+});
+</script>  

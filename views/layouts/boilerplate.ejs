@@ -37,6 +37,13 @@
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     integrity="sha256-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44c=" crossorigin="" />
+
+
+    <link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet-geosearch@3.0.0/dist/geosearch.css"
+/>
+
   <!-- lottie animations-->
   <script src="https://unpkg.com/lottie-web@5.10.1/build/player/lottie.min.js"></script>
   <!-- Leaflet core -->
@@ -52,7 +59,8 @@
   src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js">
 </script>
 
-
+<!-- Make sure you put this AFTER leaflet.js, when using with leaflet -->
+<script src="https://unpkg.com/leaflet-geosearch@latest/dist/bundle.min.js"></script>
 
 
   <!-- Lottie Player Library -->
@@ -194,8 +202,9 @@
   <% var parcelCount=typeof parcelCount !=='undefined' ? parcelCount : 0; %>
 
     <body>
+      
       <%- include("../includes/navbar.ejs") %>
-
+      
         <!-- Main Content Area -->
         <div class="container main-content pt-5 mb-5">
 
