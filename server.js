@@ -601,11 +601,18 @@ async function notifyUserOnLockerBooking(
 
 app.get("/incoming/:id/qr", async (req, res) => {
   const parcel = await Parcel2.findById(req.params.id).lean();
+  const parcelLocker = parcel.lockerId || "";
+  const accessCode = parcel.accessCode;
+  let qrImage;
+    if (parcelLocker != "") {
+      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode, parcelLocker }));
+    } else {
+      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode }));
+    }
   if (!parcel) return res.status(404).send("Parcel not found");
   if (!parcel.qrImage)
     return res.status(400).send("No QR code saved for this parcel");
-
-  res.render("qrPage", { parcel });
+  res.render("qrPage", { parcel,qrImage });
 });
 
 //-------------------------------------USER DASHBOARD ------------------------------------------
@@ -1568,7 +1575,7 @@ app.post("/send/step2", isAuthenticated, async (req, res) => {
     req.session.parcelDraft.receiverPhone = receiverPhone;
     req.session.parcelDraft.receiverDeliveryMethod = receiverDeliveryMethod;
     req.session.parcelDraft.paymentOption = "sender_pays";
-
+    req.session.parcelDraft.status = "awaiting_drop";
     // 🔁 Extra logic for address delivery
     if (receiverDeliveryMethod === "address_delivery") {
       if (!recipientAddress || !recipientPincode || !selectedLocker) {
@@ -1690,7 +1697,7 @@ app.get("/send/step3", isAuthenticated, async (req, res) => {
     const draft = req.session.parcelDraft;
     console.log(rate);
     const lockerId = draft.selectedLocker; // because that's where you're storing it
-
+    const prestatus = draft.status;
     const user = await User.findById(req.session.user._id);
     const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
     let cost = getEstimatedCost(draft.size);
@@ -1700,9 +1707,9 @@ app.get("/send/step3", isAuthenticated, async (req, res) => {
 
     let qrImage;
     if (lockerId) {
-      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode, lockerId }));
+      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode, lockerId,prestatus }));
     } else {
-      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode }));
+      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode,prestatus }));
     }
 
     let status = "awaiting_drop";

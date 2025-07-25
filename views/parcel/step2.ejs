@@ -31,26 +31,23 @@
                   <!-- Receiver Info Section -->
                   <div id="receiverFields">
                     <div class="mb-3">
-                      <% if (savedContacts && savedContacts.length > 0) { %>
-  <div class="mb-3">
-    <label class="form-label">Select a saved Contact</label>
-    <select class="form-select" id="savedContactSelect">
-      <option value="">-</option>
-      <% savedContacts.forEach(contact => { %>
-        <option
-          value="<%= contact.name %>"
-          data-phone="<%= contact.phone %>"
-          data-address="<%= contact.address %>"
-          data-pincode="<%= contact.pincode %>">
-          <%= contact.name %> - <%= contact.phone %> 
-        </option>
-      <% }) %>
-    </select>
-  </div>
-<% } %>
+                      <% if (savedContacts && savedContacts.length> 0) { %>
+                        <div class="mb-3">
+                          <label class="form-label">Select a saved Contact</label>
+                          <select class="form-select" id="savedContactSelect">
+                            <option value="">-</option>
+                            <% savedContacts.forEach(contact=> { %>
+                              <option value="<%= contact.name %>" data-phone="<%= contact.phone %>"
+                                data-address="<%= contact.address %>" data-pincode="<%= contact.pincode %>">
+                                <%= contact.name %> - <%= contact.phone %>
+                              </option>
+                              <% }) %>
+                          </select>
+                        </div>
+                        <% } %>
 
-                      <label class="form-label">Recipient Name</label>
-                      <input type="text" name="receiverName" class="form-control" />
+                          <label class="form-label">Recipient Name</label>
+                          <input type="text" name="receiverName" class="form-control" />
                     </div>
 
                     <div class="mb-3">
@@ -61,11 +58,12 @@
                       </div>
                     </div>
                     <div class="form-check mb-3">
-  <input class="form-check-input" type="checkbox" name="saveContact" id="saveContactCheckbox" value="true">
-  <label class="form-check-label" for="saveContactCheckbox">
-    📇 Save this contact for future use
-  </label>
-</div>
+                      <input class="form-check-input" type="checkbox" name="saveContact" id="saveContactCheckbox"
+                        value="true">
+                      <label class="form-check-label" for="saveContactCheckbox">
+                        📇 Save this contact for future use
+                      </label>
+                    </div>
 
                     <!-- Delivery Method Choice -->
                     <div class="mb-3">
@@ -86,11 +84,11 @@
                           <select class="form-select" id="savedAddressSelect">
                             <option value="">-</option>
                             <% savedAddresses.forEach(addr=> { %>
-                              <option value="<%= addr.ownerName || "" %>" data-address="<%= addr.address.replace(/" /g, '&quot;' )
-                                %>"
+                              <option value="<%= addr.ownerName || "" %>" data-address="<%= addr.address.replace(/" /g, '&quot;' ) %>"
                                 data-pincode="<%= addr.pincode %>"
                                   >
-                                  <%= addr.label %> <%= addr.ownerName || "" %> — <%= addr.address %> (Pincode: <%= addr.pincode %>)
+                                  <%= addr.label %>
+                                    <%= addr.ownerName || "" %> — <%= addr.address %> (Pincode: <%= addr.pincode %>)
                               </option>
                               <% }) %>
                           </select>
@@ -108,18 +106,18 @@
                           <div class="mb-3">
                             <label class="form-label">Recipient Pincode</label>
                             <input type="text" name="recipientPincode" id="recipientPincode" class="form-control"
-                               placeholder="Enter 6-digit Pincode" />
+                              placeholder="Enter 6-digit Pincode" />
                           </div>
                           <!-- Save Address Checkbox -->
-<div class="form-check mb-3">
-  <input class="form-check-input" type="checkbox" name="saveAddress" id="saveAddressCheckbox" value="true">
-  <label class="form-check-label" for="saveAddressCheckbox">
-    💾 Save this address for future use
-  </label>
-</div>
-
-
+                          <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" name="saveAddress" id="saveAddressCheckbox"
+                              value="true">
+                            <label class="form-check-label" for="saveAddressCheckbox">
+                              💾 Save this address for future use
+                            </label>
+                          </div>
                           <!-- Locker Select -->
+
                           <div class="mb-3">
                             <label class="form-label">Select Locker for Dispatch</label>
                             <select class="form-select" name="selectedLocker" id="lockerSelect">
@@ -147,70 +145,70 @@
   </div>
 
   <!-- JS Logic -->
-   <script>
+  <script>
     const savedContactSelect = document.getElementById("savedContactSelect");
-const receiverNameInput = document.querySelector("[name='receiverName']");
-const receiverPhoneInput = document.querySelector("[name='receiverPhone']");
+    const receiverNameInput = document.querySelector("[name='receiverName']");
+    const receiverPhoneInput = document.querySelector("[name='receiverPhone']");
 
-savedContactSelect?.addEventListener("change", () => {
-  const selected = savedContactSelect.options[savedContactSelect.selectedIndex];
-  if (!selected.value) return;
+    savedContactSelect?.addEventListener("change", () => {
+      const selected = savedContactSelect.options[savedContactSelect.selectedIndex];
+      if (!selected.value) return;
 
-  receiverNameInput.value = selected.value;
-  receiverPhoneInput.value = selected.getAttribute("data-phone") || '';
-});
-
-   </script>
-   <script>
-  let isFormSubmitted = false;
-
-  // If user tries to go back or refresh
-  window.addEventListener("beforeunload", (e) => {
-    if (!isFormSubmitted) {
-      e.preventDefault();
-      e.returnValue = "Your parcel will be deleted if you leave this page.";
-    }
-  });
-
-  // On form submit, don't show warning
-  document.querySelectorAll("form").forEach(form => {
-    form.addEventListener("submit", () => {
-      isFormSubmitted = true;
+      receiverNameInput.value = selected.value;
+      receiverPhoneInput.value = selected.getAttribute("data-phone") || '';
     });
-  });
 
-  // If user clicks browser back button or navigates away
+  </script>
+  <script>
+    let isFormSubmitted = false;
 
-  // Push a dummy state to detect back
-  history.pushState(null, '', location.href);
-</script>
+    // If user tries to go back or refresh
+    window.addEventListener("beforeunload", (e) => {
+      if (!isFormSubmitted) {
+        e.preventDefault();
+        e.returnValue = "Your parcel will be deleted if you leave this page.";
+      }
+    });
+
+    // On form submit, don't show warning
+    document.querySelectorAll("form").forEach(form => {
+      form.addEventListener("submit", () => {
+        isFormSubmitted = true;
+      });
+    });
+
+    // If user clicks browser back button or navigates away
+
+    // Push a dummy state to detect back
+    history.pushState(null, '', location.href);
+  </script>
 
   <script>
     const savedAddressSelect = document.getElementById("savedAddressSelect");
-const savedAddressIdInput = document.getElementById("savedAddressId");
-const recipientAddressInputEl = document.getElementById("recipientAddress");
-const recipientPincodeInputEl = document.getElementById("recipientPincode");
+    const savedAddressIdInput = document.getElementById("savedAddressId");
+    const recipientAddressInputEl = document.getElementById("recipientAddress");
+    const recipientPincodeInputEl = document.getElementById("recipientPincode");
 
-if (savedAddressSelect) {
-  savedAddressSelect.addEventListener("change", () => {
-    const selectedOption = savedAddressSelect.options[savedAddressSelect.selectedIndex];
+    if (savedAddressSelect) {
+      savedAddressSelect.addEventListener("change", () => {
+        const selectedOption = savedAddressSelect.options[savedAddressSelect.selectedIndex];
 
-    if (selectedOption.value) {
-      const address = selectedOption.getAttribute("data-address");
-      const pincode = selectedOption.getAttribute("data-pincode");
+        if (selectedOption.value) {
+          const address = selectedOption.getAttribute("data-address");
+          const pincode = selectedOption.getAttribute("data-pincode");
 
-      recipientAddressInputEl.value = address;
-      recipientPincodeInputEl.value = pincode;
-      savedAddressIdInput.value = selectedOption.value;
-    } else {
-      recipientAddressInputEl.value = "";
-      recipientPincodeInputEl.value = "";
-      savedAddressIdInput.value = "";
+          recipientAddressInputEl.value = address;
+          recipientPincodeInputEl.value = pincode;
+          savedAddressIdInput.value = selectedOption.value;
+        } else {
+          recipientAddressInputEl.value = "";
+          recipientPincodeInputEl.value = "";
+          savedAddressIdInput.value = "";
+        }
+
+        estimateBox.classList.add("d-none");
+      });
     }
-
-    estimateBox.classList.add("d-none");
-  });
-}
 
     const deliveryToSelect = document.getElementById("deliveryOption");
     const receiverFields = document.getElementById("receiverFields");
