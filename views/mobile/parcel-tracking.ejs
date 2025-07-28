@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Parcel Status</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    
+        .navbar {
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: #1a1a1a;
+        }
+    .step-tracker {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      margin: 2rem 0 3rem;
+    }
+
+    .step {
+      text-align: center;
+      flex: 1;
+      position: relative;
+      z-index: 2;
+    }
+
+    .step .circle {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: white;
+      background-color: #ccc;
+      margin: 0 auto;
+    }
+
+    .step.active .circle,
+    .step.done .circle {
+      background-color: #0495dd;
+    }
+
+    .step .label {
+      margin-top: 0.5rem;
+      font-size: 13px;
+    }
+
+    .progress-line {
+      position: absolute;
+      height: 4px;
+      background-color: #ccc;
+      top: 16px;
+      left: 0;
+      right: 0;
+      z-index: 1;
+    }
+
+    .progress-fill {
+      height: 4px;
+      background-color: #cfe609;
+      position: absolute;
+      top: 16px;
+      left: 0;
+      width: 0%;
+      z-index: 1;
+      transition: width 0.4s ease-in-out;
+    }
+
+    @media (max-width: 576px) {
+      h5, .label, .circle, p, small {
+        font-size: 14px;
+      }
+
+      .step-tracker {
+        flex-direction: row;
+        padding: 0 10px;
+      }
+
+      .circle {
+        width: 30px;
+        height: 30px;
+      }
+
+      .card {
+        padding: 1rem !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-light">
+
+  <!-- Navbar -->
+  <%- include('../partials/navbar') %>
+
+  <!-- Main Content -->
+  <div class="container py-4">
+    <div class="card shadow p-4 rounded-4">
+      
+      <!-- Header Info -->
+      <div class="d-flex justify-content-between flex-wrap mb-3">
+        <h5 class="mb-2">Parcel ID: <span class="text-primary"><%= parcel._id %></span></h5>
+        <div class="text-start">
+          <small><strong>Access Code:</strong> <%= parcel.accessCode %></small><br>
+          <small><strong>Expires:</strong> <%= new Date(parcel.expiresAt).toLocaleString() %></small>
+        </div>
+      </div>
+
+      <!-- Status Bar -->
+      <div class="step-tracker position-relative">
+        <div class="progress-line"></div>
+        <div class="progress-fill"
+          style="width:
+            <% if (parcel.status === 'awaiting_drop') { %>0%;
+            <% } else if (parcel.status === 'awaiting_pick') { %>50%;
+            <% } else if (parcel.status === 'picked') { %>100%;
+            <% } else { %>0%; <% } %>">
+        </div>
+
+        <!-- Step 1 -->
+        <div class="step <%= parcel.status === 'awaiting_drop' ? 'active' : 'done' %>">
+          <div class="circle">1</div>
+          <div class="label">Awaiting Drop</div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="step <%= parcel.status === 'awaiting_pick' ? 'active' : parcel.status === 'picked' ? 'done' : '' %>">
+          <div class="circle">2</div>
+          <div class="label">Awaiting Pick</div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="step <%= parcel.status === 'picked' ? 'active' : '' %>">
+          <div class="circle">3</div>
+          <div class="label">Picked</div>
+        </div>
+      </div>
+
+      <!-- Parcel Details -->
+      <div class="row mt-4">
+        <div class="col-md-6 mb-3">
+          <p><strong>Sender:</strong> <%= parcel.senderName || 'N/A' %></p>
+          <p><strong>Receiver:</strong> <%= parcel.receiverName || 'N/A' %></p>
+          <p><strong>Description:</strong> <%= parcel.description || 'No description' %></p>
+        </div>
+        <div class="col-md-6 mb-1">
+          <p><strong>Locker:</strong> <%= parcel.lockerId || 'N/A' %></p>
+          <p><strong>Compartment:</strong> <%= parcel.compartmentId || 'N/A' %></p>
+          <p><strong>Cost:</strong> ₹<%= parseFloat(parcel.cost).toFixed(0) %></p>
+        </div>
+      </div>
+
+      
+      <!-- QR Code & Instructions -->
+<% if (parcel.qrImage) { %>
+  <div class="text-center ">
+    <% if (parcel.status !== 'picked') { %>
+    <img src="<%= parcel.qrImage %>" alt="Parcel QR Code" class="img-fluid" style="max-width: 180px;" />
+    <% } %>
+    <div class="mt-3">
+      <% if (parcel.status === 'awaiting_drop') { %>
+        <p class="text-muted">Scan this QR code at the locker to <strong>drop</strong> your parcel.</p>
+      <% } else if (parcel.status === 'awaiting_pick') { %>
+        <p class="text-muted">Scan this QR code at locker <strong><%= parcel.lockerId %></strong>, compartment <strong><%= parcel.compartmentId %></strong> to <strong>collect</strong> your parcel.</p>
+      <% } %>
+    </div>
+  </div>
+<% } %>
+  <div class="text-end">
+        <a href="/mobileDashboard" class="btn btn-outline-secondary">Back to Dashboard</a>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

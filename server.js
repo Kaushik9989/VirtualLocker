@@ -1422,6 +1422,50 @@ app.post("/resend-login-otp", async (req, res) => {
   }
 });
 
+// ======================================================= MOBILE LIKE DESIGB==========================================================
+
+app.get("/mobileDashboard", async (req, res) => {
+   const user = await User.findById(req.session.user._id).lean();
+    if (!user) return res.status(401).json({ error: "Unauthorized" });
+   try {
+    const sentParcels = await Parcel2.find({ senderId: user._id })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const receivedParcels = await Parcel2.find({ receiverPhone: user.phone }) // or any identifier
+      .sort({ createdAt: -1 })
+      .lean();
+
+   res.render("mobile/dashboard", {
+      sentParcels,
+      receivedParcels,user
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error loading parcels.");
+  }
+});
+
+
+app.get("/mobile/parcel/:id", async (req, res) => {
+  const parcel = await Parcel2.findById(req.params.id);
+  res.render("mobile/parcel-tracking", { parcel });
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // =------------------------------------------------CREDIT WALLET SECTION--------------------------------------------------\\
 // GET: View wallet
 app.get("/:id/credits", isAuthenticated, async (req, res) => {
@@ -4063,6 +4107,49 @@ app.get("/admin/logout", (req, res) => {
     res.redirect("/admin/login");
   });
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // ---------------------------------------------------- TECHNICIAN ROUTES ------------------------------------------------------
 
