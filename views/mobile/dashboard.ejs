@@ -113,8 +113,12 @@
             font-size: 0.9rem;
             font-weight: 500;
             text-align: center;
+            background-color: white;
         }
-
+        .fab.rotate {
+    transform: rotate(45deg);
+    transition: transform 0.3s ease;
+}
         .fab-menu a:hover {
             background-color: #f8f9fa;
         }
@@ -126,8 +130,8 @@
             }
 
             .fab {
-                width: 50px;
-                height: 50px;
+                width: 55px;
+                height: 55px;
                 font-size: 1.5rem;
             }
 
@@ -135,6 +139,36 @@
                 font-size: 1.1rem;
             }
         }
+        @keyframes fadeSlideIn {
+    0% {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeSlideOut {
+    0% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+}
+
+.fab-menu.showing {
+    animation: fadeSlideIn 0.3s ease forwards;
+}
+
+.fab-menu.hiding {
+    animation: fadeSlideOut 0.2s ease forwards;
+}
+
     </style>
 </head>
 
@@ -151,9 +185,7 @@
     <!-- Floating Action Button with Menu -->
     <div class="fab-menu-container">
         <button class="btn btn-warning rounded-circle fab d-flex align-items-center justify-content-center"
-            id="fabToggle">
-            <span>+</span>
-        </button>
+            id="fabToggle">+</button>
         <div class="fab-menu d-none flex-column position-absolute">
             <a href="/sendParcel" class="btn btn-light mb-2">Send</a>
             <a href="/sendParcel" class="btn btn-light mb-2">Store</a>
@@ -256,11 +288,23 @@
 
     <script>
         const fabToggle = document.getElementById('fabToggle');
-        const fabMenu = document.querySelector('.fab-menu');
+const fabMenu = document.querySelector('.fab-menu');
 
-        fabToggle.addEventListener('click', () => {
-            fabMenu.classList.toggle('d-none');
-        });
+fabToggle.addEventListener('click', () => {
+    if (fabMenu.classList.contains('d-none')) {
+        fabMenu.classList.remove('d-none', 'hiding');
+        fabMenu.classList.add('showing');
+    } else {
+        fabMenu.classList.remove('showing');
+        fabMenu.classList.add('hiding');
+        setTimeout(() => {
+            fabMenu.classList.add('d-none');
+        }, 200); // Match the fadeSlideOut duration
+    }
+
+    fabToggle.classList.toggle('rotate');
+});
+
 
         // Optional: close menu when clicking outside
         document.addEventListener('click', (event) => {
