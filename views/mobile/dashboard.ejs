@@ -64,6 +64,7 @@
             opacity: 0.9;
         }
         .form-select {
+            width: 150px;
             border-radius: 8px;
             padding: 0.5rem 1rem;
             font-size: 0.9rem;
@@ -210,11 +211,11 @@
         <ul class="nav nav-tabs mb-3" id="parcelTabs" role="tablist">
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="sent-tab" data-bs-toggle="tab" data-bs-target="#sent" type="button"
-                    role="tab">Sent Parcels</button>
+                    role="tab" style="color: #1a1a1a;">Sent Parcels</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="received-tab" data-bs-toggle="tab" data-bs-target="#received" type="button"
-                    role="tab">Received Parcels</button>
+                    role="tab" style="color: #1a1a1a;">Incoming Parcels</button>
             </li>
         </ul>
 
@@ -222,8 +223,8 @@
         <div class="tab-content" id="parcelTabsContent">
             <!-- Sent Parcels -->
             <div class="tab-pane fade show active" id="sent" role="tabpanel">
-                <div class="mb-3">
-                    <select class="form-select parcel-filter" data-target="sent">
+                <div class="mb-3 d-flex justify-content-end">
+                    <select class="form-select parcel-filter " data-target="sent">
                         <option value="all">All</option>
                         <option value="picked">Picked</option>
                         <option value="awaiting_drop">Awaiting Drop</option>
@@ -245,7 +246,7 @@
 
             <!-- Received Parcels -->
             <div class="tab-pane fade" id="received" role="tabpanel">
-                <div class="mb-3">
+                <div class="mb-3 d-flex justify-content-end">
                     <select class="form-select parcel-filter" data-target="received">
                         <option value="all">All</option>
                         <option value="picked">Picked</option>
