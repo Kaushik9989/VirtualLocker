@@ -130,7 +130,7 @@
                                 <% }) %>
                             </select>
                           </div>
-                          <input type="hidden" name="selectedLocker" id="selectedLockerHidden" />
+                          <!-- <input type="hidden" name="selectedLocker" id="selectedLockerHidden" /> -->
                           <input type="hidden" name="selectedLockerAddress" id="selectedLockerAddress" />
 
 
@@ -283,23 +283,18 @@
   </script>
 
   <script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const lockerId = urlParams.get("lockerId");
-    const lockerAddress = urlParams.get("lockerAddress");
+ document.addEventListener("DOMContentLoaded", () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const lockerId = urlParams.get("lockerId");
+  const lockerAddress = urlParams.get("lockerAddress");
 
-    if (lockerId && lockerAddress) {
-      // Set hidden inputs
-      const idInput = document.getElementById("selectedLockerHidden");
-      const addressInput = document.getElementById("selectedLockerAddress");
-      if (idInput) idInput.value = lockerId;
-      if (addressInput) addressInput.value = lockerAddress;
+  if (lockerId) {
+    const dropdown = document.getElementById("lockerSelect");
+    if (dropdown) dropdown.value = lockerId;
+  }
 
-      // Set dropdown value if present
-      const dropdown = document.getElementById("lockerSelect");
-      if (dropdown) {
-        dropdown.value = lockerId;
-      }
-    }
-  });
+  const addressInput = document.getElementById("selectedLockerAddress");
+  if (lockerAddress && addressInput) addressInput.value = lockerAddress;
+});
+
 </script>

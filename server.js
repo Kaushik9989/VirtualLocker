@@ -1631,8 +1631,7 @@ app.post("/send/step2", isAuthenticated, async (req, res) => {
 }
 
   const user = await User.findById(req.session.user._id);
-  const locker = await Locker.findById(selectedLocker);
-  const lockerPincode = locker?.location?.pincode || "";
+  
   if (!req.session.parcelDraft) req.session.parcelDraft = {};
 
   // Self Flow (Store for Myself)
@@ -1664,8 +1663,12 @@ app.post("/send/step2", isAuthenticated, async (req, res) => {
       if (!recipientAddress || !recipientPincode || !selectedLocker) {
         req.flash("error", "Please fill in recipient address, pincode, and select a dispatch locker.");
         return res.redirect("/send/step2");
-      }
-
+      }if (!selectedLocker || !mongoose.Types.ObjectId.isValid(selectedLocker)) {
+  req.flash("error", "Please select a valid locker for dispatch.");
+  return res.redirect("/send/step2");
+}
+      const locker = await Locker.findById(selectedLocker);
+      const lockerPincode = locker?.location?.pincode || "";
       // Save address and locker info
       req.session.parcelDraft.recipientAddress = recipientAddress;
       req.session.parcelDraft.recipientPincode = recipientPincode;
