@@ -1429,10 +1429,13 @@ app.get("/mobileDashboard", isAuthenticated,async (req, res) => {
     const receivedParcels = await Parcel2.find({ receiverPhone: user.phone }) // or any identifier
       .sort({ createdAt: -1 })
       .lean();
-
+      const awaitingPickCount = await Parcel2.countDocuments({
+      senderId: user._id,
+      status: "awaiting_pick"
+    });
    res.render("mobile/dashboard", {
       sentParcels,
-      receivedParcels,user
+      receivedParcels,user,awaitingPickCount
     });
   } catch (err) {
     console.error(err);
