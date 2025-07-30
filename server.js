@@ -1874,7 +1874,7 @@ app.get("/mobile/parcel/:id/success", async (req, res) => {
 
 //// STORE VIA LOCKER CATALOGUE
 
-app.get("/mobile/send/select-locker/:id",isAuthenticated, async(req,res) =>{
+app.get("/mobile/send/select-locker/:lockerId",isAuthenticated, async(req,res) =>{
   const lockerId = req.params.lockerId;
   const locker = await Locker.findOne({lockerId : lockerId});
 
@@ -1887,7 +1887,7 @@ app.get("/mobile/send/select-locker/:id",isAuthenticated, async(req,res) =>{
 });
 
 
-app.post("/send/select-locker/:lockerId", isAuthenticated, async (req, res) => {
+app.post("/mobile/send/select-locker/:lockerId", isAuthenticated, async (req, res) => {
   const lockerId = req.params.lockerId;
   const size = req.body.size;
   const locker = await Locker.findOne({ lockerId });
@@ -1910,7 +1910,7 @@ app.post("/send/select-locker/:lockerId", isAuthenticated, async (req, res) => {
     receiverPhone: req.user.phone
   };
 
-  res.redirect("/send/step3");
+  res.redirect("/mobile/send/step3");
 
 });
 
