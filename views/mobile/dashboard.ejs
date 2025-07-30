@@ -7,6 +7,10 @@
     <title>Your Parcels</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css"
+        integrity="sha512-DxV+EoADOkOygM4IR9yXP8Sb2qwgidEmeqAEmDKIOfPRQZOWbXCzLC6vjbZyy0vPisbH2SyW27+ddLVCN+OMzQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
         body {
             background-color: #f5f7fa;
@@ -25,14 +29,15 @@
         }
 
         .fab {
+            color: white;
             position: fixed;
             bottom: 30px;
             right: 30px;
             z-index: 1000;
-            width: 60px;
-            height: 60px;
-            font-size: 1.8rem;
-            background: linear-gradient(135deg, #ff9500, #ffcc00);
+            width: 100px;
+            height: 100px;
+            font-size: 3rem;
+            background: #070265;
             border: none;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -63,6 +68,7 @@
             font-size: 0.9rem;
             opacity: 0.9;
         }
+
         .form-select {
             width: 150px;
             border-radius: 8px;
@@ -99,27 +105,32 @@
             z-index: 1000;
         }
 
-        .fab-menu {
-            bottom: 70px;
-            right: 0;
-            padding: 0.5rem;
-            background-color: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            transition: all 0.3s ease;
-            min-width: 120px;
+       .fab-menu {
+    bottom: 90px;
+    right: 0;
+    padding: 1rem;
+    background-color: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+    min-width: 160px;
+}
+
+.fab-menu a {
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 0.6rem 1rem;
+    text-align: center;
+    background-color: white;
+    border-radius: 10px;
+}
+
+
+        .fab.rotate {
+            transform: rotate(45deg);
+            transition: transform 0.3s ease;
         }
 
-        .fab-menu a {
-            font-size: 0.9rem;
-            font-weight: 500;
-            text-align: center;
-            background-color: white;
-        }
-        .fab.rotate {
-    transform: rotate(45deg);
-    transition: transform 0.3s ease;
-}
         .fab-menu a:hover {
             background-color: #f8f9fa;
         }
@@ -140,57 +151,89 @@
                 font-size: 1.1rem;
             }
         }
+
         @keyframes fadeSlideIn {
-    0% {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
+            0% {
+                opacity: 0;
+                transform: translateY(10px);
+            }
 
-@keyframes fadeSlideOut {
-    0% {
-        opacity: 1;
-        transform: translateY(0);
-    }
-    100% {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-}
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
-.fab-menu.showing {
-    animation: fadeSlideIn 0.3s ease forwards;
-}
+        @keyframes fadeSlideOut {
+            0% {
+                opacity: 1;
+                transform: translateY(0);
+            }
 
-.fab-menu.hiding {
-    animation: fadeSlideOut 0.2s ease forwards;
-}
+            100% {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+        }
 
+        .fab-menu.showing {
+            animation: fadeSlideIn 0.3s ease forwards;
+        }
+
+        .fab-menu.hiding {
+            animation: fadeSlideOut 0.2s ease forwards;
+        }
     </style>
 </head>
 
 <body>
     <!-- Top Navbar -->
-  <nav class="navbar navbar-light bg-white px-3 py-2 sticky-top shadow-sm">
-  <a class="navbar-brand d-flex align-items-center" href="/mobileDashboard">
-    <img src="/uploads/mobile-logo.png" alt="Logo" height="40" class="me-2" />
-    <span>DropPoint Systems</span>
-  </a>
-</nav>
+    <nav class="navbar navbar-light bg-white px-3 py-2 sticky-top shadow-sm">
+        <a class="navbar-brand d-flex align-items-center" href="/mobileDashboard">
+            <img src="/uploads/mobile-logo.png" alt="Logo" height="30" class="me-2" />
+            <span>DropPoint Systems</span>
+        </a>
+
+        <!-- User Dropdown -->
+        <div class="dropdown ms-auto ">
+            <a href="#" class="d-flex align-items-center justify-content-center rounded-circle bg-light shadow-sm p-2"
+                id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="width: 42px; height: 42px;">
+                <i class="fa-solid fa-user fa-lg" style="color: #6a11cb;"></i>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3 " aria-labelledby="userDropdown">
+                <li>
+                    <a class="dropdown-item d-flex align-items-center gap-2 mt-1 mb-1" href="/mobileDashboard">
+                        <i class="fa-solid fa-house" style="color: #B197FC;"></i> Home
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item d-flex align-items-center gap-2 mt-1 mb-1" href="/mobileAccount">
+                        <i class="fa-solid fa-user-gear text-success"></i> Profile
+                    </a>
+                </li>
+                <li>
+                    <hr class="dropdown-divider">
+                </li>
+                <li>
+                    <a class="dropdown-item d-flex align-items-center gap-2 text-danger mt-1 mb-1" href="/logout">
+                        <i class="fa-solid fa-right-from-bracket"></i> Logout
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+    </nav>
+
 
 
     <!-- Floating Action Button with Menu -->
-    <div class="fab-menu-container">
+    <div class="fab-menu-container" >
         <button class="btn btn-warning rounded-circle fab d-flex align-items-center justify-content-center"
-            id="fabToggle">+</button>
+            id="fabToggle" style="width: 85px; height: 85px;  background: #070265;"><i class="fa-solid fa-plus fa-beat fa-xl" style="color: #ffffff;"></i></button>
         <div class="fab-menu d-none flex-column position-absolute">
-            <a href="/sendParcel" class="btn btn-light mb-2">Send</a>
-            <a href="/sendParcel" class="btn btn-light mb-2">Store</a>
-            <a href="/receive" class="btn btn-light">Receive</a>
+            <a href="/mobile/sendParcel" class="btn btn-light mb-2">Send</a>
+            <a href="/mobile/store" class="btn btn-light mb-2">Store</a>
+            <a href="/mobile/receive" class="btn btn-light">Receive</a>
         </div>
     </div>
 
@@ -215,7 +258,11 @@
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="received-tab" data-bs-toggle="tab" data-bs-target="#received" type="button"
-                    role="tab" style="color: #1a1a1a;">Incoming Parcels</button>
+                    role="tab" style="color: #1a1a1a;">Incoming</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="stored-tab" data-bs-toggle="tab" data-bs-target="#stored" type="button"
+                    role="tab" style="color: #1a1a1a;">Stored Parcels</button>
             </li>
         </ul>
 
@@ -266,6 +313,32 @@
                                 <p class="text-center text-muted">No received parcels found.</p>
                                 <% } %>
             </div>
+            <!-- Stored Parcels -->
+            <div class="tab-pane fade" id="stored" role="tabpanel">
+                <div class="mb-3 d-flex justify-content-end">
+                    <select class="form-select parcel-filter" data-target="stored">
+                        <option value="all">All</option>
+                        <option value="picked">Picked</option>
+                        <option value="awaiting_drop">Awaiting Drop</option>
+                        <option value="awaiting_pick">Awaiting Pick</option>
+                        <option value="expired">Expired</option>
+                    </select>
+                </div>
+                <% const storedParcels=[...(sentParcels || []), ...(receivedParcels || [])].filter(p=> p.senderName ===
+                    p.receiverName);
+                    %>
+
+                    <% if (storedParcels.length> 0) { %>
+                        <% storedParcels.forEach(parcel=> { %>
+                            <div class="parcel-card" data-status="<%= parcel.status %>">
+                                <%- include('../partials/parcel-card-stored', { parcel: parcel }) %>
+                            </div>
+                            <% }) %>
+                                <% } else { %>
+                                    <p class="text-center text-muted">No stored parcels found.</p>
+                                    <% } %>
+            </div>
+
         </div>
     </div>
 
@@ -289,22 +362,22 @@
 
     <script>
         const fabToggle = document.getElementById('fabToggle');
-const fabMenu = document.querySelector('.fab-menu');
+        const fabMenu = document.querySelector('.fab-menu');
 
-fabToggle.addEventListener('click', () => {
-    if (fabMenu.classList.contains('d-none')) {
-        fabMenu.classList.remove('d-none', 'hiding');
-        fabMenu.classList.add('showing');
-    } else {
-        fabMenu.classList.remove('showing');
-        fabMenu.classList.add('hiding');
-        setTimeout(() => {
-            fabMenu.classList.add('d-none');
-        }, 200); // Match the fadeSlideOut duration
-    }
+        fabToggle.addEventListener('click', () => {
+            if (fabMenu.classList.contains('d-none')) {
+                fabMenu.classList.remove('d-none', 'hiding');
+                fabMenu.classList.add('showing');
+            } else {
+                fabMenu.classList.remove('showing');
+                fabMenu.classList.add('hiding');
+                setTimeout(() => {
+                    fabMenu.classList.add('d-none');
+                }, 200); // Match the fadeSlideOut duration
+            }
 
-    fabToggle.classList.toggle('rotate');
-});
+            fabToggle.classList.toggle('rotate');
+        });
 
 
         // Optional: close menu when clicking outside

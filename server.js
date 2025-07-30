@@ -643,10 +643,6 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
     // const lockersRaw = await Locker.find({});
     const userPhone = user.phone;
     const userName = user.username;
-
- 
-     
-
     const incomingParcels = await Parcel2.find({
       receiverPhone: userPhone
     }).sort({ createdAt: -1 });
@@ -659,9 +655,7 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
       "newDashboard",
       {
         user,
-
         activePage: "home",
-
         userName,
         parcelCount : filteredParcels.length
       },
@@ -1153,7 +1147,7 @@ app.get("/api/incoming-parcels", isAuthenticated, async (req, res) => {
   try {
     // Step 1: Find parcels
     const parcelsRaw = await Parcel2.find({
-      
+      senderId: req.user._id
     })
       .sort({ createdAt: -1 })
       .select(
@@ -1424,7 +1418,7 @@ app.post("/resend-login-otp", async (req, res) => {
 
 // ======================================================= MOBILE LIKE DESIGB==========================================================
 
-app.get("/mobileDashboard", async (req, res) => {
+app.get("/mobileDashboard", isAuthenticated,async (req, res) => {
    const user = await User.findById(req.session.user._id).lean();
     if (!user) return res.status(401).json({ error: "Unauthorized" });
    try {
@@ -1447,19 +1441,478 @@ app.get("/mobileDashboard", async (req, res) => {
 });
 
 
-app.get("/mobile/parcel/:id", async (req, res) => {
+app.get("/mobile/parcel/:id", isAuthenticated,async (req, res) => {
   const parcel = await Parcel2.findById(req.params.id);
   res.render("mobile/parcel-tracking", { parcel });
 });
 
 
 
+app.get("/mobile/sendParcel", isAuthenticated, async(req,res)=>{
+   const user = await User.findById(req.session.user._id).lean();
+   const lockers = await Locker.find();
+    if (!user) return res.redirect("/login");
+    res.render("mobile/sendParcel",{user,lockers});
+})
+
+app.get("/mobile/receive", isAuthenticated, async(req,res)=>{
+    try {
+    const userPhone = req.session.user.phone;
+
+    const incomingParcels = await Parcel2.find({
+      receiverPhone: userPhone
+    }).sort({ createdAt: -1 });
+
+    const filteredParcels = incomingParcels.filter(
+      p => p.status === "awaiting_pick"
+    );
+
+    res.render("mobile/receive", {
+      parcels: filteredParcels,
+      parcelCount: filteredParcels.length
+    });
+  } catch (error) {
+    console.error("Error fetching parcels:", error);
+    res.status(500).send("Server Error");
+  }
+});
+
+app.get("/mobileAccount",isAuthenticated,async(req,res)=>{
+     try {
+    const user = await User.findById(req.session.user._id).lean();
+
+    res.render("mobile/account", { user}, (err, html) => {
+      if (err) {
+        console.error("Error rendering /account:", err);
+        return res.status(500).send("Internal Server Error");
+      }
+
+      
+
+      res.send(html);
+    });
+  } catch (err) {
+    console.error("Error loading /account:", err);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+app.get("/mobile/store",isAuthenticated,async(req,res)=>{
+     try {
+    const lockersRaw = await Locker.find({}).lean();
+    const lockers = lockersRaw.map((locker) => ({
+      lockerId: locker.lockerId,
+      compartments: locker.compartments,
+      location: locker.location || { lat: null, lng: null, address: "" },
+    }));
+    res.render(
+      "mobile/store",
+      {
+        lockers,
+      },
+      (err, html) => {
+        if (err) {
+          console.error("Error rendering locations:", err);
+          return res.status(500).send("Internal Server Error");
+        }
+        res.send(html);
+      }
+    );
+  } catch (err) {
+    console.error("Error loading locations:", err);
+    res.status(500).send("Internal Server Error");
+  }
+});
 
 
+app.get("/mobile/send/step2", isAuthenticated, async (req, res) => {
+    const user = await User.findById(req.session.user._id);
+    const size = req.query.size;
+    const savedContacts = await Contact.find({ userId: req.user._id }).sort({ createdAt: -1 });
+     const savedAddresses = await SavedAddress.find({ userId: req.user._id });
+    const isSelf = req.query.self === 'true';
+    if (!req.session.parcelDraft) req.session.parcelDraft = {};
+    if (!user.phone) {
+      req.session.pendingRedirectAfterPhoneLink = `/send/step2${size ? `?size=${size}` : ""}`;
+      req.flash("error", "Please verify your phone number to continue.");
+      return res.redirect("/link-phone");
+    }
+
+    if (size) {
+      req.session.parcelDraft.size = size;
+      req.session.parcelDraft.type = "package";
+      req.session.parcelDraft.description = "";
+    }
+    if (isSelf) {
+      req.session.parcelDraft.receiverName = user.username || "Self";
+      req.session.parcelDraft.receiverPhone = user.phone;
+      req.session.parcelDraft.isSelf = true;
+      console.log(user.phone);
+      return res.redirect("/send/step3");
+    }
+    const lockers = await Locker.find({
+      "compartments.isBooked": false
+    });
+    res.render("mobile/parcel/step2", { lockers, savedAddresses,savedContacts });
+});
+
+app.post("/mobile/send/step2", isAuthenticated, async (req, res) => {
+    const {
+    receiverName,
+    receiverPhone,
+    deliveryOption,
+    receiverDeliveryMethod,
+    recipientAddress,
+    recipientPincode,
+    selectedLocker,
+    saveContact,
+    
+  } = req.body;
+
+  /// SAVE CONTACT FLOW
+  if (saveContact === 'true' && receiverName && receiverPhone) {
+    try {
+      const existingContact = await Contact.findOne({
+        userId: req.user._id,
+        phone: receiverPhone.trim(),
+      });
+      if (!existingContact) {
+        const newContact = new Contact({
+        userId: req.user._id,
+        name: receiverName.trim(),
+        phone: receiverPhone.trim(),
+      });
+      await newContact.save();
+      } else {
+        console.log("Contact already exists. Skipping save.");
+      }
+    } 
+    catch (err) {
+      console.error("Error saving contact:", err);
+    }}
+  const user = await User.findById(req.session.user._id);
+  if (!req.session.parcelDraft) req.session.parcelDraft = {};
+  
+  // STORE FOR SELF
+  if (deliveryOption === "self") {
+    req.session.parcelDraft.isSelf = true;
+    req.session.parcelDraft.receiverName = user.username || "Self";
+    req.session.parcelDraft.receiverPhone = user.phone || "";
+    req.session.parcelDraft.receiverDeliveryMethod = "self_pickup";
+  }
+
+  else {
+    if (!receiverName || !receiverPhone) {
+      req.flash("error", "Please enter both name and phone for the recipient.");
+      return res.redirect("/mobile/send/step2");
+    }
+     if (!receiverDeliveryMethod) {
+      req.flash("error", "Please select how the receiver will receive the parcel.");
+      return res.redirect("/mobile/send/step2");
+    }
+
+    req.session.parcelDraft.isSelf = false;
+    req.session.parcelDraft.receiverName = receiverName;
+    req.session.parcelDraft.receiverPhone = receiverPhone;
+    req.session.parcelDraft.receiverDeliveryMethod = receiverDeliveryMethod;
+    req.session.parcelDraft.paymentOption = "sender_pays";
+
+    if (receiverDeliveryMethod === "address_delivery") {
+      if (!recipientAddress || !recipientPincode || !selectedLocker) {
+        req.flash("error", "Please fill in recipient address, pincode, and select a dispatch locker.");
+        return res.redirect("/mobile/send/step2");
+      }
+      if (!selectedLocker || !mongoose.Types.ObjectId.isValid(selectedLocker)) {
+        req.flash("error", "Please select a valid locker for dispatch.");
+        return res.redirect("/mobile/send/step2");
+      }
+
+      const locker = await Locker.findById(selectedLocker);
+      const lockerPincode = locker?.location?.pincode || "";
+
+      // storing address and locker info
+
+      req.session.parcelDraft.recipientAddress = recipientAddress;
+      req.session.parcelDraft.recipientPincode = recipientPincode;
+      req.session.parcelDraft.selectedLocker = selectedLocker;
+      req.session.parcelDraft.selectedLockerPincode =lockerPincode;
+
+      if (receiverDeliveryMethod === "address_delivery") {
+        /// SAVE ADDRESS TO DB
+        if (
+        req.body.saveAddress === "true" &&
+        req.body.recipientAddress &&
+        req.body.recipientPincode &&
+        req.body.receiverName
+        ){
+          const alreadyExists = await SavedAddress.findOne({
+          userId: req.user._id,
+          address: req.body.recipientAddress.trim(),
+          pincode: req.body.recipientPincode.trim()
+        });
+        if (!alreadyExists) {
+          await SavedAddress.create({
+            userId: req.user._id,
+            address: req.body.recipientAddress.trim(),
+            pincode: req.body.recipientPincode.trim(),
+            ownerName : req.body.receiverName,
+            label: "Saved on " + new Date().toLocaleDateString()
+          });
+        }
+      }
+    }
+  }
+}
+  if (receiverDeliveryMethod === "address_delivery") {
+    return res.redirect("/mobile/send/estimate");
+  }
+  else{
+    return res.redirect("/mobile/send/step3");
+  }
+});
 
 
+app.get("/mobile/send/estimate",isAuthenticated, async(req,res)=>{
+  try{
+    const draft = req.session.parcelDraft;
+    if(
+      !draft ||
+      !draft.selectedLockerPincode ||
+      !draft.recipientPincode ||
+      draft.receiverDeliveryMethod !== "address_delivery"
+    ) {
+      req.flash("error", "Incomplete data for delivery estimation");
+      return res.redirect("/mobile/send/step2");
+    }
+    const token  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjcyODMwMzksInNvdXJjZSI6InNyLWF1dGgtaW50IiwiZXhwIjoxNzU0MTUwODA1LCJqdGkiOiJvc1R3VFNWWFQ4YnNObG9GIiwiaWF0IjoxNzUzMjg2ODA1LCJpc3MiOiJodHRwczovL3NyLWF1dGguc2hpcHJvY2tldC5pbi9hdXRob3JpemUvdXNlciIsIm5iZiI6MTc1MzI4NjgwNSwiY2lkIjo3MDUxNjYyLCJ0YyI6MzYwLCJ2ZXJib3NlIjpmYWxzZSwidmVuZG9yX2lkIjowLCJ2ZW5kb3JfY29kZSI6IiJ9.kds27l6abl8baauEq4PvpbtVXHUmUFkw7FBsjZ8ZYsY';
+
+    const headers = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    };
+
+    const params = new URLSearchParams({
+      pickup_postcode: draft.selectedLockerPincode,
+      delivery_postcode: draft.recipientPincode,
+      weight: 1,
+      cod: 0
+    });
+
+    const response = await axios.get(
+      `https://apiv2.shiprocket.in/v1/external/courier/serviceability?${params.toString()}`,
+      { headers }
+    );
+
+    let lockercost = getEstimatedCost(draft.size);
+    const courierOptions = response.data.data.available_courier_companies;
+    const bestOption = courierOptions.sort((a, b) => a.rate - b.rate)[0];
+    if (!courierOptions || courierOptions.length === 0) {
+      req.flash("error", "No delivery service available for the selected address.");
+      return res.redirect("/mobile/send/step2");
+    }
+
+    res.render("mobile/parcel/estimate", {
+      courier: bestOption,
+      courierOptions,
+      lockercost,
+      totalCost: courierOptions.rate
+    });
+  }
+  catch (err) {
+    console.error("❌ Error fetching estimate:", err);
+    req.flash("error", "Error fetching delivery estimate.");
+    res.redirect("/mobile/send/step2");
+  }
+});
+
+app.get("/mobile/send/step3",isAuthenticated, async(req,res)=>{
+  try{
+    const {rate} = req.query;
+    const draft = req.session.parcelDraft;
+    console.log(rate);
+    const lockerId = draft.selectedLocker;
+    const prestatus = draft.status;
+    const user = await User.findById(req.session.user._id);
+    const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
+    let cost = getEstimatedCost(draft.size);
+    if (draft.receiverDeliveryMethod === "address_delivery") {
+      cost += parseFloat(rate); // Add delivery + platform fee
+    }
+
+    let qrImage;
+
+    if (lockerId) {
+      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode, lockerId,prestatus }));
+    }
+
+    else {
+      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode,prestatus }));
+    }
+
+    let status = "awaiting_drop";
+    let paymentStatus = "completed";
+    let expiresAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+    let razorpayOrder = null;
+
+    // SENDER PAYS
+    draft.paymentOption = "sender_pays";
+    status = "awaiting_payment";
+    paymentStatus = "pending";
+    expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
+
+    razorpayOrder = await razorpay.orders.create({
+      amount: Math.round(parseFloat(cost) * 100),
+      currency: "INR",
+      receipt: `parcel_${Date.now()}`,
+      payment_capture: 1,
+    });
+
+    if (draft.isSelf) {
+      if (!draft.receiverPhone) draft.receiverPhone = user.phone;
+      if (!draft.receiverName) draft.receiverName = user.username || "Self";
+    }
+
+    if (!draft.receiverPhone || draft.receiverPhone.trim() === "") {
+      req.flash("error", "Receiver phone is required.");
+      return res.redirect("/mobile/send/step2");
+    }
 
 
+    const parcel = new Parcel2({
+      ...draft,
+      senderId: req.user._id,
+      senderName: user.username,
+      senderPhone: user.phone,
+      receiverName: draft.receiverName,
+      receiverPhone: draft.receiverPhone,
+       // Save address and locker info
+      recipientAddress : draft.recipientAddress,
+      recipientPincode : draft.recipientPincode,
+      selectedLocker : draft.selectedLocker,
+      selectedLockerPincode : draft.selectedLockerPincode,
+      accessCode,
+      qrImage,
+      lockerId: draft.lockerId || null,
+      cost: cost.toString(),
+      status,
+      paymentStatus,
+      droppedAt: null,
+      expiresAt,
+      compartmentId: null,
+      razorpayOrderId: razorpayOrder?.id || null,
+    });
+    req.session.inProgressParcelId = parcel._id;
+    await parcel.save();
+
+    delete req.session.inProgressParcelId;
+
+      return res.render("mobile/parcel/payment", {
+      parcel,
+      razorpayKeyId: process.env.RAZORPAY_KEY_ID,
+      orderId: razorpayOrder.id,
+      amount: razorpayOrder.amount,
+      currency: razorpayOrder.currency,
+    });
+     }
+    catch (error) {
+      console.error("❌ Error in /send/step3:", error);
+      req.flash("error", error);
+      res.redirect("/mobileDashboard");
+  }
+})
+
+app.get("/mobile/payment/success", isAuthenticated, async (req, res) => {
+  const { order_id, payment_id, signature } = req.query;
+
+  // Verify signature
+  const generatedSignature = crypto.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+    .update(order_id + "|" + payment_id)
+    .digest("hex");
+
+  if (generatedSignature !== signature) {
+    req.flash("error", "Payment verification failed.");
+    return res.redirect("/mobileDashboard");
+  }
+
+  // Mark parcel as paid
+  const parcel = await Parcel2.findOneAndUpdate(
+    { razorpayOrderId: order_id },
+    {
+      paymentStatus: "completed",
+      status: "awaiting_drop"
+    },
+    { new: true }
+  );
+
+  if (!parcel) {
+    req.flash("error", "Parcel not found.");
+    return res.redirect("/mobileDashboard");
+  }
+  delete req.session.parcelDraft;
+  res.redirect(`/mobile/parcel/${parcel._id}/success`);
+});
+
+app.get("/mobile/parcel/:id/success", async (req, res) => {
+    const user = await User.findById(req.session.user._id);
+    const parcelid = req.params.id;
+    const parcel = await Parcel2.findById(req.params.id);
+    if (!parcel) return res.status(404).send("Parcel not found");
+     await client.messages.create({
+    to: `whatsapp:+91${user.phone}`,
+    from: 'whatsapp:+15558076515',
+    contentSid: 'HX8dc7a5b23a3a6a2a7ce8a4d2e577ac3c', 
+    contentVariables: JSON.stringify({
+      1: `${user.username}`, // Sender name
+      2: `${parcelid}/qrpage` // Parcel ID
+})
+}).then(message => console.log('✅ WhatsApp Message Sent:', message.sid))
+.catch(error => console.error('❌ WhatsApp Message Error:', error));
+
+
+  res.render("mobile/parcel/success", { parcel });
+});
+
+//// STORE VIA LOCKER CATALOGUE
+
+app.get("/mobile/send/select-locker/:id",isAuthenticated, async(req,res) =>{
+  const lockerId = req.params.lockerId;
+  const locker = await Locker.findOne({lockerId : lockerId});
+
+  if(!locker){
+    req.flash("error","Locker Not Found");
+    return res.redirect("/mobile/store");
+  }
+
+  res.render("mobile/parcel/select-size", {locker});
+});
+
+
+app.post("/send/select-locker/:lockerId", isAuthenticated, async (req, res) => {
+  const lockerId = req.params.lockerId;
+  const size = req.body.size;
+  const locker = await Locker.findOne({ lockerId });
+  if (!locker) {
+    req.flash("error", "Locker not found");
+    return res.redirect("/mobile/store");
+  }
+  
+  req.session.parcelDraft = { 
+    isSelf: true,
+    type: "package",
+    size: size,
+    paymentOption: "sender_pays",
+    lockerId: locker.lockerId,
+    location_id: locker.location?._id || null,
+    lockerLat: locker.location?.lat,
+    lockerLng: locker.location?.lng,
+    description: "Stored via locker catalog",
+    receiverName: req.user.username,
+    receiverPhone: req.user.phone
+  };
+
+  res.redirect("/send/step3");
+
+});
 
 
 
@@ -1559,7 +2012,7 @@ app.get("/send/step2", isAuthenticated, async (req, res) => {
     step: "send_parcel_clicked",
     timestamp: new Date()
   });
-   const savedContacts = await Contact.find({ userId: req.user._id }).sort({ createdAt: -1 });
+  const savedContacts = await Contact.find({ userId: req.user._id }).sort({ createdAt: -1 });
   const user = await User.findById(req.session.user._id);
   const size = req.query.size;
   const savedAddresses = await SavedAddress.find({ userId: req.user._id });
@@ -1733,7 +2186,7 @@ app.get("/send/estimate", isAuthenticated, async (req, res) => {
     // Prepare request to Shiprocket
     const token  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjcyODMwMzksInNvdXJjZSI6InNyLWF1dGgtaW50IiwiZXhwIjoxNzU0MTUwODA1LCJqdGkiOiJvc1R3VFNWWFQ4YnNObG9GIiwiaWF0IjoxNzUzMjg2ODA1LCJpc3MiOiJodHRwczovL3NyLWF1dGguc2hpcHJvY2tldC5pbi9hdXRob3JpemUvdXNlciIsIm5iZiI6MTc1MzI4NjgwNSwiY2lkIjo3MDUxNjYyLCJ0YyI6MzYwLCJ2ZXJib3NlIjpmYWxzZSwidmVuZG9yX2lkIjowLCJ2ZW5kb3JfY29kZSI6IiJ9.kds27l6abl8baauEq4PvpbtVXHUmUFkw7FBsjZ8ZYsY';
     
-     const headers = {
+    const headers = {
     "Content-Type": "application/json",
     Authorization: `Bearer ${token}`,
   };
@@ -2597,10 +3050,7 @@ app.get("/parcel/:id/success", async (req, res) => {
 })// Template SID
 }).then(message => console.log('✅ WhatsApp Message Sent:', message.sid))
 .catch(error => console.error('❌ WhatsApp Message Error:', error));
-  parcel.location = {
-    lat: 20.5937,
-    lng: 78.9629,
-  };
+
 
   res.render("parcel/success", { parcel });
 });

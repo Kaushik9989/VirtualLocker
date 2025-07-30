@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Parcel Status</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-geosearch@3.1.0/dist/geosearch.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-geosearch@3.1.0/dist/bundle.min.js"></script>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+    }
+    .main-layout {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+    #locker-map {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+    }
+    .left-sidebar {
+      position: fixed;
+      margin: 8px;
+      top: 70px;
+      width: 340px;
+      max-height: calc(100vh - 140px);
+      overflow-y: auto;
+      background: rgba(255, 255, 255, 0.50);
+      backdrop-filter: blur(12px) saturate(150%);
+      border-radius: 5px;
+      padding: 1rem;
+      padding-bottom: 70px;
+      z-index: 1001;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .card-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .left-sidebar:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
+    }
+    .location-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
+      padding: 1rem;
+      margin-bottom: 1rem;
+      transition: transform 0.2s ease;
+    }
+    .location-card:hover {
+      transform: translateY(-4px);
+    }
+    .location-card.highlighted {
+      outline: 3px solid #007bff;
+    }
+    .leaflet-control-recenter {
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      z-index: 1002;
+    }
+    .leaflet-control-recenter:hover {
+      background: #0056b3;
+    }
+    @keyframes bounce {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-15px); }
+    }
+    .leaflet-marker-bounce {
+      animation: bounce 0.6s infinite alternate;
+    }
+    @media (max-width: 768px) {
+      .left-sidebar {
+        width: 90%;
+        left: 5%;
+        bottom: 70px;
+        top: auto;
+        max-height: 36vh;
+      }
+      .leaflet-control-recenter {
+        top: 80px;
+        right: 16px;
+      }
+    }
+  </style>
+</head>
+<body class="bg-light">
+  <!-- Navbar -->
+  <%- include('../partials/navbar') %>
+  <div class="main-layout">
+    <div id="locker-map"></div>
+    <div class="left-sidebar">
+      <h5 class="fw-bold mb-3">📍 Nearby Lockers</h5>
+    </div>
+  </div>
+<script>
+  let map;
+  const markerMap = {};
+  let isManualScroll = false;
+  let lockers = <%- JSON.stringify(lockers) %>;
+
+  document.addEventListener("DOMContentLoaded", function () {
+    navigator.geolocation.getCurrentPosition(success, error);
+
+    function initMap(lat, lng) {
+      map = L.map('locker-map').setView([lat - 0.01, lng], 14);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18
+      }).addTo(map);
+
+      
+
+      const RecenterControl = L.Control.extend({
+        options: { position: 'topright' },
+        onAdd: function () {
+          const container = L.DomUtil.create('div', 'leaflet-control-recenter');
+          container.innerHTML = '<i class="fas fa-crosshairs"></i>';
+          container.onclick = recenterToUser;
+          L.DomEvent.disableClickPropagation(container);
+          return container;
+        }
+      });
+      map.addControl(new RecenterControl());
+
+      map.on('moveend', debounce(handleMoveEnd, 300));
+    }
+
+    function success(pos) {
+      const userLat = pos.coords.latitude;
+      const userLng = pos.coords.longitude;
+      initMap(userLat, userLng);
+
+      const userMarker = L.marker([userLat, userLng], {
+        icon: L.icon({
+          iconUrl: 'https://static.thenounproject.com/png/2181483-200.png',
+          iconSize: [35, 35],
+          iconAnchor: [17, 34],
+          popupAnchor: [0, -30],
+        })
+      }).addTo(map).bindPopup(`<b>📍 You are here</b>`).openPopup();
+
+      lockers = lockers.map(locker => {
+        if (locker.location?.lat && locker.location?.lng) {
+          const dist = getDistance(userLat, userLng, locker.location.lat, locker.location.lng);
+          return { ...locker, distance: dist };
+        }
+        return { ...locker, distance: Infinity };
+      }).sort((a, b) => a.distance - b.distance);
+
+      renderSidebar(lockers);
+      addMarkers(lockers);
+    }
+
+    function error() {
+      alert("Could not get your location.");
+      initMap(20.5937, 78.9629);
+      renderSidebar(lockers);
+      addMarkers(lockers);
+    }
+
+    function recenterToUser() {
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          map.setView([lat - 0.01, lng], 14);
+        },
+        () => alert("Unable to access your location.")
+      );
+    }
+
+  function renderSidebar(lockers) {
+    const sidebar = document.querySelector(".left-sidebar");
+    sidebar.innerHTML = `<h5 class="fw-bold mb-3">📍 Nearby Lockers</h5>`;
+    lockers.forEach(locker => {
+      const available = locker.compartments.filter(c => !c.isBooked).length;
+      const card = document.createElement("div");
+      card.className = "location-card";
+      card.setAttribute("data-locker-id", locker.lockerId);
+      card.innerHTML = `
+        <div class="location-header">
+          <span>${locker.lockerId}</span>
+          <span class="text-success fw-semibold">
+            Available: ${available}/${locker.compartments.length}
+          </span>
+        </div>
+        <div class="location-sub">
+          ${locker.location?.address || 'Address not available'}
+        </div>
+        <div class="location-details">
+          ${locker.location?.lat && locker.location?.lng
+            ? `<span><i class="fas fa-map-marker-alt"></i> ${locker.location.lat.toFixed(5)}, ${locker.location.lng.toFixed(5)}</span>`
+            : `<span>No Coordinates</span>`}
+        </div>
+        <div class="card-actions">
+          <a href="https://www.google.com/maps/dir/?api=1&destination=${locker.location?.lat},${locker.location?.lng}" target="_blank" class="btn btn-dark mt-2">
+            <i class="fas fa-location-arrow"></i> Directions
+          </a>
+          <a href="/send/select-locker/${locker.lockerId}" class="btn btn-warning w-100">
+  <i class="fas fa-box-open"></i> Store at this Locker
+</a>
+
+          
+        </div>
+      `;
+      card.addEventListener("click", () => {
+        if (locker.location?.lat && locker.location?.lng) {
+          highlightCard(locker.lockerId);
+          map.panTo([locker.location.lat, locker.location.lng]);
+        }
+      });
+      sidebar.appendChild(card);
+    });
+
+   
+  }
+
+    function addMarkers(lockers) {
+      lockers.forEach(locker => {
+        if (locker.location?.lat && locker.location?.lng) {
+          const marker = L.marker([locker.location.lat, locker.location.lng]).addTo(map);
+          markerMap[locker.lockerId] = marker;
+          marker.on("click", () => highlightCard(locker.lockerId));
+        }
+      });
+    }
+
+    function highlightCard(lockerId) {
+      const card = document.querySelector(`.location-card[data-locker-id="${lockerId}"]`);
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        card.classList.add("highlighted");
+        setTimeout(() => card.classList.remove("highlighted"), 1500);
+      }
+    }
+
+    function handleMoveEnd() {
+      const center = map.getCenter();
+      let closest = null;
+      let minDist = Infinity;
+      lockers.forEach(locker => {
+        if (locker.location?.lat && locker.location?.lng) {
+          const dist = getDistance(center.lat, center.lng, locker.location.lat, locker.location.lng);
+          if (dist < minDist) {
+            minDist = dist;
+            closest = locker;
+          }
+        }
+      });
+      if (closest) highlightCard(closest.lockerId);
+    }
+
+    function getDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = deg2rad(lat2 - lat1);
+      const dLon = deg2rad(lon2 - lon1);
+      const a = Math.sin(dLat/2)**2 + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon/2)**2;
+      return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+    }
+
+    function deg2rad(deg) {
+      return deg * Math.PI / 180;
+    }
+
+    function debounce(func, delay) {
+      let timer;
+      return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => func.apply(this, args), delay);
+      };
+    }
+  });
+</script>
+</body>
+</html>

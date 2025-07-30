@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Parcel Status</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <style>
+  @media (min-width: 768px) {
+    .helli {
+      margin-left: 200px;
+    }
+  }
+  .top-dashboard-btn {
+    margin-top: 20px;
+    margin-left: 15px;
+  }
+
+  .card-custom {
+    border-radius: 1rem;
+    box-shadow: 0 0 20px rgba(0,0,0,0.05);
+    padding: 2rem;
+  }
+
+  .otp-box {
+    font-size: 1.75rem;
+    font-weight: bold;
+    color: #0d6efd;
+    border: 2px dashed #0d6efd;
+    padding: 0.75rem 2rem;
+    border-radius: 0.5rem;
+    display: inline-block;
+    background-color: #f8f9fa;
+  }
+
+  .qr-img {
+    max-width: 250px;
+    border-radius: 1rem;
+    box-shadow: 0 0 12px rgba(0,0,0,0.1);
+  }
+
+  .action-buttons button {
+    min-width: 150px;
+  }
+</style>
+
+
+</head>
+<body class="bg-light">
+
+  <!-- Navbar -->
+  <%- include('../../partials/navbar') %>
+
+  <!-- Main Content -->
+  <div class="container py-5">
+    <div class="text-center card-custom bg-white">
+      <% if (parcel.paymentOption === "receiver_pays") { %>
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+          🚧 Waiting for receiver's payment. You'll be notified to drop off the parcel once they pay.
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      <% } else { %>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+          ✅ QR is active! Drop your parcel at any nearby locker by scanning it.
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      <% } %>
+
+      <h2 class="fw-bold text-success mb-4">✅ Parcel Booked Successfully!</h2>
+
+      <img src="<%= parcel.qrImage %>" alt="QR Code" class="qr-img" />
+      <p class="text-muted mt-2">Scan this QR at any DropPoint locker to drop your parcel.</p>
+
+      <h5 class="mt-4 mb-2">🔐 OTP Access Code</h5>
+      <div class="otp-box"><%= parcel.accessCode %></div>
+
+      <div class="mt-4 text-start mx-auto" style="max-width: 500px;">
+        <h6 class="fw-bold">📦 Parcel Details</h6>
+        <p><strong>Type:</strong> <%= parcel.type %></p>
+        <p><strong>Size:</strong> <%= parcel.size %></p>
+        <p><strong>Receiver:</strong> <%= parcel.receiverName %> (<%= parcel.receiverPhone %>)</p>
+        <p><strong>Expires At:</strong> 
+          <%= new Date(parcel.expiresAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) %>
+        </p>
+      </div>
+
+      <div class="mt-4 d-flex justify-content-center gap-3 flex-wrap action-buttons">
+        <button class="btn btn-success" onclick="shareQR()">
+          <i class="fas fa-share-alt me-1"></i> Share QR
+        </button>
+        <button class="btn btn-outline-secondary" onclick="copyLink()">
+          <i class="fas fa-copy me-1"></i> Copy Link
+        </button>
+      </div>
+
+      <a href="/mobileDashboard" class="btn btn-primary mt-5 px-4">Back to Dashboard</a>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
+<script>
+  function shareQR() {
+    if (navigator.share) {
+      navigator.share({
+        title: "📦 Your Parcel QR",
+        text: "Scan this QR at any locker to drop your parcel.",
+        url: "<%= parcel.unlockUrl %>"
+      }).catch(console.error);
+    } else {
+      alert("Your browser doesn't support Web Share.");
+    }
+  }
+
+  function copyLink() {
+    navigator.clipboard.writeText("<%= parcel.unlockUrl %>");
+    alert("✅ Link copied to clipboard");
+  }
+
+  function trackUserAction(step, method = 'pageview') {
+    fetch('/analytics/user-action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ step, method, path: window.location.pathname })
+    });
+  }
+
+  trackUserAction('payment_completed');
+  trackUserAction('parcel_booked');
+</script>

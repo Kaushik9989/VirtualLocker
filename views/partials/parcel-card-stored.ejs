@@ -1,0 +1,40 @@
+<a href="/mobile/parcel/<%= parcel._id %>" style="text-decoration: none; color: black;">
+  <div class="card mb-3 parcel-card border-0 shadow-sm" data-status="<%= parcel.status %>" style="border-radius: 12px;">
+    <div class="card-body p-3">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <p class="fw-semibold mb-1 fs-6">Stored by: <%= parcel.senderName %></p>
+          <p class="text-muted mb-2" style="font-size: 0.9rem;"><%= parcel.description || "No description available" %></p>
+        </div>
+        <span class="badge status-badge <%= parcel.status === 'picked' ? 'bg-success' : parcel.status === 'awaiting_drop' ? 'bg-warning' : parcel.status === 'awaiting_pick' ? 'bg-danger' : 'bg-danger' %> px-3 py-1">
+          <%= parcel.status.charAt(0).toUpperCase() + parcel.status.slice(1).replace(/_/g, " ") %>
+        </span>
+      </div>
+
+      <p class="mb-2" style="font-size: 0.9rem;">
+        🛅 <span class="me-2"><%= parcel.type %></span>
+        • <%= parcel.size %>
+        • ₹<%= parseFloat(parcel.cost).toFixed(0) %>
+      </p>
+
+      <p class="mb-1" style="font-size: 0.9rem;">
+        Locker ID: <strong><%= parcel.lockerId || 'N/A' %></strong> |
+        Compartment: <strong><%= parcel.compartmentId || 'N/A' %></strong>
+      </p>
+
+      <p class="mb-1 text-muted" style="font-size: 0.85rem;">
+        Stored until: <%= new Date(parcel.expiresAt).toLocaleString() %>
+      </p>
+
+      <p class="mb-0" style="font-size: 0.9rem;">
+        Access Code: <strong><%= parcel.accessCode %></strong>
+      </p>
+
+      <div class="text-end mt-3">
+        <a href="/mobile/parcel/<%= parcel._id %>" class="btn btn-sm btn-outline-primary" style="border-radius: 8px; padding: 0.4rem 1rem;">
+          View Details
+        </a>
+      </div>
+    </div>
+  </div>
+</a>

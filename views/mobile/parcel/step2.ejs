@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Enter Details</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+
+</head>
+
+<body class="bg-light">
+
+    <!-- Navbar -->
+    <%- include('../../partials/navbar') %>
+
+        <!-- Main Content -->
+        <div class="container py-5 p-4">
+            <div class="row justify-content-center">
+                <div class="col-lg-7">
+                    <% if (messages.error && messages.error.length> 0) { %>
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <%= messages.error[0] %>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                    aria-label="Close"></button>
+                        </div>
+                        <% } %>
+                            <% if (messages.success && messages.success.length> 0) { %>
+                                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                    <%= messages.success[0] %>
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                            aria-label="Close"></button>
+                                </div>
+                                <% } %>
+
+                                    <h3 class="mb-4 fw-bold">📦 Step 2: Recipient Info</h3>
+
+                                    <form action="/mobile/send/step2" method="POST">
+                                        <!-- Delivery Option Dropdown -->
+                                        <div class="mb-4">
+                                            <label class="form-label">Who are you sending this to?</label>
+                                            <select class="form-select" name="deliveryOption" id="deliveryOption"
+                                                required>
+                                                <option value="receiver" selected>Someone Else</option>
+                                                <option value="self">Store for Myself</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- Receiver Info Section -->
+                                        <div id="receiverFields">
+                                            <div class="mb-3">
+                                                <% if (savedContacts && savedContacts.length> 0) { %>
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Select a saved Contact</label>
+                                                        <select class="form-select" id="savedContactSelect">
+                                                            <option value="">-</option>
+                                                            <% savedContacts.forEach(contact=> { %>
+                                                                <option value="<%= contact.name %>"
+                                                                    data-phone="<%= contact.phone %>"
+                                                                    data-address="<%= contact.address %>"
+                                                                    data-pincode="<%= contact.pincode %>">
+                                                                    <%= contact.name %> - <%= contact.phone %>
+                                                                </option>
+                                                                <% }) %>
+                                                        </select>
+                                                    </div>
+                                                    <% } %>
+
+                                                        <label class="form-label">Recipient Name</label>
+                                                        <input type="text" name="receiverName" class="form-control" />
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label">Recipient Phone</label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text"><i class="fas fa-phone"></i> +91
+                                                        -</span>
+                                                    <input type="tel" name="receiverPhone" class="form-control" />
+                                                </div>
+                                            </div>
+                                            <div class="form-check mb-3">
+                                                <input class="form-check-input" type="checkbox" name="saveContact"
+                                                    id="saveContactCheckbox" value="true">
+                                                <label class="form-check-label" for="saveContactCheckbox">
+                                                    📇 Save this contact for future use
+                                                </label>
+                                            </div>
+
+                                            <!-- Delivery Method Choice -->
+                                            <div class="mb-3">
+                                                <label class="form-label">How should the recipient receive the
+                                                    parcel?</label>
+                                                <select class="form-select" name="receiverDeliveryMethod"
+                                                    id="receiverDeliveryMethod" required>
+                                                    <option value="" disabled selected>Select an option</option>
+                                                    <option value="self_pickup">Self Pickup (from a locker)</option>
+                                                    <option value="address_delivery">Enter recipient address</option>
+                                                </select>
+                                            </div>
+
+                                            <!-- Address Fields -->
+                                            <!-- Address Fields -->
+                                            <div id="addressDeliveryFields" style="display: none;">
+                                                <% if (savedAddresses && savedAddresses.length> 0) { %>
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Select a Saved Address</label>
+                                                        <select class="form-select" id="savedAddressSelect">
+                                                            <option value="">-</option>
+                                                            <% savedAddresses.forEach(addr=> { %>
+                                                                <option value="<%= addr.ownerName || "" %>"
+                                                                    data-address="<%= addr.address.replace(/"/g, '&quot;' ) %>"
+                                                                    
+                                                                    data-pincode="<%= addr.pincode %>"
+                                                                        >
+                                                                        <%= addr.label %>
+                                                                            <%= addr.ownerName || "" %> — <%=
+                                                                                    addr.address %> (Pincode: <%=
+                                                                                        addr.pincode %>)
+                                                                </option>
+                                                                <% }) %>
+                                                        </select>
+                                                    </div>
+                                                    <% } %>
+
+                                                        <input type="hidden" name="savedAddressId"
+                                                            id="savedAddressId" />
+
+                                                        <div class="mb-3">
+                                                            <label class="form-label">Recipient Address</label>
+                                                            <textarea name="recipientAddress" id="recipientAddress"
+                                                                class="form-control" rows="3"
+                                                                placeholder="House No, Street, City"></textarea>
+                                                        </div>
+
+                                                        <div class="mb-3">
+                                                            <label class="form-label">Recipient Pincode</label>
+                                                            <input type="text" name="recipientPincode"
+                                                                id="recipientPincode" class="form-control"
+                                                                placeholder="Enter 6-digit Pincode" />
+                                                        </div>
+                                                        <!-- Save Address Checkbox -->
+                                                        <div class="form-check mb-3">
+                                                            <input class="form-check-input" type="checkbox"
+                                                                name="saveAddress" id="saveAddressCheckbox"
+                                                                value="true">
+                                                            <label class="form-check-label" for="saveAddressCheckbox">
+                                                                💾 Save this address for future use
+                                                            </label>
+                                                        </div>
+                                                        <!-- Locker Select -->
+
+                                                        <div class="mb-3">
+                                                            <label class="form-label">Select Locker for Dispatch</label>
+                                                            <a href="/location-select">Select from Map</a>
+                                                            <select class="form-select" name="selectedLocker"
+                                                                id="lockerSelect">
+                                                                <% lockers.forEach(locker=> { %>
+                                                                    <option value="<%= locker._id %>"
+                                                                        data-pincode="<%= locker.location.pincode %>">
+                                                                        <%= locker.location.name %> - <%=
+                                                                                locker.location.address %> (Pincode: <%=
+                                                                                    locker.location.pincode %>)
+                                                                    </option>
+                                                                    <% }) %>
+                                                            </select>
+                                                        </div>
+                                                        <!-- <input type="hidden" name="selectedLocker" id="selectedLockerHidden" /> -->
+                                                        <input type="hidden" name="selectedLockerAddress"
+                                                            id="selectedLockerAddress" />
+
+
+                                                        <div id="estimateBox" class="alert alert-info d-none">
+                                                            Estimated delivery charge: ₹<span
+                                                                id="estimateAmount">...</span><br />
+                                                            Final charge (including ₹10 service fee): ₹<span
+                                                                id="finalAmount">...</span>
+                                                        </div>
+                                            </div>
+
+                                        </div>
+
+                                        <button class="btn btn-primary w-100 mt-3">Next</button>
+                                    </form>
+                </div>
+            </div>
+        </div>
+
+
+</body>
+<script>
+    const savedContactSelect = document.getElementById("savedContactSelect");
+    const receiverNameInput = document.querySelector("[name='receiverName']");
+    const receiverPhoneInput = document.querySelector("[name='receiverPhone']");
+
+    savedContactSelect?.addEventListener("change", () => {
+        const selected = savedContactSelect.options[savedContactSelect.selectedIndex];
+        if (!selected.value) return;
+
+        receiverNameInput.value = selected.value;
+        receiverPhoneInput.value = selected.getAttribute("data-phone") || '';
+    });
+
+</script>
+
+
+
+<script>
+    const savedAddressSelect = document.getElementById("savedAddressSelect");
+    const savedAddressIdInput = document.getElementById("savedAddressId");
+    const recipientAddressInputEl = document.getElementById("recipientAddress");
+    const recipientPincodeInputEl = document.getElementById("recipientPincode");
+
+    if (savedAddressSelect) {
+        savedAddressSelect.addEventListener("change", () => {
+            const selectedOption = savedAddressSelect.options[savedAddressSelect.selectedIndex];
+
+            if (selectedOption.value) {
+                const address = selectedOption.getAttribute("data-address");
+                const pincode = selectedOption.getAttribute("data-pincode");
+
+                recipientAddressInputEl.value = address;
+                recipientPincodeInputEl.value = pincode;
+                savedAddressIdInput.value = selectedOption.value;
+            } else {
+                recipientAddressInputEl.value = "";
+                recipientPincodeInputEl.value = "";
+                savedAddressIdInput.value = "";
+            }
+
+            estimateBox.classList.add("d-none");
+        });
+    }
+
+    const deliveryToSelect = document.getElementById("deliveryOption");
+    const receiverFields = document.getElementById("receiverFields");
+    const deliveryMethod = document.getElementById("receiverDeliveryMethod");
+    const addressFields = document.getElementById("addressDeliveryFields");
+    const estimateBox = document.getElementById("estimateBox");
+    const estimateAmount = document.getElementById("estimateAmount");
+    const finalAmount = document.getElementById("finalAmount");
+    const lockerSelect = document.getElementById("lockerSelect");
+
+    const recipientAddressInput = document.querySelector("[name='recipientAddress']");
+    const recipientPincodeInput = document.querySelector("[name='recipientPincode']");
+
+    function toggleAddressFields(show) {
+        if (show) {
+            addressFields.style.display = "block";
+            recipientAddressInput.required = true;
+            recipientPincodeInput.required = true;
+            lockerSelect.required = true;
+        } else {
+            addressFields.style.display = "none";
+            recipientAddressInput.required = false;
+            recipientPincodeInput.required = false;
+            lockerSelect.required = false;
+            recipientAddressInput.value = "";
+            recipientPincodeInput.value = "";
+            lockerSelect.selectedIndex = 0;
+            estimateBox.classList.add("d-none");
+        }
+    }
+
+    function toggleReceiverFields(show) {
+        if (show) {
+            receiverFields.style.display = "block";
+            deliveryMethod.required = true;
+        } else {
+            receiverFields.style.display = "none";
+            deliveryMethod.required = false;
+            toggleAddressFields(false);
+        }
+    }
+
+    deliveryMethod.addEventListener("change", () => {
+        toggleAddressFields(deliveryMethod.value === "address_delivery");
+    });
+
+    deliveryToSelect.addEventListener("change", () => {
+        toggleReceiverFields(deliveryToSelect.value === "receiver");
+    });
+
+    lockerSelect?.addEventListener("change", async () => {
+        const lockerId = lockerSelect.value;
+        const address = recipientAddressInput.value;
+
+        if (!lockerId || !address.trim()) return;
+
+        const res = await fetch('/estimate-delivery-cost', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lockerId, recipientAddress: address })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+            estimateBox.classList.remove("d-none");
+            estimateAmount.textContent = data.estimate;
+            finalAmount.textContent = data.estimate + 10;
+        } else {
+            estimateBox.classList.add("d-none");
+        }
+    });
+
+    window.addEventListener("DOMContentLoaded", () => {
+        toggleReceiverFields(deliveryToSelect.value === "receiver");
+        toggleAddressFields(deliveryMethod.value === "address_delivery");
+    });
+</script>
+
+<!-- Analytics -->
+<script>
+    function trackUserAction(step, method = "pageview") {
+        fetch("/analytics/user-action", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ step, method, path: window.location.pathname }),
+        });
+    }
+    trackUserAction("send_step_2");
+</script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const lockerId = urlParams.get("lockerId");
+        const lockerAddress = urlParams.get("lockerAddress");
+
+        if (lockerId) {
+            const dropdown = document.getElementById("lockerSelect");
+            if (dropdown) dropdown.value = lockerId;
+        }
+
+        const addressInput = document.getElementById("selectedLockerAddress");
+        if (lockerAddress && addressInput) addressInput.value = lockerAddress;
+    });
+
+</script>
+
+</html>
