@@ -34,13 +34,18 @@
             bottom: 30px;
             right: 30px;
             z-index: 1000;
-            width: 100px;
-            height: 100px;
+            width: 120px;
+            height: 120px;
             font-size: 3rem;
             background: #070265;
             border: none;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
+           
+            border-radius: 50%;
+            background: #070265;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            font-size: 32px;
         }
 
         .fab:hover {
@@ -104,26 +109,39 @@
             right: 30px;
             z-index: 1000;
         }
+          .fab-menu-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 999;
+         }
 
-       .fab-menu {
-    bottom: 90px;
-    right: 0;
-    padding: 1rem;
-    background-color: white;
-    border-radius: 16px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-    transition: all 0.3s ease;
-    min-width: 160px;
-}
+        .fab-menu {
+            bottom: 90px;
+            right: 0;
+            padding: 1rem;
+            background-color: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            min-width: 160px;
+             bottom: 100px;
+            right: 0;
+        }
+        .fab i {
+            margin-bottom: 3px;
+            margin-left: 2px;
+    font-size: 2.3rem;
+  }
 
-.fab-menu a {
-    font-size: 1rem;
-    font-weight: 600;
-    padding: 0.6rem 1rem;
-    text-align: center;
-    background-color: white;
-    border-radius: 10px;
-}
+        .fab-menu a {
+            font-size: 1rem;
+            font-weight: 600;
+            padding: 0.6rem 1rem;
+            text-align: center;
+            background-color: white;
+            border-radius: 10px;
+        }
 
 
         .fab.rotate {
@@ -227,9 +245,10 @@
 
 
     <!-- Floating Action Button with Menu -->
-    <div class="fab-menu-container" >
-        <button class="btn btn-warning rounded-circle fab d-flex align-items-center justify-content-center"
-            id="fabToggle" style="width: 85px; height: 85px;  background: #070265;"><i class="fa-solid fa-plus fa-beat fa-xl" style="color: #ffffff;"></i></button>
+    <div class="fab-menu-container">
+        <button class="btn fab d-flex align-items-center justify-content-center" id="fabToggle">
+            <i class="fa-solid fa-plus fa-beat" style="color: #ffffff;"></i>
+        </button>
         <div class="fab-menu d-none flex-column position-absolute">
             <a href="/mobile/sendParcel" class="btn btn-light mb-2">Send</a>
             <a href="/mobile/store" class="btn btn-light mb-2">Store</a>
@@ -251,7 +270,7 @@
         </div>
 
         <!-- Tab Navigation -->
-        <ul class="nav nav-tabs mb-3" id="parcelTabs" role="tablist">
+        <ul class="nav nav-tabs mb-3" id="parcelTabs" role="tablist" style="font-size: .8rem;">
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="sent-tab" data-bs-toggle="tab" data-bs-target="#sent" type="button"
                     role="tab" style="color: #1a1a1a;">Sent Parcels</button>
@@ -262,7 +281,7 @@
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="stored-tab" data-bs-toggle="tab" data-bs-target="#stored" type="button"
-                    role="tab" style="color: #1a1a1a;">Stored Parcels</button>
+                    role="tab" style="color: #1a1a1a;">Stored Parcels </button>
             </li>
         </ul>
 
