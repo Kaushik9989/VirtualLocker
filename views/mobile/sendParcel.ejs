@@ -5,13 +5,11 @@
   <meta charset="UTF-8" />
   <title>Parcel Status</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
-
-<link
-  rel="stylesheet"
-  href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"
-/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-geosearch@3.1.0/dist/geosearch.css" />
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-geosearch@3.1.0/dist/bundle.min.js"></script>
 
 
   <style>
@@ -106,23 +104,21 @@
       gap: 10px;
     }
 
-#locker-map {
-  height: 500px;
-  width: 100%;
-}
-.recenter-btn {
-  position: absolute;
-  top:10px;
-  margin-left: 130px;
-  z-index: 1000;
-  border-radius: 50%;
-  padding: 10px 14px;
-  box-shadow: 0 2px 6px rgba(167, 15, 15, 0.2);
-  
-}
+    #locker-map {
+      height: 500px;
+      width: 100%;
+    }
 
-   
-    
+    .recenter-btn {
+      position: absolute;
+      top: 10px;
+      margin-left: 130px;
+      z-index: 1000;
+      border-radius: 50%;
+      padding: 10px 14px;
+      box-shadow: 0 2px 6px rgba(167, 15, 15, 0.2);
+
+    }
   </style>
 </head>
 
@@ -131,124 +127,122 @@
   <!-- Navbar -->
   <%- include('../partials/navbar') %>
 
-  <div class="send-container">
-    <p class="send-subtext">Quick 3‑step process to send your items securely</p>
+    <div class="send-container">
+      <p class="send-subtext">Quick 3‑step process to send your items securely</p>
 
-    <div class="start-delivery text-center my-4">
-      <p class="fw-medium mb-2">Select your Size</p>
-      <div class="d-flex gap-3">
-        <a href="/mobile/send/step2?size=small" class="delivery-tile">
-          <i class="fas fa-box-open text-primary fa-2x"></i>
-          <div class="mt-2 fw-semibold">Small</div>
-        </a>
-        <a href="/mobile/send/step2?size=medium" class="delivery-tile">
-          <i class="fas fa-box text-warning fa-2x"></i>
-          <div class="mt-2 fw-semibold">Medium</div>
-        </a>
-        <a href="/mobile/send/step2?size=large" class="delivery-tile">
-          <i class="fas fa-boxes-stacked text-danger fa-2x"></i>
-          <div class="mt-2 fw-semibold">Large</div>
-        </a>
+      <div class="start-delivery text-center my-4">
+        <p class="fw-medium mb-2">Select your Size</p>
+        <div class="d-flex gap-3">
+          <a href="/mobile/send/step2?size=small" class="delivery-tile">
+            <i class="fas fa-box-open text-primary fa-2x"></i>
+            <div class="mt-2 fw-semibold">Small</div>
+          </a>
+          <a href="/mobile/send/step2?size=medium" class="delivery-tile">
+            <i class="fas fa-box text-warning fa-2x"></i>
+            <div class="mt-2 fw-semibold">Medium</div>
+          </a>
+          <a href="/mobile/send/step2?size=large" class="delivery-tile">
+            <i class="fas fa-boxes-stacked text-danger fa-2x"></i>
+            <div class="mt-2 fw-semibold">Large</div>
+          </a>
+        </div>
+        <small class="text-muted d-block mt-2">Send to any Drop Point location</small>
       </div>
-      <small class="text-muted d-block mt-2">Send to any Drop Point location</small>
-    </div>
 
 
-    <!-- Help Button -->
-<button id="helpBtn" 
-        class="btn btn-dark rounded-circle position-fixed bottom-0 end-0 m-4 shadow"
-        title="How it works"
-        style="width: 50px; height: 50px; z-index: 1050;"
-        data-bs-toggle="modal" 
+      <!-- Help Button -->
+      <button id="helpBtn" class="btn btn-dark rounded-circle position-fixed bottom-0 end-0 m-4 shadow"
+        title="How it works" style="width: 50px; height: 50px; z-index: 1050;" data-bs-toggle="modal"
         data-bs-target="#howItWorksModal">
-  <i class="fas fa-question fa-lg"></i>
-</button>
+        <i class="fas fa-question fa-lg"></i>
+      </button>
 
 
-<!-- Help Modal -->
-<div class="modal fade" id="howItWorksModal" tabindex="-1" aria-labelledby="howItWorksLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content rounded-4 border-0 shadow">
-      <div class="modal-header bg-light border-bottom-0 rounded-top-4">
-        <h5 class="modal-title fw-bold text-success" id="howItWorksLabel">📦 How It Works</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      <!-- Help Modal -->
+      <div class="modal fade" id="howItWorksModal" tabindex="-1" aria-labelledby="howItWorksLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header bg-light border-bottom-0 rounded-top-4">
+              <h5 class="modal-title fw-bold text-success" id="howItWorksLabel">📦 How It Works</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body px-4 py-3" style="text-align: center;">
+              <div class="step mb-4" style="text-align: center;">
+                <div class="step-icon me-3 text-success fs-4">1️</div>
+                <div>
+                  <strong>Create Parcel</strong><br>
+                  Fill in details & get a QR code.
+                </div>
+              </div>
+
+              <div class="step mb-4 " style="text-align: center;">
+                <div class="step-icon me-3 text-success fs-4">2️</div>
+                <div>
+                  <strong>Drop at Locker</strong><br>
+                  Scan QR to store the parcel.
+                </div>
+              </div>
+
+              <div class="step mb-4" style="text-align: center;">
+                <div class="step-icon me-3 text-success fs-4">3️</div>
+                <div>
+                  <strong>Notify Recipient</strong><br>
+                  They get a pickup code instantly.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="modal-body px-4 py-3" style="text-align: center;">
-        <div class="step mb-4" style="text-align: center;">
-          <div class="step-icon me-3 text-success fs-4">1️</div>
-          <div>
-            <strong>Create Parcel</strong><br>
-            Fill in details & get a QR code.
+
+
+
+      <div>
+        <h3 class="mt-5 fw-bold" style="color: #02371c; font-size: 1.75rem;">
+          Nearby Lockers
+        </h3>
+        <p class="mt-2 text-muted" style="font-size: 0.9rem;">
+          Tap on any location pin on the map below to view locker details and get directions instantly.
+        </p>
+
+        <div class="main-layout">
+          <div id="locker-map">
+            <!-- Move this outside the map div -->
+            <button id="recenter-btn" class="btn recenter-btn" style="color: #3c9905;"><i
+                class="fa-solid fa-location-crosshairs fa-lg" style="color: #ff0000;"></i></button>
           </div>
         </div>
 
-        <div class="step mb-4 " style="text-align: center;">
-          <div class="step-icon me-3 text-success fs-4">2️</div>
-          <div>
-            <strong>Drop at Locker</strong><br>
-            Scan QR to store the parcel.
-          </div>
-        </div>
-
-        <div class="step mb-4" style="text-align: center;">
-          <div class="step-icon me-3 text-success fs-4">3️</div>
-          <div>
-            <strong>Notify Recipient</strong><br>
-            They get a pickup code instantly.
-          </div>
-        </div>
       </div>
     </div>
-  </div>
-</div>
 
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Bootstrap JS and Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+    
 
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // Check if Leaflet loaded
+        if (typeof L === 'undefined') {
+          console.error("Leaflet not loaded!");
+          return;
+        }
 
-    <div>
-   <h3 class="mt-5 fw-bold" style="color: #02371c; font-size: 1.75rem;">
-   Nearby Lockers
-</h3>
-<p class="mt-2 text-muted" style="font-size: 0.9rem;">
-  Tap on any location pin on the map below to view locker details and get directions instantly.
-</p>
+        const map = L.map('locker-map').setView([17.385044, 78.486671], 11);
 
-      <div class="main-layout">
-  <div id="locker-map">
-  <!-- Move this outside the map div -->
-  <button id="recenter-btn" class="btn recenter-btn" style="color: #3c9905;"><i class="fa-solid fa-location-crosshairs fa-lg" style="color: #ff0000;"></i></button>
-</div>
-</div>
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
 
-    </div>
-  </div>
+        const lockers = <% - JSON.stringify(lockers || []) %>;
+        console.log('Lockers:', lockers);
 
-  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-  <!-- Bootstrap JS and Popper -->
-<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
-
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    // Check if Leaflet loaded
-    if (typeof L === 'undefined') {
-      console.error("Leaflet not loaded!");
-      return;
-    }
-
-    const map = L.map('locker-map').setView([17.385044, 78.486671], 11);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
-
-    const lockers = <%- JSON.stringify(lockers || []) %>;
-    console.log('Lockers:', lockers);
-
-    // Add locker markers
-    lockers.forEach(locker => {
-      if (locker.location?.lat && locker.location?.lng) {
-        const marker = L.marker([locker.location.lat, locker.location.lng]).addTo(map);
-        marker.bindPopup(`
+        // Add locker markers
+        lockers.forEach(locker => {
+          if (locker.location?.lat && locker.location?.lng) {
+            const marker = L.marker([locker.location.lat, locker.location.lng]).addTo(map);
+            marker.bindPopup(`
   <b>${locker.lockerId}</b><br>
   ${locker.location.address || ''}<br>
   <a href="https://www.google.com/maps/dir/?api=1&destination=${locker.location.lat},${locker.location.lng}" target="_blank" class="btn btn-sm btn-dark mt-2">
@@ -256,50 +250,50 @@
   </a>
 `);
 
-      }
-    });
-
-    // ✅ Define this at top-level scope
-    let userCoords = null;
-
-    // Show user's current location
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(function (position) {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-        userCoords = [lat, lng];
-
-        const userIcon = L.icon({
-          iconUrl: 'https://cdn-icons-png.flaticon.com/512/64/64572.png',
-          iconSize: [32, 32],
-          iconAnchor: [16, 32],
-          popupAnchor: [0, -30]
+          }
         });
 
-        const userMarker = L.marker(userCoords, { icon: userIcon }).addTo(map);
-        userMarker.bindPopup("<b>You are here</b>").openPopup();
+        // ✅ Define this at top-level scope
+        let userCoords = null;
 
-        map.setView(userCoords, 13);
-      }, function (error) {
-        console.warn("Geolocation error:", error.message);
-      });
-    } else {
-      console.warn("Geolocation not supported.");
-    }
+        // Show user's current location
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(function (position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            userCoords = [lat, lng];
 
-    // ✅ Safe use of userCoords
-    const recenterBtn = document.getElementById('recenter-btn');
-    if (recenterBtn) {
-      recenterBtn.addEventListener('click', function () {
-        if (userCoords) {
-          map.setView(userCoords, 13);
+            const userIcon = L.icon({
+              iconUrl: 'https://cdn-icons-png.flaticon.com/512/64/64572.png',
+              iconSize: [32, 32],
+              iconAnchor: [16, 32],
+              popupAnchor: [0, -30]
+            });
+
+            const userMarker = L.marker(userCoords, { icon: userIcon }).addTo(map);
+            userMarker.bindPopup("<b>You are here</b>").openPopup();
+
+            map.setView(userCoords, 13);
+          }, function (error) {
+            console.warn("Geolocation error:", error.message);
+          });
         } else {
-          alert("Your location is not available");
+          console.warn("Geolocation not supported.");
+        }
+
+        // ✅ Safe use of userCoords
+        const recenterBtn = document.getElementById('recenter-btn');
+        if (recenterBtn) {
+          recenterBtn.addEventListener('click', function () {
+            if (userCoords) {
+              map.setView(userCoords, 13);
+            } else {
+              alert("Your location is not available");
+            }
+          });
         }
       });
-    }
-  });
-</script>
+    </script>
 
 
 

@@ -28,6 +28,14 @@ const ParcelSchema = new mongoose.Schema({
   paymentOption: { type: String, enum: ["sender_pays", "receiver_pays"], required: true },
   paymentStatus: { type: String, enum: ["pending", "completed"], default: "pending" },
 
+    customId: {
+    type: String,
+    required: true,
+    unique: true
+  },
+
+
+
   status: {
     type: String,
     enum: [

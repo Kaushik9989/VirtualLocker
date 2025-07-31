@@ -7,23 +7,21 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
   <style>
-    
-        .navbar {
-            background-color: #ffffff;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        }
+    body {
+      background-color: #f8f9fa;
+    }
 
-        .navbar-brand {
-            font-weight: 700;
-            font-size: 1.5rem;
-            color: #1a1a1a;
-        }
+    .navbar {
+      background-color: #ffffff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
     .step-tracker {
       display: flex;
       justify-content: space-between;
       align-items: center;
       position: relative;
-      margin: 2rem 0 3rem;
+      margin: 2rem 0;
     }
 
     .step {
@@ -48,7 +46,7 @@
 
     .step.active .circle,
     .step.done .circle {
-      background-color: #0495dd;
+      background-color: #198754;
     }
 
     .step .label {
@@ -68,13 +66,23 @@
 
     .progress-fill {
       height: 4px;
-      background-color: #cfe609;
+      background-color: #198754;
       position: absolute;
       top: 16px;
       left: 0;
       width: 0%;
       z-index: 1;
       transition: width 0.4s ease-in-out;
+    }
+
+    .qr-section img {
+      border: 4px solid #e0e0e0;
+      border-radius: 8px;
+    }
+
+    .section-header {
+      font-weight: 600;
+      margin-bottom: 1rem;
     }
 
     @media (max-width: 576px) {
@@ -98,25 +106,37 @@
     }
   </style>
 </head>
-<body class="bg-light">
+<body>
 
-  <!-- Navbar -->
   <%- include('../partials/navbar') %>
 
-  <!-- Main Content -->
   <div class="container py-4">
     <div class="card shadow p-4 rounded-4">
-      
-      <!-- Header Info -->
+
+      <!-- QR Code Section -->
+      <% if (parcel.qrImage && parcel.status !== 'picked') { %>
+      <div class="text-center qr-section mb-4">
+        <img src="<%= parcel.qrImage %>" alt="Parcel QR Code" class="img-fluid" style="max-width: 180px;" />
+        <div class="mt-2 text-muted">
+          <% if (parcel.status === 'awaiting_drop') { %>
+            Scan this QR code at the locker to <strong>drop</strong> your parcel.
+          <% } else if (parcel.status === 'awaiting_pick') { %>
+            Scan this QR code at locker <strong><%= parcel.lockerId %></strong>, compartment <strong><%= parcel.compartmentId %></strong> to <strong>collect</strong> your parcel.
+          <% } %>
+        </div>
+      </div>
+      <% } %>
+
+      <!-- Header -->
       <div class="d-flex justify-content-between flex-wrap mb-3">
-        <h5 class="mb-2">Parcel ID: <span class="text-primary"><%= parcel._id %></span></h5>
-        <div class="text-start">
+        <h5 class="mb-2">Parcel ID: <span class="text-primary"><%= parcel.customId %></span></h5>
+        <div>
           <small><strong>Access Code:</strong> <%= parcel.accessCode %></small><br>
           <small><strong>Expires:</strong> <%= new Date(parcel.expiresAt).toLocaleString() %></small>
         </div>
       </div>
 
-      <!-- Status Bar -->
+      <!-- Step Tracker -->
       <div class="step-tracker position-relative">
         <div class="progress-line"></div>
         <div class="progress-fill"
@@ -127,27 +147,25 @@
             <% } else { %>0%; <% } %>">
         </div>
 
-        <!-- Step 1 -->
         <div class="step <%= parcel.status === 'awaiting_drop' ? 'active' : 'done' %>">
           <div class="circle">1</div>
           <div class="label">Awaiting Drop</div>
         </div>
 
-        <!-- Step 2 -->
         <div class="step <%= parcel.status === 'awaiting_pick' ? 'active' : parcel.status === 'picked' ? 'done' : '' %>">
           <div class="circle">2</div>
           <div class="label">Awaiting Pick</div>
         </div>
 
-        <!-- Step 3 -->
         <div class="step <%= parcel.status === 'picked' ? 'active' : '' %>">
           <div class="circle">3</div>
           <div class="label">Picked</div>
         </div>
       </div>
 
-      <!-- Parcel Details -->
-      <div class="row mt-4">
+      <!-- Details -->
+      <div class="section-header mt-4">Parcel Details</div>
+      <div class="row">
         <div class="col-md-6 mb-3">
           <p><strong>Sender:</strong> <%= parcel.senderName || 'N/A' %></p>
           <p><strong>Receiver:</strong> <%= parcel.receiverName || 'N/A' %></p>
@@ -160,23 +178,8 @@
         </div>
       </div>
 
-      
-      <!-- QR Code & Instructions -->
-<% if (parcel.qrImage) { %>
-  <div class="text-center ">
-    <% if (parcel.status !== 'picked') { %>
-    <img src="<%= parcel.qrImage %>" alt="Parcel QR Code" class="img-fluid" style="max-width: 180px;" />
-    <% } %>
-    <div class="mt-3">
-      <% if (parcel.status === 'awaiting_drop') { %>
-        <p class="text-muted">Scan this QR code at the locker to <strong>drop</strong> your parcel.</p>
-      <% } else if (parcel.status === 'awaiting_pick') { %>
-        <p class="text-muted">Scan this QR code at locker <strong><%= parcel.lockerId %></strong>, compartment <strong><%= parcel.compartmentId %></strong> to <strong>collect</strong> your parcel.</p>
-      <% } %>
-    </div>
-  </div>
-<% } %>
-  <div class="text-end">
+      <!-- Back Button -->
+      <div class="text-end mt-4">
         <a href="/mobileDashboard" class="btn btn-outline-secondary">Back to Dashboard</a>
       </div>
     </div>

@@ -66,7 +66,7 @@
         <p>💼 Locker Fee: ₹<%= lockercost %></p>
         <p class="fw-bold">Total: ₹<%= bestTotal %></p>
 
-        <form action="/send/step3" method="get">
+        <form action="/mobile/send/step3" method="get">
           <input type="hidden" name="selectedCourierId" value="<%= best.courier_company_id %>" />
           <input type="hidden" name="rate" value="<%= best.rate %>" />
           <input type="hidden" name="totalCost" value="<%= bestTotal %>" />

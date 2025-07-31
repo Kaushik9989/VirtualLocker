@@ -1429,10 +1429,10 @@ app.get("/mobileDashboard", isAuthenticated,async (req, res) => {
     const receivedParcels = await Parcel2.find({ receiverPhone: user.phone }) // or any identifier
       .sort({ createdAt: -1 })
       .lean();
-      const awaitingPickCount = await Parcel2.countDocuments({
-      senderId: user._id,
-      status: "awaiting_pick"
-    });
+    const awaitingPickCount = await Parcel2.countDocuments({
+  status: "awaiting_pick",
+  receiverPhone: user.phone
+});
    res.render("mobile/dashboard", {
       sentParcels,
       receivedParcels,user,awaitingPickCount
@@ -1728,36 +1728,34 @@ app.get("/mobile/send/estimate",isAuthenticated, async(req,res)=>{
   }
 });
 
-app.get("/mobile/send/step3",isAuthenticated, async(req,res)=>{
-  try{
-    const {rate} = req.query;
+app.get("/mobile/send/step3", isAuthenticated, async (req, res) => {
+  try {
+    const { rate } = req.query;
     const draft = req.session.parcelDraft;
-    console.log(rate);
     const lockerId = draft.selectedLocker;
     const prestatus = draft.status;
     const user = await User.findById(req.session.user._id);
     const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
+
     let cost = getEstimatedCost(draft.size);
     if (draft.receiverDeliveryMethod === "address_delivery") {
       cost += parseFloat(rate); // Add delivery + platform fee
     }
 
     let qrImage;
-
     if (lockerId) {
-      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode, lockerId,prestatus }));
+      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode, lockerId, prestatus }));
+    } else {
+      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode, prestatus }));
     }
 
-    else {
-      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode,prestatus }));
-    }
-
+    // Default status and payment handling
     let status = "awaiting_drop";
     let paymentStatus = "completed";
     let expiresAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
     let razorpayOrder = null;
 
-    // SENDER PAYS
+    // SENDER PAYS logic
     draft.paymentOption = "sender_pays";
     status = "awaiting_payment";
     paymentStatus = "pending";
@@ -1780,6 +1778,9 @@ app.get("/mobile/send/step3",isAuthenticated, async(req,res)=>{
       return res.redirect("/mobile/send/step2");
     }
 
+    // 🔥 Generate customId here
+    const totalParcels = await Parcel2.countDocuments();
+    const customId = `P${String(totalParcels + 1).padStart(3, "0")}`;
 
     const parcel = new Parcel2({
       ...draft,
@@ -1788,11 +1789,10 @@ app.get("/mobile/send/step3",isAuthenticated, async(req,res)=>{
       senderPhone: user.phone,
       receiverName: draft.receiverName,
       receiverPhone: draft.receiverPhone,
-       // Save address and locker info
-      recipientAddress : draft.recipientAddress,
-      recipientPincode : draft.recipientPincode,
-      selectedLocker : draft.selectedLocker,
-      selectedLockerPincode : draft.selectedLockerPincode,
+      recipientAddress: draft.recipientAddress,
+      recipientPincode: draft.recipientPincode,
+      selectedLocker: draft.selectedLocker,
+      selectedLockerPincode: draft.selectedLockerPincode,
       accessCode,
       qrImage,
       lockerId: draft.lockerId || null,
@@ -1803,26 +1803,28 @@ app.get("/mobile/send/step3",isAuthenticated, async(req,res)=>{
       expiresAt,
       compartmentId: null,
       razorpayOrderId: razorpayOrder?.id || null,
+      customId // ✅ Add it here
     });
+
     req.session.inProgressParcelId = parcel._id;
     await parcel.save();
-
     delete req.session.inProgressParcelId;
 
-      return res.render("mobile/parcel/payment", {
+    return res.render("mobile/parcel/payment", {
       parcel,
       razorpayKeyId: process.env.RAZORPAY_KEY_ID,
       orderId: razorpayOrder.id,
       amount: razorpayOrder.amount,
       currency: razorpayOrder.currency,
     });
-     }
-    catch (error) {
-      console.error("❌ Error in /send/step3:", error);
-      req.flash("error", error);
-      res.redirect("/mobileDashboard");
+
+  } catch (error) {
+    console.error("❌ Error in /send/step3:", error);
+    req.flash("error", error.message || "Something went wrong.");
+    res.redirect("/mobileDashboard");
   }
-})
+});
+
 
 app.get("/mobile/payment/success", isAuthenticated, async (req, res) => {
   const { order_id, payment_id, signature } = req.query;
@@ -1918,6 +1920,21 @@ app.post("/mobile/send/select-locker/:lockerId", isAuthenticated, async (req, re
 });
 
 
+app.get("/mobile/incoming/:id/qr", async (req, res) => {
+  const parcel = await Parcel2.findById(req.params.id).lean();
+  const parcelLocker = parcel.lockerId || "";
+  const accessCode = parcel.accessCode;
+  let qrImage;
+    if (parcelLocker != "") {
+      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode, parcelLocker }));
+    } else {
+      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode }));
+    }
+  if (!parcel) return res.status(404).send("Parcel not found");
+  if (!parcel.qrImage)
+    return res.status(400).send("No QR code saved for this parcel");
+  res.render("mobile/qrPage", { parcel,qrImage });
+});
 
 
 
@@ -4563,48 +4580,6 @@ app.get("/admin/logout", (req, res) => {
     res.redirect("/admin/login");
   });
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 // ---------------------------------------------------- TECHNICIAN ROUTES ------------------------------------------------------
