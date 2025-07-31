@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Share Payment Link</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+</head>
+<body class="bg-light d-flex justify-content-center align-items-center" style="height: 100vh;">
+  <div class="card p-4 shadow" style="max-width: 400px;">
+    <h5 class="mb-3">Send Payment Link</h5>
+    <p>Ask the receiver to complete payment for parcel <strong><%= parcel.customId %></strong>.</p>
+    
+    <div class="mb-3">
+      <label class="form-label">Payment Link:</label>
+      <input type="text" class="form-control" id="paymentLink" value="<%= paymentLink %>" readonly>
+    </div>
+
+    <button class="btn btn-primary w-100 mb-2" onclick="copyLink()">Copy Link</button>
+
+    <a class="btn btn-success w-100" target="_blank" href="https://wa.me/<%= parcel.receiverPhone %>?text=Hi%20<%= parcel.receiverName %>,%20please%20complete%20your%20payment%20for%20the%20parcel:%20<%= encodeURIComponent(paymentLink) %>">
+      Send via WhatsApp
+    </a>
+
+    <a href="/mobileDashboard" class="btn btn-outline-secondary w-100 mt-3">Done</a>
+
+  </div>
+
+  <script>
+    function copyLink() {
+      const linkInput = document.getElementById('paymentLink');
+      linkInput.select();
+      document.execCommand("copy");
+      alert("Link copied to clipboard!");
+    }
+  </script>
+</body>
+</html>

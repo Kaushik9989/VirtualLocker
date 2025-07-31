@@ -34,6 +34,12 @@ const ParcelSchema = new mongoose.Schema({
     unique: true
   },
 
+  store_self: {
+  type: Boolean,
+  default: false
+},
+razorpayPaymentLink: { type: String },
+paymentStatus: { type: String, default: "pending" },
 
 
   status: {

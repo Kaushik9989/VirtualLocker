@@ -1117,10 +1117,12 @@ app.use((req, res, next) => {
 // -------------------------------------------LOGIN VIA OTP ROUTES---------------------------------------------------
 // REGISTER VIA OTP
 
-// Dependencies
+require("dotenv").config();
 const twilio = require("twilio");
-
-const client = twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
+const client = twilio(
+  process.env.TWILIO_ACCOUNT_SID,
+  process.env.TWILIO_AUTH_TOKEN
+);
 
 // Step 1: Phone Registration - Send OTP via Twilio Verify
 app.post("/register-phone", async (req, res) => {
@@ -1267,16 +1269,43 @@ app.get("/verify-login", (req, res) => {
   res.render("verify-login", { error: null, phone });
 });
 
+// app.post("/otpLogin", async (req, res) => {
+  
+//   // await trackFunnelStep(req, "login_phone", { phone: req.body.phone });
+//   const { phone } = req.body;
+
+//   // Check if user exists
+//   const user = await User.findOne({ phone });
+
+//   req.session.phone = phone;
+
+//   // Send OTP using Twilio Verify
+//   try {
+//     await client.verify.v2
+//       .services(process.env.TWILIO_VERIFY_SERVICE_SID)
+//       .verifications.create({
+//         to: `+91${phone}`,
+//         channel: "sms",
+//       });
+
+//     // If user exists, go to OTP verify page
+//     // If user doesn't exist, also go to OTP verify (we'll handle the check after OTP)
+//     res.redirect("/verify-login");
+//   } catch (err) {
+//     console.error("OTP send error:", err.message);
+//     res.render("login", { error: "❌ Failed to send OTP. Try again." });
+//   }
+// });
+
 app.post("/otpLogin", async (req, res) => {
-  await trackFunnelStep(req, "login_phone", { phone: req.body.phone });
   const { phone } = req.body;
-
-  // Check if user exists
-  const user = await User.findOne({ phone });
-
   req.session.phone = phone;
 
-  // Send OTP using Twilio Verify
+  await trackFunnelStep(req, "login_phone", { phone });
+
+  // Check if ENV variables are loaded
+  console.log("Verify SID:", process.env.TWILIO_VERIFY_SERVICE_SID);
+
   try {
     await client.verify.v2
       .services(process.env.TWILIO_VERIFY_SERVICE_SID)
@@ -1285,14 +1314,13 @@ app.post("/otpLogin", async (req, res) => {
         channel: "sms",
       });
 
-    // If user exists, go to OTP verify page
-    // If user doesn't exist, also go to OTP verify (we'll handle the check after OTP)
     res.redirect("/verify-login");
   } catch (err) {
-    console.error("OTP send error:", err.message);
+    console.error("OTP send error:", err); // full object
     res.render("login", { error: "❌ Failed to send OTP. Try again." });
   }
 });
+
 
 app.post("/verify-login", async (req, res) => {
   await trackFunnelStep(req, "otp_entered");
@@ -1418,30 +1446,56 @@ app.post("/resend-login-otp", async (req, res) => {
 
 // ======================================================= MOBILE LIKE DESIGB==========================================================
 
-app.get("/mobileDashboard", isAuthenticated,async (req, res) => {
-   const user = await User.findById(req.session.user._id).lean();
-    if (!user) return res.status(401).json({ error: "Unauthorized" });
-   try {
-    const sentParcels = await Parcel2.find({ senderId: user._id })
+app.get("/mobileDashboard", isAuthenticated, async (req, res) => {
+
+  const user = await User.findById(req.session.user._id).lean();
+  if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+  try {
+    // Sent by user, excluding self-storage
+    const sentParcels = await Parcel2.find({
+      senderId: user._id,
+      store_self: { $ne: true }
+    })
       .sort({ createdAt: -1 })
       .lean();
 
-    const receivedParcels = await Parcel2.find({ receiverPhone: user.phone }) // or any identifier
+    // Received by user, excluding self-storage
+    const receivedParcels = await Parcel2.find({
+      receiverPhone: user.phone,
+      store_self: { $ne: true }
+    })
       .sort({ createdAt: -1 })
       .lean();
+
+    // Optional: Self-stored parcels
+    const storedParcels = await Parcel2.find({
+      senderId: user._id,
+      store_self: true
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Awaiting pickup counter
     const awaitingPickCount = await Parcel2.countDocuments({
-  status: "awaiting_pick",
-  receiverPhone: user.phone
-});
-   res.render("mobile/dashboard", {
-      sentParcels,
-      receivedParcels,user,awaitingPickCount
+      status: "awaiting_pick",
+      receiverPhone: user.phone
     });
+
+    res.render("mobile/dashboard", {
+      user,
+      sentParcels,
+      receivedParcels,
+      storedParcels,
+      awaitingPickCount
+    });
+
   } catch (err) {
     console.error(err);
     res.status(500).send("Server error loading parcels.");
   }
 });
+
 
 
 app.get("/mobile/parcel/:id", isAuthenticated,async (req, res) => {
@@ -1675,6 +1729,187 @@ app.post("/mobile/send/step2", isAuthenticated, async (req, res) => {
 });
 
 
+
+app.get("/mobile/send/step3", isAuthenticated, async (req, res) => {
+  try {
+    const { rate } = req.query;
+    const draft = req.session.parcelDraft;
+    const lockerId = draft.selectedLocker;
+    const prestatus = draft.status;
+    const user = await User.findById(req.session.user._id);
+    const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    let cost = getEstimatedCost(draft.size);
+    if (draft.receiverDeliveryMethod === "address_delivery") {
+      cost += parseFloat(rate);
+    }
+
+    let qrImage;
+    if (lockerId) {
+      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode, lockerId, prestatus }));
+    } else {
+      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode, prestatus }));
+    }
+
+    // Check store_self logic
+    if (draft.isSelf) {
+      if (!draft.receiverPhone) draft.receiverPhone = user.phone;
+      if (!draft.receiverName) draft.receiverName = user.username || "Self";
+    }
+    const store_self = draft.isSelf && draft.receiverPhone === user.phone;
+
+    if (!draft.receiverPhone || draft.receiverPhone.trim() === "") {
+      req.flash("error", "Receiver phone is required.");
+      return res.redirect("/mobile/send/step2");
+    }
+
+    // Generate customId
+    const totalParcels = await Parcel2.countDocuments();
+    const customId = `P${String(totalParcels + 1).padStart(3, "0")}`;
+
+    let razorpayOrder = null;
+    let razorpayPaymentLink = null;
+    let status = "awaiting_drop";
+    let paymentStatus = "completed";
+    let expiresAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+
+    // Handle both sender and receiver pay
+    
+      status = "awaiting_payment";
+      paymentStatus = "pending";
+      expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours
+      razorpayOrder = await razorpay.orders.create({
+        amount: Math.round(parseFloat(cost) * 100),
+        currency: "INR",
+        receipt: `parcel_${Date.now()}`,
+        payment_capture: 1
+      });
+   
+
+    const parcel = new Parcel2({
+      ...draft,
+      senderId: req.user._id,
+      senderName: user.username,
+      senderPhone: user.phone,
+      receiverName: draft.receiverName,
+      receiverPhone: draft.receiverPhone,
+      recipientAddress: draft.recipientAddress,
+      recipientPincode: draft.recipientPincode,
+      selectedLocker: draft.selectedLocker,
+      selectedLockerPincode: draft.selectedLockerPincode,
+      accessCode,
+      qrImage,
+      store_self,
+      lockerId: draft.lockerId || null,
+      cost: cost.toString(),
+      status,
+      paymentStatus,
+      droppedAt: null,
+      expiresAt,
+      compartmentId: null,
+      razorpayOrderId: razorpayOrder?.id || null,
+      razorpayPaymentLink: razorpayPaymentLink || null,
+      customId
+    });
+
+    await parcel.save();
+    req.session.inProgressParcelId = parcel._id;
+
+      return res.render("mobile/parcel/payment", {
+        parcel,
+        razorpayKeyId: process.env.RAZORPAY_KEY_ID,
+        orderId: razorpayOrder.id,
+        amount: razorpayOrder.amount,
+        currency: razorpayOrder.currency
+      });
+   
+
+  } catch (error) {
+    console.error("❌ Error in /send/step3:", error);
+    req.flash("error", error.message || "Something went wrong.");
+    res.redirect("/mobileDashboard");
+  }
+});
+
+app.get("/mobile/parcel/:id/receiver-pay", isAuthenticated, async (req, res) => {
+  const parcel = await Parcel2.findById(req.params.id);
+  if (!parcel) return res.status(404).send("Parcel not found");
+
+  if (parcel.paymentStatus === "completed") {
+    return res.send("This parcel is already paid.");
+  }
+
+  // Generate payment link only if not already generated
+  if (!parcel.razorpayPaymentLink) {
+    const razorpayPaymentLink = await razorpay.paymentLink.create({
+      amount: Math.round(parseFloat(parcel.cost) * 100),
+      currency: "INR",
+      accept_partial: false,
+      description: `Payment for Parcel ${parcel.customId}`,
+      customer: {
+        name: parcel.receiverName,
+        contact: parcel.receiverPhone
+      },
+      notify: {
+        sms: true,
+        email: false
+      },
+      callback_url: `${process.env.BASE_URL}/mobile/payment/success-link?parcelId=${parcel._id}`,
+      callback_method: "get"
+    });
+
+    // Save payment link
+    parcel.razorpayPaymentLink = razorpayPaymentLink.short_url;
+    parcel.status = "awaiting_payment";
+    parcel.paymentStatus = "pending";
+    await parcel.save();
+  }
+
+  // Render EJS page with the link
+  res.render("mobile/showPaymentLink", {
+    parcel,
+    paymentLink: parcel.razorpayPaymentLink
+  });
+});
+
+
+
+
+app.get("/mobile/payment/success-link", async (req, res) => {
+  const {
+    parcelId,
+    razorpay_payment_id,
+    razorpay_payment_link_id,
+    razorpay_payment_link_status,
+    razorpay_signature
+  } = req.query;
+
+  try {
+    const parcel = await Parcel2.findById(parcelId);
+    if (!parcel) return res.status(404).send("Parcel not found");
+
+    // Only update if the payment was successful
+    if (razorpay_payment_link_status === "paid") {
+      parcel.paymentStatus = "completed"; 
+      parcel.status = "awaiting_drop"; // or any next logical state
+      parcel.razorpayPaymentId = razorpay_payment_id;
+      parcel.razorpayPaymentLinkId = razorpay_payment_link_id;
+      parcel.razorpaySignature = razorpay_signature;
+      await parcel.save();
+
+      return res.render("mobile/paymentSuccess", {
+      parcel
+    });
+    } else {
+      return res.status(400).send("Payment failed or not completed.");
+    }
+  } catch (err) {
+    console.error("Payment success handler error:", err);
+    res.status(500).send("Something went wrong processing your payment.");
+  }
+});
+
+
 app.get("/mobile/send/estimate",isAuthenticated, async(req,res)=>{
   try{
     const draft = req.session.parcelDraft;
@@ -1728,133 +1963,79 @@ app.get("/mobile/send/estimate",isAuthenticated, async(req,res)=>{
   }
 });
 
-app.get("/mobile/send/step3", isAuthenticated, async (req, res) => {
+
+app.get("/mobile/payment/success", isAuthenticated, async (req, res) => {
   try {
-    const { rate } = req.query;
-    const draft = req.session.parcelDraft;
-    const lockerId = draft.selectedLocker;
-    const prestatus = draft.status;
-    const user = await User.findById(req.session.user._id);
-    const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const { order_id, payment_id, signature } = req.query;
+    const { parcelId, razorpay_payment_link_id, razorpay_payment_id, razorpay_payment_link_status } = req.query;
 
-    let cost = getEstimatedCost(draft.size);
-    if (draft.receiverDeliveryMethod === "address_delivery") {
-      cost += parseFloat(rate); // Add delivery + platform fee
+    // ✅ Case 1: Sender Pays (Order flow)
+    if (order_id && payment_id && signature) {
+      const generatedSignature = crypto
+        .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+        .update(order_id + "|" + payment_id)
+        .digest("hex");
+
+      if (generatedSignature !== signature) {
+        req.flash("error", "Payment verification failed.");
+        return res.redirect("/mobileDashboard");
+      }
+
+      const parcel = await Parcel2.findOneAndUpdate(
+        { razorpayOrderId: order_id },
+        {
+          paymentStatus: "completed",
+          status: "awaiting_drop"
+        },
+        { new: true }
+      );
+
+      if (!parcel) {
+        req.flash("error", "Parcel not found.");
+        return res.redirect("/mobileDashboard");
+      }
+
+      delete req.session.parcelDraft;
+      return res.redirect(`/mobile/parcel/${parcel._id}/success`);
     }
 
-    let qrImage;
-    if (lockerId) {
-      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode, lockerId, prestatus }));
-    } else {
-      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode, prestatus }));
+    // ✅ Case 2: Receiver Pays (Payment Link flow)
+    if (parcelId && razorpay_payment_link_status === "paid") {
+      const parcel = await Parcel2.findById(parcelId);
+      if (!parcel) {
+        req.flash("error", "Parcel not found.");
+        return res.redirect("/mobileDashboard");
+      }
+
+      parcel.paymentStatus = "completed";
+      parcel.status = "awaiting_drop";
+      parcel.razorpayPaymentId = razorpay_payment_id;
+      parcel.razorpayPaymentLinkStatus = "paid";
+      await parcel.save();
+
+      return res.redirect(`/mobile/parcel/${parcel._id}/success`);
     }
 
-    // Default status and payment handling
-    let status = "awaiting_drop";
-    let paymentStatus = "completed";
-    let expiresAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
-    let razorpayOrder = null;
+    req.flash("error", "Invalid payment callback.");
+    res.redirect("/mobileDashboard");
 
-    // SENDER PAYS logic
-    draft.paymentOption = "sender_pays";
-    status = "awaiting_payment";
-    paymentStatus = "pending";
-    expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
-
-    razorpayOrder = await razorpay.orders.create({
-      amount: Math.round(parseFloat(cost) * 100),
-      currency: "INR",
-      receipt: `parcel_${Date.now()}`,
-      payment_capture: 1,
-    });
-
-    if (draft.isSelf) {
-      if (!draft.receiverPhone) draft.receiverPhone = user.phone;
-      if (!draft.receiverName) draft.receiverName = user.username || "Self";
-    }
-
-    if (!draft.receiverPhone || draft.receiverPhone.trim() === "") {
-      req.flash("error", "Receiver phone is required.");
-      return res.redirect("/mobile/send/step2");
-    }
-
-    // 🔥 Generate customId here
-    const totalParcels = await Parcel2.countDocuments();
-    const customId = `P${String(totalParcels + 1).padStart(3, "0")}`;
-
-    const parcel = new Parcel2({
-      ...draft,
-      senderId: req.user._id,
-      senderName: user.username,
-      senderPhone: user.phone,
-      receiverName: draft.receiverName,
-      receiverPhone: draft.receiverPhone,
-      recipientAddress: draft.recipientAddress,
-      recipientPincode: draft.recipientPincode,
-      selectedLocker: draft.selectedLocker,
-      selectedLockerPincode: draft.selectedLockerPincode,
-      accessCode,
-      qrImage,
-      lockerId: draft.lockerId || null,
-      cost: cost.toString(),
-      status,
-      paymentStatus,
-      droppedAt: null,
-      expiresAt,
-      compartmentId: null,
-      razorpayOrderId: razorpayOrder?.id || null,
-      customId // ✅ Add it here
-    });
-
-    req.session.inProgressParcelId = parcel._id;
-    await parcel.save();
-    delete req.session.inProgressParcelId;
-
-    return res.render("mobile/parcel/payment", {
-      parcel,
-      razorpayKeyId: process.env.RAZORPAY_KEY_ID,
-      orderId: razorpayOrder.id,
-      amount: razorpayOrder.amount,
-      currency: razorpayOrder.currency,
-    });
-
-  } catch (error) {
-    console.error("❌ Error in /send/step3:", error);
-    req.flash("error", error.message || "Something went wrong.");
+  } catch (err) {
+    console.error("❌ Payment success handler error:", err);
+    req.flash("error", "Something went wrong during payment verification.");
     res.redirect("/mobileDashboard");
   }
 });
 
 
-app.get("/mobile/payment/success", isAuthenticated, async (req, res) => {
-  const { order_id, payment_id, signature } = req.query;
+app.get("/mobile/view/parcel/:id/success", async (req, res) => {
+    const user = await User.findById(req.session.user._id);
+    const parcelid = req.params.id;
+    const parcel = await Parcel2.findById(req.params.id);
+    if (!parcel) return res.status(404).send("Parcel not found");
+    
 
-  // Verify signature
-  const generatedSignature = crypto.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
-    .update(order_id + "|" + payment_id)
-    .digest("hex");
 
-  if (generatedSignature !== signature) {
-    req.flash("error", "Payment verification failed.");
-    return res.redirect("/mobileDashboard");
-  }
-
-  // Mark parcel as paid
-  const parcel = await Parcel2.findOneAndUpdate(
-    { razorpayOrderId: order_id },
-    {
-      paymentStatus: "completed",
-      status: "awaiting_drop"
-    },
-    { new: true }
-  );
-
-  if (!parcel) {
-    req.flash("error", "Parcel not found.");
-    return res.redirect("/mobileDashboard");
-  }
-  delete req.session.parcelDraft;
-  res.redirect(`/mobile/parcel/${parcel._id}/success`);
+  res.render("mobile/parcel/success", { parcel });
 });
 
 app.get("/mobile/parcel/:id/success", async (req, res) => {

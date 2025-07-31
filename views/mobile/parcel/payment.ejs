@@ -50,10 +50,24 @@
         </div>
 
         <!-- Pay Button -->
-        <button id="payButton" class="btn w-100 py-2 rounded-pill fw-semibold"
-          style="background: linear-gradient(135deg, #11998e, #38ef7d); color: white; box-shadow: 0 3px 6px rgba(0,0,0,0.15);">
-          <i class="bi bi-credit-card-fill me-2"></i> Pay Now
-        </button>
+        <!-- Pay Buttons -->
+<div class="d-grid gap-2">
+  <!-- Sender Pay Button -->
+  <button id="payButton" class="btn py-2 rounded-pill fw-semibold"
+    style="background: linear-gradient(135deg, #11998e, #38ef7d); color: white; box-shadow: 0 3px 6px rgba(0,0,0,0.15);">
+    <i class="bi bi-credit-card-fill me-2"></i> Pay Now (Sender)
+  </button>
+
+  <!-- Divider -->
+  <div class="text-center text-muted small my-2">OR</div>
+
+  <!-- Receiver Pay Button -->
+  <a href="/mobile/parcel/<%= parcel._id %>/receiver-pay" class="btn py-2 rounded-pill fw-semibold"
+    style="background: linear-gradient(135deg, #fc466b, #3f5efb); color: white; box-shadow: 0 3px 6px rgba(0,0,0,0.15);">
+    <i class="bi bi-link-45deg me-2"></i> Let Receiver Pay
+  </a>
+</div>
+
       </div>
     </div>
   </div>

@@ -31,15 +31,22 @@
       </p>
 
       <div class="text-end mt-3 d-flex justify-content-end gap-2">
-        <a href="/mobile/parcel/<%= parcel._id %>" class="btn btn-sm btn-outline-primary" style="border-radius: 8px; padding: 0.4rem 1rem;">
-          Details
-        </a>
-        <% if (parcel.status === 'awaiting_drop' || parcel.status === 'awaiting_pick') { %>
-          <a href="/mobile/incoming/<%= parcel._id %>/qr" class="btn btn-sm btn-outline-success" style="border-radius: 8px; padding: 0.4rem 1rem;">
-            QR Code
-          </a>
-        <% } %>
-      </div>
+  <a href="/mobile/parcel/<%= parcel._id %>" class="btn btn-sm btn-outline-primary" style="border-radius: 8px; padding: 0.4rem 1rem;">
+    Details
+  </a>
+
+  <% if (parcel.status === 'awaiting_drop' || parcel.status === 'awaiting_pick') { %>
+    <a href="/mobile/incoming/<%= parcel._id %>/qr" class="btn btn-sm btn-outline-success" style="border-radius: 8px; padding: 0.4rem 1rem;">
+      QR Code
+    </a>
+  <% } else if (parcel.status === 'awaiting_payment' && parcel.razorpayPaymentLink) { %>
+    <a href="<%= parcel.razorpayPaymentLink %>" target="_blank" class="btn btn-sm btn-warning text-white" style="border-radius: 8px; padding: 0.4rem 1rem;">
+      💳 Pay Now
+    </a>
+  <% } %>
+</div>
+
     </div>
+    
   </div>
 </a>
