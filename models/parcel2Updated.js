@@ -25,7 +25,7 @@ const ParcelSchema = new mongoose.Schema({
 
   razorpayOrderId: String,
   cost: { type: mongoose.Decimal128, default: 0, required: true },
-  paymentOption: { type: String, enum: ["sender_pays", "receiver_pays"], required: true },
+  paymentOption: { type: String, enum: ["sender_pays", "receiver_pays"] },
   paymentStatus: { type: String, enum: ["pending", "completed"], default: "pending" },
 
     customId: {

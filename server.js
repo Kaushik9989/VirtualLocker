@@ -1605,7 +1605,7 @@ app.get("/mobile/send/step2", isAuthenticated, async (req, res) => {
       req.session.parcelDraft.receiverPhone = user.phone;
       req.session.parcelDraft.isSelf = true;
       console.log(user.phone);
-      return res.redirect("/send/step3");
+      return res.redirect("mobile/send/step3");
     }
     const lockers = await Locker.find({
       "compartments.isBooked": false
@@ -1672,7 +1672,7 @@ app.post("/mobile/send/step2", isAuthenticated, async (req, res) => {
     req.session.parcelDraft.receiverName = receiverName;
     req.session.parcelDraft.receiverPhone = receiverPhone;
     req.session.parcelDraft.receiverDeliveryMethod = receiverDeliveryMethod;
-    req.session.parcelDraft.paymentOption = "sender_pays";
+    
 
     if (receiverDeliveryMethod === "address_delivery") {
       if (!recipientAddress || !recipientPincode || !selectedLocker) {
@@ -1693,7 +1693,7 @@ app.post("/mobile/send/step2", isAuthenticated, async (req, res) => {
       req.session.parcelDraft.recipientPincode = recipientPincode;
       req.session.parcelDraft.selectedLocker = selectedLocker;
       req.session.parcelDraft.selectedLockerPincode =lockerPincode;
-
+      req.session.parcelDraft.status = "awaiting_drop";
       if (receiverDeliveryMethod === "address_delivery") {
         /// SAVE ADDRESS TO DB
         if (
@@ -1732,6 +1732,11 @@ app.post("/mobile/send/step2", isAuthenticated, async (req, res) => {
 
 app.get("/mobile/send/step3", isAuthenticated, async (req, res) => {
   try {
+    if (!req.session.parcelDraft) {
+  req.flash("error", "Parcel draft not found. Please start again.");
+  return res.redirect("/mobile/sendParcel");
+}
+
     const { rate } = req.query;
     const draft = req.session.parcelDraft;
     const lockerId = draft.selectedLocker;
@@ -1745,6 +1750,7 @@ app.get("/mobile/send/step3", isAuthenticated, async (req, res) => {
     }
 
     let qrImage;
+    console.log(lockerId);
     if (lockerId) {
       qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode, lockerId, prestatus }));
     } else {
@@ -1784,7 +1790,26 @@ app.get("/mobile/send/step3", isAuthenticated, async (req, res) => {
         receipt: `parcel_${Date.now()}`,
         payment_capture: 1
       });
-   
+
+
+    //   razorpayLinkObject  = await razorpay.paymentLink.create({
+    //   amount: Math.round(parseFloat(cost) * 100),
+    //   currency: "INR",
+    //   accept_partial: false,
+    //   description: `Payment for Parcel ${customId}`,
+    //   customer: {
+    //     name: draft.receiverName,
+    //     contact: draft.receiverPhone
+    //   },
+    //   notify: {
+    //     sms: true,
+    //     email: false
+    //   },
+    //   callback_url: `${process.env.BASE_URL}/mobile/payment/success-link?parcelId=${customId}`,
+    //   callback_method: "get"
+    // });
+    
+    // razorpayPaymentLink = razorpayLinkObject.short_url;
 
     const parcel = new Parcel2({
       ...draft,
@@ -1808,7 +1833,7 @@ app.get("/mobile/send/step3", isAuthenticated, async (req, res) => {
       expiresAt,
       compartmentId: null,
       razorpayOrderId: razorpayOrder?.id || null,
-      razorpayPaymentLink: razorpayPaymentLink || null,
+     razorpayPaymentLink: razorpayPaymentLink || null,
       customId
     });
 
@@ -1881,12 +1906,20 @@ app.get("/mobile/payment/success-link", async (req, res) => {
     razorpay_payment_id,
     razorpay_payment_link_id,
     razorpay_payment_link_status,
-    razorpay_signature
+    razorpay_signature,
+    customId
   } = req.query;
 
   try {
-    const parcel = await Parcel2.findById(parcelId);
-    if (!parcel) return res.status(404).send("Parcel not found");
+
+const parcel = await Parcel2.findOne({
+  $or: [
+    { _id: parcelId },         // This will work if parcelId is a valid ObjectId
+    { customId: customId }
+  ]
+});
+
+    
 
     // Only update if the payment was successful
     if (razorpay_payment_link_status === "paid") {
@@ -2086,7 +2119,6 @@ app.post("/mobile/send/select-locker/:lockerId", isAuthenticated, async (req, re
     isSelf: true,
     type: "package",
     size: size,
-    paymentOption: "sender_pays",
     lockerId: locker.lockerId,
     location_id: locker.location?._id || null,
     lockerLat: locker.location?.lat,
