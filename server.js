@@ -229,7 +229,7 @@ passport.use(
 );
 
 app.get("/", (req, res) => {
-  res.redirect("/dashboard");
+  res.redirect("/mobileDashboard");
 });
 // /api/sent-parcels
 app.get("/api/sent-parcels", isAuthenticated, async (req, res) => {
@@ -955,7 +955,7 @@ user.lastLogin = new Date();
 await user.save();
 
     await trackFunnelStep(req, "login_oauth", { phone: req.body.phone });
-    const redirectTo = req.session.redirectTo || "/dashboard";
+    const redirectTo = req.session.redirectTo || "/mobileDashboard";
     delete req.session.redirectTo;
 
     return res.redirect(redirectTo); // so your session-based auth also works
@@ -1372,7 +1372,7 @@ if (user) {
     };
 
     delete req.session.phone;
-    res.redirect("/dashboard");
+    res.redirect("/mobileDashboard");
   } catch (err) {
     console.error("OTP Verify Error:", err.message);
     res.render("verify-login", { error: "❌ OTP verification failed." });
@@ -1414,7 +1414,7 @@ app.post("/set-username", async (req, res) => {
     };
 
     
-    res.redirect("/dashboard");
+    res.redirect("/mobileDashboard");
   } catch (err) {
     res.render("set-username", {
       error: "❌ Failed to save user.",
