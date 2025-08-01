@@ -33,20 +33,21 @@
       z-index: 0;
     }
     .left-sidebar {
-      position: fixed;
-      margin: 8px;
-      top: 70px;
-      width: 340px;
-      max-height: calc(100vh - 140px);
-      overflow-y: auto;
-      background: rgba(255, 255, 255, 0.50);
-      backdrop-filter: blur(12px) saturate(150%);
-      border-radius: 5px;
-      padding: 1rem;
-      padding-bottom: 70px;
-      z-index: 1001;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
+  position: fixed;
+  margin: 8px;
+  top: 70px;
+  width: 420px; /* increased from 340px */
+  max-height: calc(100vh - 100px); /* increased height room */
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.50);
+  backdrop-filter: blur(12px) saturate(150%);
+  border-radius: 8px;
+  padding: 1.2rem;
+  padding-bottom: 80px;
+  z-index: 1001;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
     .card-actions {
       display: flex;
       flex-direction: column;
@@ -98,13 +99,16 @@
       animation: bounce 0.6s infinite alternate;
     }
     @media (max-width: 768px) {
-      .left-sidebar {
-        width: 90%;
-        left: 5%;
-        bottom: 70px;
-        top: auto;
-        max-height: 36vh;
-      }
+     @media (max-width: 768px) {
+  .left-sidebar {
+    width: 95%;
+    left: 2.5%;
+    bottom: 70px;
+    top: auto;
+    max-height: 42vh; /* slightly more space on mobile */
+  }
+}
+
       .leaflet-control-recenter {
         top: 80px;
         right: 16px;
@@ -199,7 +203,7 @@
 
   function renderSidebar(lockers) {
     const sidebar = document.querySelector(".left-sidebar");
-    sidebar.innerHTML = `<h5 class="fw-bold mb-3">📍 Nearby Lockers</h5>`;
+    sidebar.innerHTML = `<h5 class="fw-bold mb-3" style="">📍 Nearby Lockers</h5>`;
     lockers.forEach(locker => {
       const available = locker.compartments.filter(c => !c.isBooked).length;
       const card = document.createElement("div");
@@ -221,12 +225,13 @@
             : `<span>No Coordinates</span>`}
         </div>
         <div class="card-actions">
-          <a href="https://www.google.com/maps/dir/?api=1&destination=${locker.location?.lat},${locker.location?.lng}" target="_blank" class="btn btn-dark mt-2">
-            <i class="fas fa-location-arrow"></i> Directions
-          </a>
-          <a href="/mobile/send/select-locker/${locker.lockerId}" class="btn btn-warning w-100">
+          
+          <a href="/mobile/send/select-locker/${locker.lockerId}" class="btn btn-warning w-100 mt-2">
   <i class="fas fa-box-open"></i> Store at this Locker
 </a>
+<a href="https://www.google.com/maps/dir/?api=1&destination=${locker.location?.lat},${locker.location?.lng}" target="_blank" class="btn btn-dark ">
+            <i class="fas fa-location-arrow"></i> Directions
+          </a>
 
           
         </div>

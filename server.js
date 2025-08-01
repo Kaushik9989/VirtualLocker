@@ -8,6 +8,7 @@ const fs = require("fs");
 const LRU = require("lru-cache");
 const Razorpay = require("razorpay");
 const Version = require("./models/Version.js");
+const methodOverride = require('method-override');
 
 const axios = require("axios");
 const locationsCache = new LRU.LRUCache({
@@ -72,6 +73,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
+app.use(methodOverride('_method'));
 app.use(express.static("public"));
 
 mongoose
@@ -1497,7 +1499,15 @@ app.get("/mobileDashboard", isAuthenticated, async (req, res) => {
 });
 
 
-
+app.delete('/mobile/parcel/del/:id', async (req, res) => {
+  try {
+    await Parcel2.findByIdAndDelete(req.params.id);
+    res.redirect('/mobileDashboard'); // or wherever you want to go after deletion
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server Error');
+  }
+});
 app.get("/mobile/parcel/:id", isAuthenticated,async (req, res) => {
   const parcel = await Parcel2.findById(req.params.id);
   res.render("mobile/parcel-tracking", { parcel });
