@@ -1770,8 +1770,15 @@ app.get("/mobile/send/step3", isAuthenticated, async (req, res) => {
     }
 
     // Generate customId
-    const totalParcels = await Parcel2.countDocuments();
-    const customId = `P${String(totalParcels + 1).padStart(3, "0")}`;
+    
+    let customId;
+    let exists = true;
+
+    while (exists) {
+    customId = "P" + Math.random().toString(36).substring(2, 8).toUpperCase();
+    exists = await Parcel2.exists({ customId });
+  }
+
 
     let razorpayOrder = null;
     let razorpayPaymentLink = null;
@@ -1839,7 +1846,15 @@ app.get("/mobile/send/step3", isAuthenticated, async (req, res) => {
 
     await parcel.save();
     req.session.inProgressParcelId = parcel._id;
-
+    if(store_self){
+      return res.render("mobile/parcel/self_payment", {
+        parcel,
+        razorpayKeyId: process.env.RAZORPAY_KEY_ID,
+        orderId: razorpayOrder.id,
+        amount: razorpayOrder.amount,
+        currency: razorpayOrder.currency
+      });
+    }
       return res.render("mobile/parcel/payment", {
         parcel,
         razorpayKeyId: process.env.RAZORPAY_KEY_ID,

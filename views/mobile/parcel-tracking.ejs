@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>Parcel Status</title>
@@ -86,7 +87,12 @@
     }
 
     @media (max-width: 576px) {
-      h5, .label, .circle, p, small {
+
+      h5,
+      .label,
+      .circle,
+      p,
+      small {
         font-size: 14px;
       }
 
@@ -104,86 +110,152 @@
         padding: 1rem !important;
       }
     }
+
+    .timeline {
+      border-left: 2px solid #ccc;
+      margin-top: 1rem;
+      padding-left: 1rem;
+    }
+
+    .circle-status {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background-color: #ccc;
+      color: white;
+      font-weight: bold;
+      text-align: center;
+      line-height: 30px;
+      flex-shrink: 0;
+    }
+
+    .circle-status.done {
+      background-color: #198754;
+      /* green */
+    }
+
+    .circle-status.active {
+      background-color: #0d6efd;
+      /* blue */
+    }
+
+    .circle-status.upcoming {
+      background-color: #ccc;
+    }
   </style>
+
 </head>
+
 <body>
 
   <%- include('../partials/navbar') %>
 
-  <div class="container py-4">
-    <div class="card shadow p-4 rounded-4">
+    <div class="container py-4">
+      <div class="card shadow p-4 rounded-4">
 
-      <!-- QR Code Section -->
-      <% if (parcel.qrImage && parcel.status !== 'picked') { %>
-      <div class="text-center qr-section mb-4">
-        <img src="<%= parcel.qrImage %>" alt="Parcel QR Code" class="img-fluid" style="max-width: 180px;" />
-        <div class="mt-2 text-muted">
-          <% if (parcel.status === 'awaiting_drop') { %>
-            Scan this QR code at the locker to <strong>drop</strong> your parcel.
-          <% } else if (parcel.status === 'awaiting_pick') { %>
-            Scan this QR code at locker <strong><%= parcel.lockerId %></strong>, compartment <strong><%= parcel.compartmentId %></strong> to <strong>collect</strong> your parcel.
+        <!-- QR Code Section -->
+        <% if (parcel.qrImage && parcel.status !=='picked' ) { %>
+          <div class="text-center qr-section mb-4">
+            <img src="<%= parcel.qrImage %>" alt="Parcel QR Code" class="img-fluid" style="max-width: 180px;" />
+            <div class="mt-2 text-muted">
+              <% if (parcel.status==='awaiting_drop' ) { %>
+                Scan this QR code at the locker to <strong>drop</strong> your parcel.
+                <% } else if (parcel.status==='awaiting_pick' ) { %>
+                  Scan this QR code at locker <strong>
+                    <%= parcel.lockerId %>
+                  </strong>, compartment <strong>
+                    <%= parcel.compartmentId %>
+                  </strong> to <strong>collect</strong> your parcel.
+                  <% } %>
+            </div>
+          </div>
           <% } %>
-        </div>
+
+            <!-- Header -->
+            <div class="d-flex justify-content-between flex-wrap mb-3">
+              <h5 class="mb-2">Parcel ID: <span class="text-primary">
+                  <%= parcel.customId %>
+                </span></h5>
+              <div>
+                <small><strong>Access Code:</strong>
+                  <%= parcel.accessCode %>
+                </small><br>
+                <small><strong>Expires:</strong>
+                  <%= new Date(parcel.expiresAt).toLocaleString() %>
+                </small>
+              </div>
+            </div>
+
+            <!-- Step Tracker -->
+            <!-- Vertical Step Timeline -->
+            <!-- Vertical Step Timeline -->
+           
+            <!-- Vertical Step Timeline -->
+<div class="section-header mt-4">Parcel Status</div>
+<div class="timeline position-relative border-start ps-3">
+
+  <% const steps = [
+    { key: "awaiting_payment", label: "⏳ Awaiting Payment", msg: "Waiting for sender to pay" },
+    { key: "awaiting_drop", label: "💳✅ Payment Completed", msg: "Payment successful, waiting for drop" },
+    { key: "awaiting_pick", label: "📦🔒 Dropped", msg: "Parcel is in the locker, awaiting pickup" },
+    { key: "picked", label: "✅📬 Picked", msg: "Receiver has collected the parcel" }
+  ];
+
+  const currentIndex = steps.findIndex(step => step.key === parcel.status);
+  %>
+
+  <% steps.forEach((step, index) => { %>
+    <div class="mb-4 d-flex align-items-start">
+      <div class="circle-status me-3
+        <% if (index < currentIndex) { %> done
+        <% } else if (index === currentIndex) { %> active
+        <% } else { %> upcoming <% } %>">
+        <span><%= index + 1 %></span>
       </div>
-      <% } %>
-
-      <!-- Header -->
-      <div class="d-flex justify-content-between flex-wrap mb-3">
-        <h5 class="mb-2">Parcel ID: <span class="text-primary"><%= parcel.customId %></span></h5>
-        <div>
-          <small><strong>Access Code:</strong> <%= parcel.accessCode %></small><br>
-          <small><strong>Expires:</strong> <%= new Date(parcel.expiresAt).toLocaleString() %></small>
-        </div>
-      </div>
-
-      <!-- Step Tracker -->
-      <div class="step-tracker position-relative">
-        <div class="progress-line"></div>
-        <div class="progress-fill"
-          style="width:
-            <% if (parcel.status === 'awaiting_drop') { %>0%;
-            <% } else if (parcel.status === 'awaiting_pick') { %>50%;
-            <% } else if (parcel.status === 'picked') { %>100%;
-            <% } else { %>0%; <% } %>">
-        </div>
-
-        <div class="step <%= parcel.status === 'awaiting_drop' ? 'active' : 'done' %>">
-          <div class="circle">1</div>
-          <div class="label">Awaiting Drop</div>
-        </div>
-
-        <div class="step <%= parcel.status === 'awaiting_pick' ? 'active' : parcel.status === 'picked' ? 'done' : '' %>">
-          <div class="circle">2</div>
-          <div class="label">Awaiting Pick</div>
-        </div>
-
-        <div class="step <%= parcel.status === 'picked' ? 'active' : '' %>">
-          <div class="circle">3</div>
-          <div class="label">Picked</div>
-        </div>
-      </div>
-
-      <!-- Details -->
-      <div class="section-header mt-4">Parcel Details</div>
-      <div class="row">
-        <div class="col-md-6 mb-3">
-          <p><strong>Sender:</strong> <%= parcel.senderName || 'N/A' %></p>
-          <p><strong>Receiver:</strong> <%= parcel.receiverName || 'N/A' %></p>
-          <p><strong>Description:</strong> <%= parcel.description || 'No description' %></p>
-        </div>
-        <div class="col-md-6 mb-1">
-          <p><strong>Locker:</strong> <%= parcel.lockerId || 'N/A' %></p>
-          <p><strong>Compartment:</strong> <%= parcel.compartmentId || 'N/A' %></p>
-          <p><strong>Cost:</strong> ₹<%= parseFloat(parcel.cost).toFixed(0) %></p>
-        </div>
-      </div>
-
-      <!-- Back Button -->
-      <div class="text-end mt-4">
-        <a href="/mobileDashboard" class="btn btn-outline-secondary">Back to Dashboard</a>
+      <div>
+        <div class="fw-semibold"><%= step.label %></div>
+        <small class="text-muted"><%= step.msg %></small>
       </div>
     </div>
-  </div>
+  <% }); %>
+</div>
+
+
+
+
+            <!-- Details -->
+            <div class="section-header mt-4">Parcel Details</div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <p><strong>Sender:</strong>
+                  <%= parcel.senderName || 'N/A' %>
+                </p>
+                <p><strong>Receiver:</strong>
+                  <%= parcel.receiverName || 'N/A' %>
+                </p>
+                <p><strong>Description:</strong>
+                  <%= parcel.description || 'No description' %>
+                </p>
+              </div>
+              <div class="col-md-6 mb-1">
+                <p><strong>Locker:</strong>
+                  <%= parcel.lockerId || 'N/A' %>
+                </p>
+                <p><strong>Compartment:</strong>
+                  <%= parcel.compartmentId || 'N/A' %>
+                </p>
+                <p><strong>Cost:</strong> ₹<%= parseFloat(parcel.cost).toFixed(0) %>
+                </p>
+              </div>
+            </div>
+
+            <!-- Back Button -->
+            <div class="text-end mt-4">
+              <a href="/mobileDashboard" class="btn btn-outline-secondary">Back to Dashboard</a>
+            </div>
+      </div>
+    </div>
 
 </body>
+
 </html>
