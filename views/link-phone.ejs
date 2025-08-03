@@ -1,89 +1,91 @@
-<% layout("/layouts/boilerplate") %>
+<!DOCTYPE html>
+<html lang="en">
 
-<style>
-  .link-container {
-    min-height: 100vh;
-    background: linear-gradient(to right, #4e54c8, #8f94fb);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+<head>
+  <meta charset="UTF-8">
+  <title>Parcel Status - Link Phone</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    body {
+      background-color: #f9f9fc;
+      font-family: 'Segoe UI', sans-serif;
+    }
 
-  .link-card {
-    background-color: #fff;
-    border-radius: 20px;
-    padding: 2rem;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    max-width: 420px;
-  }
+    .link-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
 
-  .link-header {
-    font-size: 1.6rem;
-    font-weight: 600;
-    text-align: center;
-    margin-bottom: 1rem;
-    color: #4e54c8;
-  }
+    .link-card {
+      background-color: #fff;
+      padding: 2rem;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      max-width: 420px;
+      width: 100%;
+    }
 
-  .form-label {
-    font-weight: 500;
-  }
+    .link-header {
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
 
-  .btn-link {
-    background-color: #4e54c8;
-    color: white;
-    font-weight: 500;
-    border-radius: 12px;
-    padding: 12px;
-    font-size: 1rem;
-    transition: background-color 0.2s ease;
-  }
+    .alert i {
+      font-size: 1.2rem;
+    }
 
-  .btn-link:hover {
-    background-color: #3c42a9;
-  }
+    .input-group-text {
+      background-color: #f1f1f1;
+      font-weight: 500;
+    }
 
-  .alert {
-    font-size: 0.9rem;
-    margin-top: 0.5rem;
-  }
+    .btn-success {
+      font-weight: 500;
+      font-size: 1rem;
+      padding: 0.6rem;
+      border-radius: 12px;
+    }
 
-  .skip-link {
-    display: block;
-    text-align: center;
-    margin-top: 1rem;
-    text-decoration: none;
-    font-size: 0.9rem;
-    color: #6b7280;
-  }
+    .form-label {
+      font-weight: 500;
+    }
+  </style>
+</head>
 
-  .skip-link:hover {
-    color: #4e54c8;
-  }
-</style>
+<body>
 
-<div class="link-container">
-  <div class="link-card">
-    <h3 class="link-header">📱 Link Your Phone</h3>
+  <%- include('partials/navbar') %>
 
-   <% if (error) { %>
-      <div class="alert alert-danger d-flex align-items-center">
-        <i class="fas fa-exclamation-circle me-2"></i> <%= error %>
-      </div>
-    <% } %>
+  <div class="link-container">
+    <div class="link-card">
+      <h3 class="link-header">📱 Link Your Phone</h3>
 
-    <form method="POST" action="/link-phone">
-      <div class="mb-3">
-        <label for="phone" class="form-label">Phone Number</label>
-          <div class="input-group">
-          <span class="input-group-text"><i class="fas fa-phone"></i>&nbsp; +91 -</span>
-        <input type="text" class="form-control" name="phone" placeholder="" required />
+      <% if (error) { %>
+        <div class="alert alert-danger d-flex align-items-center">
+          <i class="fas fa-exclamation-circle me-2"></i> <%= error %>
         </div>
-      </div>
-      <button type="submit" class="btn  btn-success w-100" style="text-decoration: none;">Send OTP</button>
-    </form>
+      <% } %>
 
-    
+      <form method="POST" action="/link-phone">
+        <div class="mb-3">
+          <label for="phone" class="form-label">Phone Number</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-phone"></i>&nbsp; +91</span>
+            <input type="text" class="form-control" name="phone" placeholder="Enter your number" required />
+          </div>
+        </div>
+        <button type="submit" class="btn btn-success w-100">Send OTP</button>
+      </form>
+
+    </div>
   </div>
-</div>
+
+</body>
+
+</html>

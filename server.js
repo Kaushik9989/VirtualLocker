@@ -83,39 +83,29 @@ mongoose
 
 app.use(
   session({
-    secret: "heeeheheah", // replace with env var in prod
+    secret: process.env.SESSION_SECRET || "dev-secret", // Use env var in production
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({
       mongoUrl: MONGO_URI,
-      ttl: 60 * 60 * 24 * 7, // Session TTL in seconds (7 days)
+      ttl: 60 * 60 * 24 * 7, // 7 days in seconds
     }),
     cookie: {
-      maxAge: 30000 * 60 * 60 * 24, // 1 day
+       secure: false,         // Must be false if not using HTTPS locally
+    httpOnly: true,
+    sameSite: "lax",       // Prevents cross-site issues
+    maxAge: 1000 * 60 * 15 // 15 minutes/ must be false for local dev without HTTPS
+      
     },
   })
 );
-app.use((req, res, next) => {
-  // Track user intent only on main entry points
-  if (req.path.startsWith("/send")) {
-    setIntent(req, "send");
-  } else if (req.path.startsWith("/receive")) {
-    setIntent(req, "receive");
-  } else if (req.path === "/") {
-    setIntent(req, "explore");
-  }
-  next();
-});
-async function setIntent(req, intent) {
-  const existing = await SessionIntent.findOne({ sessionId: req.sessionID, completed: false });
-  if (!existing) {
-    await SessionIntent.create({
-      sessionId: req.sessionID,
-      userId: req.session.user?._id || null,
-      intent
-    });
-  }
-}
+
+
+
+
+
+
+
 app.use(flash());
 
 app.use((req, res, next) => {
@@ -125,53 +115,142 @@ app.use((req, res, next) => {
   };
   next();
 });
-app.use((req, res, next) => {
-  if (req.session.user) req.user = req.session.user;
-  next();
-});
 
-app.use((req, res, next) => {
-  if (req.session.user) req.user = req.session.user;
-  next();
-});
-app.use((req, res, next) => {
-  res.locals.user = req.session.user || null;
-  next();
-});
+
+
 app.use((req, res, next) => {
   if (req.session.user) {
     req.user = req.session.user;
+    res.locals.user = req.session.user;
+  } else {
+    res.locals.user = null;
   }
   next();
 });
 
 app.use(passport.initialize());
 app.use(passport.session());
+
+
+
+
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: "587834679125-34p3obvnjoa9o8qsa4asgrgubneh5atg.apps.googleusercontent.com",
+      clientSecret: "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",
+      callbackURL: process.env.GOOGLE_CALLBACK_URL,
+      passReqToCallback: true, // Needed to access `req` in verify function
+    },
+    async (req, accessToken, refreshToken, profile, done) => {
+      try {
+        // If user is already logged in, link their account
+        if (req.user) {
+          const currentUser = await User.findById(req.user._id);
+          if (!currentUser) return done(null, false);
+
+          currentUser.googleId = profile.id;
+          currentUser.email = currentUser.email || profile.emails?.[0]?.value;
+          await currentUser.save();
+
+          return done(null, currentUser);
+        }
+
+        // Otherwise: normal login or signup
+        let user = await User.findOne({ googleId: profile.id });
+
+        if (!user) {
+          user = new User({
+            username: profile.displayName,
+            googleId: profile.id,
+            email: profile.emails?.[0]?.value,
+          });
+          await user.save();
+        }
+
+        return done(null, user);
+      } catch (err) {
+        return done(err);
+      }
+    }
+  )
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+// passport.use(
+//   new GoogleStrategy(
+//     {
+//       clientID:
+//         "587834679125-34p3obvnjoa9o8qsa4asgrgubneh5atg.apps.googleusercontent.com", // from Google Cloud
+//       clientSecret: "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", // from Google Cloud
+//       callbackURL: process.env.GOOGLE_CALLBACK_URL,
+//       // callbackURL: "https://virtuallocker.onrender.com/auth/google/callback",
+//       // callbackURL:"http://localhost:8080/auth/google/callback",
+//     },
+//     async (accessToken, refreshToken, profile, done) => {
+//       // Find or create user in DB
+//       const user = await User.findOne({ googleId: profile.id });
+//       if (user) return done(null, user);
+//       const newUser = new User({
+//         username: profile.displayName,
+//         googleId: profile.id,
+//         email: profile.emails[0].value,
+//       });
+//       await newUser.save();
+//       done(null, newUser);
+//     }
+//   )
+// );
+
+
+
+
 passport.serializeUser((user, done) => {
-  done(null, user.id); // user._id
+  done(null, user._id); // Safer and clearer
 });
 
 passport.deserializeUser(async (id, done) => {
-  const user = await User.findById(id);
-  done(null, user);
+  try {
+    const user = await User.findById(id);
+    if (!user) {
+      // Instead of throwing error, return false
+      return done(null, false); // ✅ this means: "no user found, unauthenticated"
+    }
+    return done(null, user);
+  } catch (err) {
+    console.error("Deserialize error:", err);
+    return done(err, null); // ⛔ Passport will treat this as a hard error
+  }
 });
+
+
+
+
+
+
+
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID || "your_key_id",
   key_secret: process.env.RAZORPAY_KEY_SECRET || "your_key_secret",
 });
 
 function isAuthenticated(req, res, next) {
-  if (req.session.user) {
+  if (req.isAuthenticated && req.isAuthenticated() && req.user) {
     return next();
   }
-  if (!req.session.redirectTo) {
-    console.log("Saving redirectTo:", req.originalUrl);
-    req.session.redirectTo = req.originalUrl;
-  }
-
   return res.redirect("/login");
 }
-
 function isAdmin(req, res, next) {
   if (req.session.adminId) return next();
   res.redirect("/admin/login");
@@ -203,30 +282,7 @@ passport.use(
     }
   })
 );
-passport.use(
-  new GoogleStrategy(
-    {
-      clientID:
-        "587834679125-34p3obvnjoa9o8qsa4asgrgubneh5atg.apps.googleusercontent.com", // from Google Cloud
-      clientSecret: "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", // from Google Cloud
-      callbackURL: process.env.GOOGLE_CALLBACK_URL,
-      // callbackURL: "https://virtuallocker.onrender.com/auth/google/callback",
-      // callbackURL:"http://localhost:8080/auth/google/callback",
-    },
-    async (accessToken, refreshToken, profile, done) => {
-      // Find or create user in DB
-      const user = await User.findOne({ googleId: profile.id });
-      if (user) return done(null, user);
-      const newUser = new User({
-        username: profile.displayName,
-        googleId: profile.id,
-        email: profile.emails[0].value,
-      });
-      await newUser.save();
-      done(null, newUser);
-    }
-  )
-);
+
 
 app.get("/", (req, res) => {
   res.redirect("/mobileDashboard");
@@ -926,42 +982,6 @@ app.get("/api/lockers", isAuthenticated, async (req, res) => {
 
 // ------------------------------------------GOOGLE LOGIN ROUTES---------------------------------------------------
 
-app.get(
-  "/auth/google",
-  passport.authenticate("google", { scope: ["profile", "email"] })
-);
-
-// Handle callback
-app.get(
-  "/auth/google/callback",
-  passport.authenticate("google", { failureRedirect: "/login" }),
-  async (req, res) => {
-    // Successful auth
-    req.session.user = {
-      _id: req.user._id,
-      uid: req.user.uid,
-      username: req.user.username,
-      phone: req.user.phone,
-      email: req.user.email,
-      wallet: req.user.wallet || { credits: 0 },
-      phone: req.user.phone || null,
-    };
-    let user = await User.findOne({ username : req.session.user.username});
-
-if (!user) {
-  user = await User.create({ googleId, email, username });
-}
-user.lastLogin = new Date();
-await user.save();
-
-    await trackFunnelStep(req, "login_oauth", { phone: req.body.phone });
-    const redirectTo = req.session.redirectTo || "/mobileDashboard";
-    delete req.session.redirectTo;
-
-    return res.redirect(redirectTo); // so your session-based auth also works
-  }
-);
-
 app.get("/link-phone", (req, res) => {
   res.render("link-phone", { error: null});
 });
@@ -990,10 +1010,13 @@ app.post("/link-phone", async (req, res) => {
   const canonicalPhone = "+91" + phone;
 
   // Check if already linked
-  const existing = await User.findOne({ phone: canonicalPhone });
+  const existing = await User.findOne({ phone: phone });
   if (existing && String(existing._id) !== String(req.session.user._id)) {
-    return res.render("link-phone", {
-      error: "❌ This phone number is already linked to another account.",
+     req.session.mergePhone = canonicalPhone;
+    req.session.mergeTargetUserId = existing._id;
+     return res.render("merge-confirm", {
+      phone: canonicalPhone,
+      existingUser: existing,
     });
   }
 
@@ -1014,48 +1037,137 @@ app.post("/link-phone", async (req, res) => {
   }
 });
 
-app.get("/verify-link-phone", (req, res) => {
-  res.render("verify-link-phone", { error: null });
-});
 
-app.post("/verify-link-phone", async (req, res) => {
-  const { otp } = req.body;
-  const phone = req.session.linkPhone;
-  const canonicalPhone = `+91` + phone;
+
+app.post("/merge-request", async (req, res) => {
+  const phone = req.session.mergePhone;
+  if (!phone) return res.redirect("/link-phone");
+
   try {
-    const verificationCheck = await client.verify.v2
+    await client.verify.v2
       .services(process.env.TWILIO_VERIFY_SERVICE_SID)
-      .verificationChecks.create({
-        to: canonicalPhone,
-        code: otp,
-      });
+      .verifications.create({ to: phone, channel: "sms" });
 
-    if (verificationCheck.status !== "approved") {
-      return res.render("verify-link-phone", { error: "❌ Invalid OTP." });
-    }
-
-    const user = await User.findById(req.session.user._id);
-    user.phone = phone;
-    user.isPhoneVerified = true;
-    await user.save();
-
-    // Update session
-    req.session.phone = phone;
-    req.session.user.phone = phone;
-    delete req.session.linkPhone;
-    accountCache.delete("account:" + req.session.user._id);
-    req.flash("success", "✅ Phone linked successfully.");
-    const redirectTo = req.session.pendingRedirectAfterPhoneLink || "/dashboard";
-delete req.session.pendingRedirectAfterPhoneLink;
-res.redirect(redirectTo);
-    // res.redirect("/send/step2");
+    res.render("verify-merge-phone", { phone });
   } catch (err) {
-    console.error("Error linking phone:", err);
-    res.render("verify-link-phone", {
-      error: "❌ Failed to verify. Try again.",
+    console.error("Merge OTP error:", err);
+    res.render("merge-confirm", {
+      phone,
+      error: "❌ Could not send OTP. Try again.",
     });
   }
 });
+
+
+
+app.post("/verify-merge-phone", async (req, res) => {
+  const code = req.body.code;
+  const phone = req.session.mergePhone;
+  const targetId = req.session.mergeTargetUserId;
+  const currentUser = req.session.user;
+
+  if (!code || !phone || !targetId || !currentUser) {
+    return res.redirect("/link-phone");
+  }
+
+  try {
+    const result = await client.verify.v2
+      .services(process.env.TWILIO_VERIFY_SERVICE_SID)
+      .verificationChecks.create({ to: phone, code });
+
+    if (result.status !== "approved") {
+      return res.render("verify-merge-phone", {
+        phone,
+        error: "❌ Invalid OTP. Try again.",
+      });
+    }
+
+    // 🔁 Do actual merge
+    await mergeAccounts(currentUser._id, targetId);
+
+    // Optional: clear session + login as target account
+    req.session.user = await User.findById(targetId);
+    req.session.mergePhone = null;
+    req.session.mergeTargetUserId = null;
+
+    res.redirect("/mobileDashboard");
+  } catch (err) {
+    console.error("OTP verify error:", err);
+    res.render("verify-merge-phone", {
+      phone,
+      error: "❌ Verification failed. Try again.",
+    });
+  }
+});
+
+
+
+
+async function mergeAccounts(fromUserId, toUserId) {
+  const fromUser = await User.findById(fromUserId);
+  const toUser = await User.findById(toUserId);
+
+  if (!fromUser || !toUser) {
+    throw new Error("One of the users was not found during merge.");
+  }
+  
+  // Transfer the phone number from the existing account to the current one
+   fromUser.phone =toUser.phone;
+  console.log(fromUser.phone);
+  // Save the updated current user
+  await toUser.save();
+
+  // Delete the old (from) user
+  await User.deleteOne({ _id: fromUserId });
+}
+
+
+
+
+
+
+// app.get("/verify-link-phone", (req, res) => {
+//   res.render("verify-link-phone", { error: null });
+// });
+
+// app.post("/verify-link-phone", async (req, res) => {
+//   const { otp } = req.body;
+//   const phone = req.session.linkPhone;
+//   const canonicalPhone = `+91` + phone;
+//   try {
+//     const verificationCheck = await client.verify.v2
+//       .services(process.env.TWILIO_VERIFY_SERVICE_SID)
+//       .verificationChecks.create({
+//         to: canonicalPhone,
+//         code: otp,
+//       });
+
+//     if (verificationCheck.status !== "approved") {
+//       return res.render("verify-link-phone", { error: "❌ Invalid OTP." });
+//     }
+
+//     const user = await User.findById(req.session.user._id);
+//     user.phone = phone;
+//     user.isPhoneVerified = true;
+//     await user.save();
+
+//     // Update session
+//     req.session.phone = phone;
+//     req.session.user.phone = phone;
+//     delete req.session.linkPhone;
+//     accountCache.delete("account:" + req.session.user._id);
+//     req.flash("success", "✅ Phone linked successfully.");
+//     const redirectTo = req.session.pendingRedirectAfterPhoneLink || "/dashboard";
+// delete req.session.pendingRedirectAfterPhoneLink;
+// res.redirect(redirectTo);
+//     // res.redirect("/send/step2");
+//   } catch (err) {
+//     console.error("Error linking phone:", err);
+//     res.render("verify-link-phone", {
+//       error: "❌ Failed to verify. Try again.",
+//     });
+//   }
+// });
 
 // -------------------------------------------LOGIN ROUTES---------------------------------------------------
 
@@ -1266,10 +1378,6 @@ app.post("/verify", async (req, res) => {
 });
 
 
-app.get("/verify-login", (req, res) => {
-  const phone = req.session.phone; // saved from login step
-  res.render("verify-login", { error: null, phone });
-});
 
 // app.post("/otpLogin", async (req, res) => {
   
@@ -1299,13 +1407,261 @@ app.get("/verify-login", (req, res) => {
 //   }
 // });
 
+
+
+// app.post("/otpLogin", async (req, res) => {
+//   const { phone } = req.body;
+//   req.session.phone = phone;
+
+//   await trackFunnelStep(req, "login_phone", { phone });
+
+//   // Check if ENV variables are loaded
+//   console.log("Verify SID:", process.env.TWILIO_VERIFY_SERVICE_SID);
+
+//   try {
+//     await client.verify.v2
+//       .services(process.env.TWILIO_VERIFY_SERVICE_SID)
+//       .verifications.create({
+//         to: `+91${phone}`,
+//         channel: "sms",
+//       });
+
+//     res.redirect("/verify-login");
+//   } catch (err) {
+//     console.error("OTP send error:", err); // full object
+//     res.render("login", { error: "❌ Failed to send OTP. Try again." });
+//   }
+// });
+
+
+
+
+// app.post("/verify-login", async (req, res) => {
+//   await trackFunnelStep(req, "otp_entered");
+  
+
+
+//   const { otp } = req.body;
+//   const phone = req.session.phone;
+
+//   try {
+//     const verificationCheck = await client.verify.v2
+//       .services(process.env.TWILIO_VERIFY_SERVICE_SID)
+//       .verificationChecks.create({
+//         to: `+91${phone}`,
+//         code: otp,
+//       });
+
+//     if (verificationCheck.status !== "approved") {
+//       return res.render("verify-login", {
+//         error: "❌ Invalid OTP. Try again.",
+//       });
+//     }
+
+//     let user = await User.findOne({ phone });
+// if (!user) {
+//   return res.redirect("/set-username", 
+    
+   
+//   );
+// }
+
+// if (user) {
+//   user.lastLogin = new Date();
+//   await user.save();
+// }
+
+ 
+
+//     // ✅ Existing user
+//     req.session.user = {
+//       _id: user._id,
+//       uid: user.uid,
+//       username: user.username || null,
+//       phone: user.phone || null,
+//       email: user.email || null,
+//       wallet: user.wallet || { credits: 0 },
+//     };
+
+//     delete req.session.phone;
+//     res.redirect("/mobileDashboard");
+//   } catch (err) {
+//     console.error("OTP Verify Error:", err.message);
+//     res.render("verify-login", { error: "❌ OTP verification failed." });
+//   }
+// });
+
+// app.get("/set-username", (req, res) => {
+//   if (!req.session.phone) return res.redirect("/login");
+//   res.render("set-username", { error: null });
+// });
+
+// app.post("/set-username", async (req, res) => {
+//   const { username } = req.body;
+//   const phone = req.session.phone;
+
+//   try {
+//     const existingUsername = await User.findOne({ username });
+//     if (existingUsername) {
+//       return res.render("set-username", {
+//         error: "❌ Username already taken.",
+//       });
+//     }
+
+//     const user = new User({
+//       phone,
+//       username,
+//       isPhoneVerified: true,
+//     });
+
+//     await user.save();
+
+//     req.session.user = {
+//       _id: user._id,
+//       uid: user.uid,
+//       username: user.username || null,
+//       phone: user.phone || null,
+//       email: user.email || null,
+//       wallet: user.wallet || { credits: 0 },
+//     };
+
+    
+//     res.redirect("/mobileDashboard");
+//   } catch (err) {
+//     res.render("set-username", {
+//       error: "❌ Failed to save user.",
+//     });
+//   }
+// });
+// app.post("/resend-login-otp", async (req, res) => {
+//   const phone = req.session.phone;
+
+//   if (!phone) {
+//     return res.render("login", {
+//       error: "Session expired. Please login again.",
+//     });
+//   }
+
+//   try {
+//     await client.verify.v2
+//       .services(process.env.TWILIO_VERIFY_SERVICE_SID)
+//       .verifications.create({ to: `+91${phone}`, channel: "sms" });
+
+//     console.log(`OTP resent to ${phone}`);
+//     res.redirect("/verify-login");  // session carries the phone
+//   } catch (err) {
+//     console.error("Error resending OTP:", err.message);
+//     res.render("verify-login", {
+//       error: "❌ Failed to resend OTP. Please try again.",
+//       phone,
+//     });
+//   }
+// });
+
+// ======================================================= MOBILE LIKE DESIGB==========================================================
+
+
+app.get('/auth/google', (req, res, next) => {
+  const isLinking = req.query.link === 'true';
+  const authenticator = passport.authenticate('google', {
+    scope: ['profile', 'email'],
+    state: isLinking ? 'link' : 'login',
+  });
+  authenticator(req, res, next);
+});
+
+
+
+//// GOOGLE LOGIN UPDATED NEW ROUTES
+
+// app.get('/auth/google',
+//   passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+app.get(
+  "/auth/google/callback",
+  passport.authenticate("google", { failureRedirect: "/login" }),
+  async (req, res) => {
+    try {
+      // Make sure req.user exists (should be guaranteed by passport if successful)
+      if (!req.user) {
+        return res.redirect("/login");
+      }
+
+      // Save user info to session
+      req.session.user = {
+        _id: req.user._id,
+        uid: req.user.uid,
+        username: req.user.username,
+        phone: req.user.phone || null,
+        email: req.user.email,
+        wallet: req.user.wallet || { credits: 0 },
+      };
+
+      // Find or create the user in your DB (if needed)
+      let user = await User.findOne({ username: req.user.username });
+
+      if (!user) {
+        // Be sure `googleId`, `email`, `username` are defined
+        const { googleId, email, username } = req.user;
+
+        user = await User.create({
+          googleId,
+          email,
+          username,
+          phone: req.user.phone || null,
+        });
+      }
+
+      // Update last login timestamp
+      user.lastLogin = new Date();
+      await user.save();
+
+      // Optional analytics step
+      await trackFunnelStep(req, "login_oauth", { phone: req.user.phone || null });
+
+      // Redirect to saved URL or default
+      const redirectTo = req.session.redirectTo || "/mobileDashboard";
+      delete req.session.redirectTo;
+
+      return res.redirect(redirectTo);
+    } catch (err) {
+      console.error("OAuth callback error:", err);
+      return res.redirect("/login");
+    }
+  }
+);
+
+
+app.get('/logout', (req, res) => {
+  req.logout(() => {
+    res.redirect('/');
+  });
+});
+
+
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+/// OTP LOGIN ROUTES 
+
 app.post("/otpLogin", async (req, res) => {
   const { phone } = req.body;
+
+  // Basic phone number validation
+  if (!phone || !/^\d{10}$/.test(phone)) {
+    return res.render("login", { error: "⚠️ Please enter a valid 10-digit phone number." });
+  }
+
+  // Save phone to session
   req.session.phone = phone;
 
+  // Optional: Analytics/tracking
   await trackFunnelStep(req, "login_phone", { phone });
 
-  // Check if ENV variables are loaded
+  // Debug log (ensure .env has this variable)
   console.log("Verify SID:", process.env.TWILIO_VERIFY_SERVICE_SID);
 
   try {
@@ -1316,21 +1672,34 @@ app.post("/otpLogin", async (req, res) => {
         channel: "sms",
       });
 
-    res.redirect("/verify-login");
+    return res.redirect("/verify-login");
   } catch (err) {
-    console.error("OTP send error:", err); // full object
-    res.render("login", { error: "❌ Failed to send OTP. Try again." });
+    console.error("OTP send error:", err?.message || err);
+
+    return res.render("login", {
+      error: "❌ Failed to send OTP. Please try again later.",
+    });
   }
 });
+
+app.get("/verify-login", (req, res) => {
+  const phone = req.session.phone; // saved from login step
+  res.render("verify-login", { error: null, phone });
+});
+
 
 
 app.post("/verify-login", async (req, res) => {
   await trackFunnelStep(req, "otp_entered");
-  
-
 
   const { otp } = req.body;
   const phone = req.session.phone;
+
+  if (!otp) {
+    return res.render("verify-login", {
+      error: "⚠️ Please enter a valid OTP.",
+    });
+  }
 
   try {
     const verificationCheck = await client.verify.v2
@@ -1347,21 +1716,26 @@ app.post("/verify-login", async (req, res) => {
     }
 
     let user = await User.findOne({ phone });
-if (!user) {
-  return res.redirect("/set-username", 
-    
-   
-  );
-}
 
-if (user) {
-  user.lastLogin = new Date();
-  await user.save();
-}
+    if (!user) {
+      req.session.phone = phone;
+      req.session.user = { phone };
 
- 
+      return req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.render("verify-login", {
+            error: "⚠️ Session error. Please try again.",
+          });
+        }
+        return res.redirect("/set-username");
+      });
+    }
 
-    // ✅ Existing user
+    // Safe to proceed now
+    user.lastLogin = new Date();
+    await user.save();
+
     req.session.user = {
       _id: user._id,
       uid: user.uid,
@@ -1371,18 +1745,27 @@ if (user) {
       wallet: user.wallet || { credits: 0 },
     };
 
-    delete req.session.phone;
-    res.redirect("/mobileDashboard");
+    return res.redirect("/mobileDashboard");
+
   } catch (err) {
-    console.error("OTP Verify Error:", err.message);
-    res.render("verify-login", { error: "❌ OTP verification failed." });
+    console.error("OTP Verify Error:", err?.message || err);
+    return res.render("verify-login", {
+      error: "❌ OTP verification failed. Please try again.",
+    });
   }
 });
 
+
+
+
 app.get("/set-username", (req, res) => {
-  if (!req.session.phone) return res.redirect("/login");
+  if (!req.session.user) {
+  return res.redirect("/mobileDashboard");
+}
   res.render("set-username", { error: null });
 });
+
+
 
 app.post("/set-username", async (req, res) => {
   const { username } = req.body;
@@ -1421,37 +1804,232 @@ app.post("/set-username", async (req, res) => {
     });
   }
 });
+
+
+
 app.post("/resend-login-otp", async (req, res) => {
   const phone = req.session.phone;
 
+  // Ensure session has phone number
   if (!phone) {
     return res.render("login", {
-      error: "Session expired. Please login again.",
+      error: "⚠️ Session expired. Please enter your phone number again.",
     });
   }
 
   try {
+    // Resend OTP using Twilio
     await client.verify.v2
       .services(process.env.TWILIO_VERIFY_SERVICE_SID)
-      .verifications.create({ to: `+91${phone}`, channel: "sms" });
+      .verifications.create({
+        to: `+91${phone}`,
+        channel: "sms",
+      });
 
-    console.log(`OTP resent to ${phone}`);
-    res.redirect("/verify-login");  // session carries the phone
+    console.log(`✅ OTP resent to ${phone}`);
+    return res.redirect("/verify-login");
   } catch (err) {
-    console.error("Error resending OTP:", err.message);
-    res.render("verify-login", {
+    console.error("❌ Error resending OTP:", err?.message || err);
+    return res.render("verify-login", {
       error: "❌ Failed to resend OTP. Please try again.",
       phone,
     });
   }
 });
 
-// ======================================================= MOBILE LIKE DESIGB==========================================================
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+//// LINK PHONE AFTER GOOGLE ACCOUNT
+
+
+
+app.get("/mobile/link-phone", (req, res) => {
+  res.render("link-phone", { error: null});
+});
+
+
+
+app.post("/mobile/link-phone", async (req, res) => {
+  let rawPhone = req.body.phone || "";
+  rawPhone = rawPhone.trim();
+
+  // Normalize
+  let phone = rawPhone;
+  if (phone.startsWith("+91")) {
+    phone = phone.slice(3);
+  } else if (phone.startsWith("91")) {
+    phone = phone.slice(2);
+  } else if (phone.startsWith("0")) {
+    phone = phone.slice(1);
+  }
+
+  // Now phone = "9123456789" (10-digit)
+  if (phone.length !== 10) {
+    return res.render("link-phone", {
+      error: "❌ Please enter a valid 10-digit phone number.",
+    });
+  }
+
+  // Store in canonical format: +91xxxxxxxxxx
+  const canonicalPhone = "+91" + phone;
+
+  // Check if already linked
+  const existing = await User.findOne({ phone: phone });
+  if (existing && String(existing._id) !== String(req.session.user._id)) {
+     req.session.mergePhone = canonicalPhone;
+    req.session.mergeTargetUserId = existing._id;
+     return res.render("merge-confirm", {
+      phone: canonicalPhone,
+      existingUser: existing,
+    });
+  }
+
+  try {
+    await client.verify.v2
+      .services(process.env.TWILIO_VERIFY_SERVICE_SID)
+      .verifications.create({
+        to: canonicalPhone,
+        channel: "sms",
+      });
+
+    // Save to session
+    req.session.linkPhone = phone;
+    res.redirect("/verify-link-phone");
+  } catch (err) {
+    console.error("Failed to send OTP:", err);
+    res.render("link-phone", { error: "❌ Could not send OTP. Try again." });
+  }
+});
+
+app.post("/mobile/merge-confirm", async (req, res) => {
+  const phone = req.session.mergePhone;
+  if (!phone || !req.session.mergeTargetUserId) {
+    return res.redirect("/mobile/link-phone");
+  }
+
+  try {
+    await client.verify.v2.services(process.env.TWILIO_VERIFY_SERVICE_SID).verifications.create({
+      to: phone,
+      channel: "sms",
+    });
+
+    req.session.linkPhone = phone.slice(3); // remove +91
+    req.session.isMergeFlow = true;
+    res.redirect("/verify-link-phone");
+  } catch (err) {
+    console.error("Failed to send OTP:", err);
+    res.render("link-phone", { error: "❌ Could not send OTP. Try again." });
+  }
+});
+
+
+app.get("/verify-link-phone", (req, res) => {
+  res.render("verify-link-phone", { error: null });
+});
+
+
+
+app.post("/verify-link-phone", async (req, res) => {
+  const otp = req.body.otp;
+  const phone = req.session.linkPhone;
+  const canonicalPhone = "+91" + phone;
+
+  try {
+    const verificationCheck = await client.verify.v2.services(process.env.TWILIO_VERIFY_SERVICE_SID)
+      .verificationChecks.create({
+        to: canonicalPhone,
+        code: otp,
+      });
+
+    if (verificationCheck.status !== "approved") {
+      return res.render("verify-link-phone", {
+        phone: canonicalPhone,
+        error: "❌ Invalid OTP. Try again.",
+      });
+    }
+
+    const user = await User.findById(req.session.user._id);
+
+    // Merge flow
+    if (req.session.isMergeFlow && req.session.mergeTargetUserId) {
+      const oldUser = await User.findById(req.session.mergeTargetUserId);
+
+      if (oldUser) {
+        // Optional: merge other fields like orders, history, etc. here
+
+        oldUser.phone = undefined;
+        oldUser.status = "merged";
+        await oldUser.save();
+        user.isPhoneVerified = true;
+        user.phone = phone;
+        await user.save();
+      }
+    } else {
+      user.phone = phone;
+      await user.save();
+    }
+
+    // Cleanup
+    req.session.linkPhone = null;
+    req.session.mergePhone = null;
+    req.session.mergeTargetUserId = null;
+    req.session.isMergeFlow = null;
+    const redirectTo = req.session.pendingRedirectAfterPhoneLink || "/mobileDashboard";
+    res.redirect(redirectTo);
+  } catch (err) {
+    console.error("OTP verification failed:", err);
+    res.render("verify-link-phone", {
+      phone: canonicalPhone,
+      error: "❌ OTP verification failed.",
+    });
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 app.get("/mobileDashboard", isAuthenticated, async (req, res) => {
 
   const user = await User.findById(req.session.user._id).lean();
-  if (!user) return res.status(401).json({ error: "Unauthorized" });
+  if (!user) return res.redirect("/login");
 
   try {
     // Sent by user, excluding self-storage
@@ -1517,12 +2095,16 @@ app.get("/mobile/parcel/:id", isAuthenticated,async (req, res) => {
 
 app.get("/mobile/sendParcel", isAuthenticated, async(req,res)=>{
    const user = await User.findById(req.session.user._id).lean();
+    
+  if (!user) return res.redirect("/login");
    const lockers = await Locker.find();
-    if (!user) return res.redirect("/login");
+    
     res.render("mobile/sendParcel",{user,lockers});
 })
 
 app.get("/mobile/receive", isAuthenticated, async(req,res)=>{
+     const user = await User.findById(req.session.user._id).lean();
+  if (!user) return res.redirect("/login");
     try {
     const userPhone = req.session.user.phone;
 
@@ -1547,7 +2129,7 @@ app.get("/mobile/receive", isAuthenticated, async(req,res)=>{
 app.get("/mobileAccount",isAuthenticated,async(req,res)=>{
      try {
     const user = await User.findById(req.session.user._id).lean();
-
+       if (!user) return res.redirect("/login");
     res.render("mobile/account", { user}, (err, html) => {
       if (err) {
         console.error("Error rendering /account:", err);
@@ -1566,6 +2148,8 @@ app.get("/mobileAccount",isAuthenticated,async(req,res)=>{
 
 app.get("/mobile/store",isAuthenticated,async(req,res)=>{
      try {
+       const user = await User.findById(req.session.user._id).lean();
+  if (!user) return res.redirect("/login");
     const lockersRaw = await Locker.find({}).lean();
     const lockers = lockersRaw.map((locker) => ({
       lockerId: locker.lockerId,
@@ -1593,37 +2177,60 @@ app.get("/mobile/store",isAuthenticated,async(req,res)=>{
 
 
 app.get("/mobile/send/step2", isAuthenticated, async (req, res) => {
+  try {
     const user = await User.findById(req.session.user._id);
+    if (!user) return res.redirect("/login");
+
     const size = req.query.size;
-    const savedContacts = await Contact.find({ userId: req.user._id }).sort({ createdAt: -1 });
-     const savedAddresses = await SavedAddress.find({ userId: req.user._id });
     const isSelf = req.query.self === 'true';
+
+    const savedContacts = await Contact.find({ userId: user._id }).sort({ createdAt: -1 });
+    const savedAddresses = await SavedAddress.find({ userId: user._id });
+
     if (!req.session.parcelDraft) req.session.parcelDraft = {};
+
+    // Redirect if no phone is linked
     if (!user.phone) {
-      req.session.pendingRedirectAfterPhoneLink = `/send/step2${size ? `?size=${size}` : ""}`;
+       req.session.pendingRedirectAfterPhoneLink = `/mobile/send/step2${size ? `?size=${size}` : ""}`;
       req.flash("error", "Please verify your phone number to continue.");
-      return res.redirect("/link-phone");
+      return res.redirect("/mobile/link-phone");
     }
 
+    // If a size is passed, update parcelDraft
     if (size) {
       req.session.parcelDraft.size = size;
       req.session.parcelDraft.type = "package";
       req.session.parcelDraft.description = "";
     }
+
+    // If user is sending to self, auto-fill receiver info
     if (isSelf) {
       req.session.parcelDraft.receiverName = user.username || "Self";
       req.session.parcelDraft.receiverPhone = user.phone;
       req.session.parcelDraft.isSelf = true;
-      console.log(user.phone);
-      return res.redirect("mobile/send/step3");
+      console.log("Self-send to:", user.phone);
+      return res.redirect("/mobile/send/step3");  // ✅ FIXED missing slash
     }
+
     const lockers = await Locker.find({
       "compartments.isBooked": false
     });
-    res.render("mobile/parcel/step2", { lockers, savedAddresses,savedContacts });
+
+    res.render("mobile/parcel/step2", {
+      lockers,
+      savedAddresses,
+      savedContacts
+    });
+
+  } catch (err) {
+    console.error("Error in /mobile/send/step2:", err);
+    res.status(500).send("Server error. Please try again.");
+  }
 });
 
 app.post("/mobile/send/step2", isAuthenticated, async (req, res) => {
+  
+  
     const {
     receiverName,
     receiverPhone,
@@ -1741,6 +2348,8 @@ app.post("/mobile/send/step2", isAuthenticated, async (req, res) => {
 
 
 app.get("/mobile/send/step3", isAuthenticated, async (req, res) => {
+   const user = await User.findById(req.session.user._id).lean();
+  if (!user) return res.redirect("/login");
   try {
     if (!req.session.parcelDraft) {
   req.flash("error", "Parcel draft not found. Please start again.");
@@ -1882,6 +2491,8 @@ app.get("/mobile/send/step3", isAuthenticated, async (req, res) => {
 });
 
 app.get("/mobile/parcel/:id/receiver-pay", isAuthenticated, async (req, res) => {
+   const user = await User.findById(req.session.user._id).lean();
+  if (!user) return res.redirect("/login");
   const parcel = await Parcel2.findById(req.params.id);
   if (!parcel) return res.status(404).send("Parcel not found");
 
@@ -1969,6 +2580,8 @@ const parcel = await Parcel2.findOne({
 
 
 app.get("/mobile/send/estimate",isAuthenticated, async(req,res)=>{
+   const user = await User.findById(req.session.user._id).lean();
+  if (!user) return res.redirect("/login");
   try{
     const draft = req.session.parcelDraft;
     if(
@@ -2098,6 +2711,8 @@ app.get("/mobile/view/parcel/:id/success", async (req, res) => {
 
 app.get("/mobile/parcel/:id/success", async (req, res) => {
     const user = await User.findById(req.session.user._id);
+       
+  if (!user) return res.redirect("/login");
     const parcelid = req.params.id;
     const parcel = await Parcel2.findById(req.params.id);
     if (!parcel) return res.status(404).send("Parcel not found");
@@ -2119,6 +2734,13 @@ app.get("/mobile/parcel/:id/success", async (req, res) => {
 //// STORE VIA LOCKER CATALOGUE
 
 app.get("/mobile/send/select-locker/:lockerId",isAuthenticated, async(req,res) =>{
+
+
+
+     const user = await User.findById(req.session.user._id).lean();
+  if (!user) return res.redirect("/login");
+  
+
   const lockerId = req.params.lockerId;
   const locker = await Locker.findOne({lockerId : lockerId});
 
@@ -2126,12 +2748,20 @@ app.get("/mobile/send/select-locker/:lockerId",isAuthenticated, async(req,res) =
     req.flash("error","Locker Not Found");
     return res.redirect("/mobile/store");
   }
+    if (!user.phone) {
+     
+       req.session.pendingRedirectAfterPhoneLink = `/mobile/send/select-locker/${lockerId}`;
+      req.flash("error", "Please verify your phone number to continue.");
+      return res.redirect("/mobile/link-phone");
+    }
 
   res.render("mobile/parcel/select-size", {locker});
 });
 
 
 app.post("/mobile/send/select-locker/:lockerId", isAuthenticated, async (req, res) => {
+   const user = await User.findById(req.session.user._id).lean();
+  if (!user) return res.redirect("/login");
   const lockerId = req.params.lockerId;
   const size = req.body.size;
   const locker = await Locker.findOne({ lockerId });
@@ -2139,6 +2769,7 @@ app.post("/mobile/send/select-locker/:lockerId", isAuthenticated, async (req, re
     req.flash("error", "Locker not found");
     return res.redirect("/mobile/store");
   }
+   
   
   req.session.parcelDraft = { 
     isSelf: true,
@@ -2284,7 +2915,7 @@ app.get("/send/step2", isAuthenticated, async (req, res) => {
   }
 
   if (!user.phone) {
-    req.session.pendingRedirectAfterPhoneLink = `/send/step2${size ? `?size=${size}` : ""}`;
+    // req.session.pendingRedirectAfterPhoneLink = `/send/step2${size ? `?size=${size}` : ""}`;
     req.flash("error", "Please verify your phone number to continue.");
     return res.redirect("/link-phone");
   }

@@ -1,0 +1,7 @@
+<h4>Verify Ownership</h4>
+<p>We sent an OTP to <%= phone %>. Enter it below to confirm merging.</p>
+
+<form method="POST" action="/verify-merge-phone">
+  <input name="code" class="form-control" placeholder="Enter OTP" required />
+  <button type="submit" class="btn btn-success mt-2">Verify and Merge</button>
+</form>

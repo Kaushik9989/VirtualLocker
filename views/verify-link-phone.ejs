@@ -1,66 +1,100 @@
-<% layout("/layouts/boilerplate") %>
+<!DOCTYPE html>
+<html lang="en">
 
-<style>
-  .verify-container {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-    background: #f8fafc;
-  }
+<head>
+  <meta charset="UTF-8">
+  <title>Parcel Status - Verify Phone</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f8f9fc;
+      font-family: 'Segoe UI', sans-serif;
+    }
 
-  .verify-card {
-    background: white;
-    border-radius: 1rem;
-    padding: 2rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-    width: 100%;
-    max-width: 420px;
-  }
+    .verify-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
 
-  .verify-btn {
-    background: #28a745;
-    border: none;
-    font-weight: 500;
-    transition: background 0.2s ease;
-  }
+    .verify-card {
+      background: white;
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+    }
 
-  .verify-btn:hover {
-    background: #218838;
-  }
+    .verify-card h4 {
+      font-weight: 600;
+      color: #343a40;
+    }
 
-  .verify-input {
-    height: 48px;
-    font-size: 1rem;
-  }
-</style>
+    .verify-input {
+      font-size: 1.1rem;
+      text-align: center;
+      letter-spacing: 3px;
+      border-radius: 10px;
+      padding: 0.75rem;
+    }
 
-<div class="verify-container">
-  <div class="verify-card">
-    <h4 class="text-center mb-4">🔐 Verify Your Phone</h4>
+    .verify-btn {
+      background-color: #28a745;
+      color: white;
+      font-weight: 600;
+      font-size: 1rem;
+      border-radius: 12px;
+      transition: background-color 0.2s ease;
+    }
 
-    <% if (error) { %>
-      <div class="alert alert-danger text-center small">
-        <%= error %>
-      </div>
-    <% } %>
+    .verify-btn:hover {
+      background-color: #218838;
+    }
 
-    <form method="POST" action="/verify-link-phone">
-      <div class="mb-3">
-        <label for="otp" class="form-label">Enter OTP</label>
-        <input
-          type="text"
-          class="form-control verify-input"
-          name="otp"
-          maxlength="6"
-          placeholder="6-digit code"
-          required
-        />
-      </div>
-      <button type="submit" class="btn verify-btn w-100 py-2">
-        ✅ Verify & Continue
-      </button>
-    </form>
+    .alert {
+      font-size: 0.9rem;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <%- include('partials/navbar') %>
+
+  <div class="verify-container">
+    <div class="verify-card">
+      <h4 class="text-center mb-4">🔐 Verify Your Phone</h4>
+
+      <% if (error) { %>
+        <div class="alert alert-danger text-center small">
+          <%= error %>
+        </div>
+      <% } %>
+
+      <form method="POST" action="/verify-link-phone">
+        <div class="mb-3">
+          <label for="otp" class="form-label">Enter OTP</label>
+          <input
+            type="text"
+            class="form-control verify-input"
+            name="otp"
+            maxlength="6"
+            placeholder="6-digit code"
+            required
+          />
+        </div>
+        <button type="submit" class="btn btn-primary verify-btn w-100 py-2">
+          ✅ Verify & Continue
+        </button>
+      </form>
+    </div>
   </div>
-</div>
+
+</body>
+
+</html>
