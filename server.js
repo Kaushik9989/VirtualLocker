@@ -2593,7 +2593,7 @@ app.get("/mobile/send/estimate",isAuthenticated, async(req,res)=>{
       req.flash("error", "Incomplete data for delivery estimation");
       return res.redirect("/mobile/send/step2");
     }
-    const token  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjcyODMwMzksInNvdXJjZSI6InNyLWF1dGgtaW50IiwiZXhwIjoxNzU0MTUwODA1LCJqdGkiOiJvc1R3VFNWWFQ4YnNObG9GIiwiaWF0IjoxNzUzMjg2ODA1LCJpc3MiOiJodHRwczovL3NyLWF1dGguc2hpcHJvY2tldC5pbi9hdXRob3JpemUvdXNlciIsIm5iZiI6MTc1MzI4NjgwNSwiY2lkIjo3MDUxNjYyLCJ0YyI6MzYwLCJ2ZXJib3NlIjpmYWxzZSwidmVuZG9yX2lkIjowLCJ2ZW5kb3JfY29kZSI6IiJ9.kds27l6abl8baauEq4PvpbtVXHUmUFkw7FBsjZ8ZYsY';
+    const token  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjcyODMwMzksInNvdXJjZSI6InNyLWF1dGgtaW50IiwiZXhwIjoxNzU1MTU4NzE0LCJqdGkiOiJyTHVTRlFnSHF2T2RaOFhXIiwiaWF0IjoxNzU0Mjk0NzE0LCJpc3MiOiJodHRwczovL3NyLWF1dGguc2hpcHJvY2tldC5pbi9hdXRob3JpemUvdXNlciIsIm5iZiI6MTc1NDI5NDcxNCwiY2lkIjo3MDUxNjYyLCJ0YyI6MzYwLCJ2ZXJib3NlIjpmYWxzZSwidmVuZG9yX2lkIjowLCJ2ZW5kb3JfY29kZSI6IiJ9.3x5fpkbgqJjHLhj2pimF_rSBnVk08OCP8cprFpHuVMk';
 
     const headers = {
       "Content-Type": "application/json",
