@@ -134,84 +134,84 @@ app.use(passport.session());
 
 
 
-passport.use(
-  new GoogleStrategy(
-    {
-      clientID: "587834679125-34p3obvnjoa9o8qsa4asgrgubneh5atg.apps.googleusercontent.com",
-      clientSecret: "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",
-      callbackURL: process.env.GOOGLE_CALLBACK_URL,
-      passReqToCallback: true, // Needed to access `req` in verify function
-    },
-    async (req, accessToken, refreshToken, profile, done) => {
-      try {
-        // If user is already logged in, link their account
-        if (req.user) {
-          const currentUser = await User.findById(req.user._id);
-          if (!currentUser) return done(null, false);
-
-          currentUser.googleId = profile.id;
-          currentUser.email = currentUser.email || profile.emails?.[0]?.value;
-          await currentUser.save();
-
-          return done(null, currentUser);
-        }
-
-        // Otherwise: normal login or signup
-        let user = await User.findOne({ googleId: profile.id });
-
-        if (!user) {
-          user = new User({
-            username: profile.displayName,
-            googleId: profile.id,
-            email: profile.emails?.[0]?.value,
-          });
-          await user.save();
-        }
-
-        return done(null, user);
-      } catch (err) {
-        return done(err);
-      }
-    }
-  )
-);
-
-
-
-
-
-
-
-
-
-
-
-
-
 // passport.use(
 //   new GoogleStrategy(
 //     {
-//       clientID:
-//         "587834679125-34p3obvnjoa9o8qsa4asgrgubneh5atg.apps.googleusercontent.com", // from Google Cloud
-//       clientSecret: "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", // from Google Cloud
+//       clientID: "587834679125-34p3obvnjoa9o8qsa4asgrgubneh5atg.apps.googleusercontent.com",
+//       clientSecret: "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",
 //       callbackURL: process.env.GOOGLE_CALLBACK_URL,
-//       // callbackURL: "https://virtuallocker.onrender.com/auth/google/callback",
-//       // callbackURL:"http://localhost:8080/auth/google/callback",
+//       passReqToCallback: true, // Needed to access `req` in verify function
 //     },
-//     async (accessToken, refreshToken, profile, done) => {
-//       // Find or create user in DB
-//       const user = await User.findOne({ googleId: profile.id });
-//       if (user) return done(null, user);
-//       const newUser = new User({
-//         username: profile.displayName,
-//         googleId: profile.id,
-//         email: profile.emails[0].value,
-//       });
-//       await newUser.save();
-//       done(null, newUser);
+//     async (req, accessToken, refreshToken, profile, done) => {
+//       try {
+//         // If user is already logged in, link their account
+//         if (req.user) {
+//           const currentUser = await User.findById(req.user._id);
+//           if (!currentUser) return done(null, false);
+
+//           currentUser.googleId = profile.id;
+//           currentUser.email = currentUser.email || profile.emails?.[0]?.value;
+//           await currentUser.save();
+
+//           return done(null, currentUser);
+//         }
+
+//         // Otherwise: normal login or signup
+//         let user = await User.findOne({ googleId: profile.id });
+
+//         if (!user) {
+//           user = new User({
+//             username: profile.displayName,
+//             googleId: profile.id,
+//             email: profile.emails?.[0]?.value,
+//           });
+//           await user.save();
+//         }
+
+//         return done(null, user);
+//       } catch (err) {
+//         return done(err);
+//       }
 //     }
 //   )
 // );
+
+
+
+
+
+
+
+
+
+
+
+
+
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID:
+        "587834679125-34p3obvnjoa9o8qsa4asgrgubneh5atg.apps.googleusercontent.com", // from Google Cloud
+      clientSecret: "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", // from Google Cloud
+      callbackURL: process.env.GOOGLE_CALLBACK_URL,
+      // callbackURL: "https://virtuallocker.onrender.com/auth/google/callback",
+      // callbackURL:"http://localhost:8080/auth/google/callback",
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      // Find or create user in DB
+      const user = await User.findOne({ googleId: profile.id });
+      if (user) return done(null, user);
+      const newUser = new User({
+        username: profile.displayName,
+        googleId: profile.id,
+        email: profile.emails[0].value,
+      });
+      await newUser.save();
+      done(null, newUser);
+    }
+  )
+);
 
 
 
@@ -1967,6 +1967,7 @@ app.post("/verify-link-phone", async (req, res) => {
       }
     } else {
       user.phone = phone;
+      user.isPhoneVerified = true;
       await user.save();
     }
 
