@@ -2723,7 +2723,7 @@ app.get("/mobile/parcel/:id/success", async (req, res) => {
     contentSid: 'HX38edc7859ecff729dae14e0ce41923bb', 
     contentVariables: JSON.stringify({
       1: `${user.username}`, // Sender name
-      2: `${parcelid}/qrpage` // Parcel ID
+      2: `${parcelid}/qr` // Parcel ID
 })
 }).then(message => console.log('✅ WhatsApp Message Sent:', message.sid))
 .catch(error => console.error('❌ WhatsApp Message Error:', error));
