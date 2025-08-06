@@ -4,78 +4,139 @@
   <meta charset="UTF-8">
   <title>Parcel Status</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+
   <style>
-  @media (min-width: 768px) {
-    .helli {
-      margin-left: 200px;
+    .navbar {
+      background-color: #ffffff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      z-index: 1060;
     }
-  }
-  .top-dashboard-btn {
-    margin-top: 20px;
-    margin-left: 15px;
-  }
 
-  .card-custom {
-    border-radius: 1rem;
-    box-shadow: 0 0 20px rgba(0,0,0,0.05);
-    padding: 2rem;
-  }
+    .navbar-brand {
+      font-weight: 700;
+      font-size: 1.5rem;
+      color: #1a1a1a;
+    }
 
-  .otp-box {
-    font-size: 1.75rem;
-    font-weight: bold;
-    color: #0d6efd;
-    border: 2px dashed #0d6efd;
-    padding: 0.75rem 2rem;
-    border-radius: 0.5rem;
-    display: inline-block;
-    background-color: #f8f9fa;
-  }
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
 
-  .qr-img {
-    max-width: 250px;
-    border-radius: 1rem;
-    box-shadow: 0 0 12px rgba(0,0,0,0.1);
-  }
+    .dropdown-menu {
+      animation: slideDown 0.3s ease forwards;
+      transform-origin: top;
+    }
 
-  .action-buttons button {
-    min-width: 150px;
-  }
-</style>
+    .card-custom {
+      border-radius: 1rem;
+      box-shadow: 0 0 20px rgba(0,0,0,0.05);
+      padding: 2rem;
+    }
 
+    .otp-box {
+      font-size: 1.75rem;
+      font-weight: bold;
+      color: #0d6efd;
+      border: 2px dashed #0d6efd;
+      padding: 0.75rem 2rem;
+      border-radius: 0.5rem;
+      display: inline-block;
+      background-color: #f8f9fa;
+    }
 
+    .qr-img {
+      max-width: 250px;
+      border-radius: 1rem;
+      box-shadow: 0 0 12px rgba(0,0,0,0.1);
+    }
+
+    .action-buttons button {
+      min-width: 150px;
+    }
+  </style>
 </head>
-<body class="bg-light">
 
+<body>
   <!-- Navbar -->
-  <%- include('../../partials/navbar') %>
+<!-- Navbar -->
+<nav class="navbar navbar-light px-3 py-2 sticky-top shadow-sm">
+  <div class="d-flex align-items-center w-100 justify-content-between">
+    <!-- Back Button and Logo -->
+    <div class="d-flex align-items-center">
+      <a href="/mobileDashboard" class="btn btn-link p-0 me-3" style="font-size: 1.2rem; color: #333;">
+        <i class="fas fa-arrow-left"></i>
+      </a>
+      <a class="navbar-brand d-flex align-items-center mb-0" href="/mobileDashboard">
+        <img src="/uploads/mobile-logo.png" alt="Logo" height="40" class="me-2" />
+        <span>DropPoint</span>
+      </a>
+    </div>
+
+    <!-- User Dropdown -->
+    <div class="dropdown">
+      <a href="#" class="d-flex align-items-center justify-content-center rounded-circle bg-light shadow-sm p-2"
+        id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="width: 42px; height: 42px;">
+        <i class="fa-solid fa-user fa-lg" style="color: #f6a534;"></i>
+      </a>
+      <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3" aria-labelledby="userDropdown">
+        <li>
+          <a class="dropdown-item d-flex align-items-center gap-2 mt-1 mb-1" href="/mobileDashboard">
+            <i class="fa-solid fa-house text-primary"></i> Home
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item d-flex align-items-center gap-2 mt-1 mb-1" href="/mobileAccount">
+            <i class="fa-solid fa-user-gear text-success"></i> Profile
+          </a>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+          <a class="dropdown-item d-flex align-items-center gap-2 text-danger mt-1 mb-1" href="/logout">
+            <i class="fa-solid fa-right-from-bracket"></i> Logout
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
 
   <!-- Main Content -->
   <div class="container py-5">
-    <div class="text-center card-custom bg-white">
+    <div class="card-custom bg-white text-center">
+
       <% if (parcel.paymentOption === "receiver_pays") { %>
-        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <div class="alert alert-warning alert-dismissible fade show mt-3" role="alert">
           🚧 Waiting for receiver's payment. You'll be notified to drop off the parcel once they pay.
           <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
       <% } else { %>
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
           ✅ QR is active! Drop your parcel at any nearby locker by scanning it.
           <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
       <% } %>
 
-      <h2 class="fw-bold text-success mb-4">✅ Parcel Booked Successfully!</h2>
+      <h2 class="fw-bold text-success my-4">✅ Parcel Booked Successfully!</h2>
 
-      <img src="<%= parcel.qrImage %>" alt="QR Code" class="qr-img" />
-      <p class="text-muted mt-2">Scan this QR at any DropPoint locker to drop your parcel.</p>
+      <img src="<%= parcel.qrImage %>" alt="QR Code" class="qr-img mb-2" />
+      <p class="text-muted">Scan this QR at any DropPoint locker to drop your parcel.</p>
 
       <h5 class="mt-4 mb-2">🔐 OTP Access Code</h5>
-      <div class="otp-box"><%= parcel.accessCode %></div>
+      <div class="otp-box mb-4"><%= parcel.accessCode %></div>
 
-      <div class="mt-4 text-start mx-auto" style="max-width: 500px;">
+      <div class="text-start mx-auto" style="max-width: 500px;">
         <h6 class="fw-bold">📦 Parcel Details</h6>
         <p><strong>Type:</strong> <%= parcel.type %></p>
         <p><strong>Size:</strong> <%= parcel.size %></p>
@@ -97,36 +158,41 @@
       <a href="/mobileDashboard" class="btn btn-primary mt-5 px-4">Back to Dashboard</a>
     </div>
   </div>
-</div>
 
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+    crossorigin="anonymous"></script>
+
+  <!-- Inline Scripts -->
+  <script>
+    function shareQR() {
+      if (navigator.share) {
+        navigator.share({
+          title: "📦 Your Parcel QR",
+          text: "Scan this QR at any locker to drop your parcel.",
+          url: "<%= parcel.unlockUrl %>"
+        }).catch(console.error);
+      } else {
+        alert("Your browser doesn't support Web Share.");
+      }
+    }
+
+    function copyLink() {
+      navigator.clipboard.writeText("<%= parcel.unlockUrl %>");
+      alert("✅ Link copied to clipboard");
+    }
+
+    function trackUserAction(step, method = 'pageview') {
+      fetch('/analytics/user-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ step, method, path: window.location.pathname })
+      });
+    }
+
+    trackUserAction('payment_completed');
+    trackUserAction('parcel_booked');
+  </script>
 </body>
 </html>
-<script>
-  function shareQR() {
-    if (navigator.share) {
-      navigator.share({
-        title: "📦 Your Parcel QR",
-        text: "Scan this QR at any locker to drop your parcel.",
-        url: "<%= parcel.unlockUrl %>"
-      }).catch(console.error);
-    } else {
-      alert("Your browser doesn't support Web Share.");
-    }
-  }
-
-  function copyLink() {
-    navigator.clipboard.writeText("<%= parcel.unlockUrl %>");
-    alert("✅ Link copied to clipboard");
-  }
-
-  function trackUserAction(step, method = 'pageview') {
-    fetch('/analytics/user-action', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ step, method, path: window.location.pathname })
-    });
-  }
-
-  trackUserAction('payment_completed');
-  trackUserAction('parcel_booked');
-</script>
