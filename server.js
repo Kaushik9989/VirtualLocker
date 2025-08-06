@@ -2720,10 +2720,10 @@ app.get("/mobile/parcel/:id/success", async (req, res) => {
      await client.messages.create({
     to: `whatsapp:+91${user.phone}`,
     from: 'whatsapp:+15558076515',
-    contentSid: 'HX8dc7a5b23a3a6a2a7ce8a4d2e577ac3c', 
+    contentSid: 'HX38edc7859ecff729dae14e0ce41923bb', 
     contentVariables: JSON.stringify({
       1: `${user.username}`, // Sender name
-      2: `mobile/incoming/${parcelid}/qrpage` // Parcel ID
+      2: `${parcelid}/qrpage` // Parcel ID
 })
 }).then(message => console.log('✅ WhatsApp Message Sent:', message.sid))
 .catch(error => console.error('❌ WhatsApp Message Error:', error));
