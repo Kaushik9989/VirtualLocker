@@ -2372,9 +2372,9 @@ app.get("/mobile/send/step3", isAuthenticated, async (req, res) => {
     let qrImage;
     console.log(lockerId);
     if (lockerId) {
-      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode, lockerId, prestatus }));
+      qrImage = await QRCode.toDataURL(accessCode);
     } else {
-      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode, prestatus }));
+      qrImage = await QRCode.toDataURL(accessCode);
     }
 
     // Check store_self logic
