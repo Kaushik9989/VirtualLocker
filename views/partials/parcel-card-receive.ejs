@@ -35,7 +35,7 @@
     Details
   </a>
 
-  <% if (parcel.status === 'awaiting_drop' || parcel.status === 'awaiting_pick') { %>
+  <% if (parcel.status === 'awaiting_pick') { %>
     <a href="/mobile/incoming/<%= parcel._id %>/qr" class="btn btn-sm btn-outline-success" style="border-radius: 8px; padding: 0.4rem 1rem;">
       QR Code
     </a>
