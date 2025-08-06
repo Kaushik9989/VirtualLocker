@@ -2795,11 +2795,11 @@ app.get("/mobile/incoming/:id/qr", async (req, res) => {
   const parcelLocker = parcel.lockerId || "";
   const accessCode = parcel.accessCode;
   let qrImage;
-    if (parcelLocker != "") {
-      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode, parcelLocker }));
-    } else {
-      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode }));
-    }
+    
+      qrImage = await QRCode.toDataURL(accessCode);
+    
+
+
   if (!parcel) return res.status(404).send("Parcel not found");
   if (!parcel.qrImage)
     return res.status(400).send("No QR code saved for this parcel");
