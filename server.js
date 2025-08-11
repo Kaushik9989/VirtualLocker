@@ -2700,20 +2700,15 @@ app.get("/mobile/payment/success", isAuthenticated, async (req, res) => {
 
 
 app.get("/mobile/view/parcel/:id/success", async (req, res) => {
-    const user = await User.findById(req.session.user._id);
     const parcelid = req.params.id;
     const parcel = await Parcel2.findById(req.params.id);
     if (!parcel) return res.status(404).send("Parcel not found");
     
-
-
   res.render("mobile/parcel/success", { parcel });
 });
 
 app.get("/mobile/parcel/:id/success", async (req, res) => {
-    const user = await User.findById(req.session.user._id);
-       
-  if (!user) return res.redirect("/login");
+
     const parcelid = req.params.id;
     const parcel = await Parcel2.findById(req.params.id);
     if (!parcel) return res.status(404).send("Parcel not found");
@@ -2722,7 +2717,7 @@ app.get("/mobile/parcel/:id/success", async (req, res) => {
     from: 'whatsapp:+15558076515',
     contentSid: 'HX38edc7859ecff729dae14e0ce41923bb', 
     contentVariables: JSON.stringify({
-      1: `${user.username}`, // Sender name
+      1: `${parcel.senderName}`, // Sender name
       2: `${parcelid}/qr` // Parcel ID
 })
 }).then(message => console.log('✅ WhatsApp Message Sent:', message.sid))
