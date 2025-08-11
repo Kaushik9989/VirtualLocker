@@ -2035,7 +2035,7 @@ app.get("/mobileDashboard", isAuthenticated, async (req, res) => {
   try {
     // Sent by user, excluding self-storage
     const sentParcels = await Parcel2.find({
-      senderId: user._id,
+      senderPhone : user.phone,
       store_self: { $ne: true }
     })
       .sort({ createdAt: -1 })
@@ -2051,7 +2051,7 @@ app.get("/mobileDashboard", isAuthenticated, async (req, res) => {
 
     // Optional: Self-stored parcels
     const storedParcels = await Parcel2.find({
-      senderId: user._id,
+      senderPhone : user.phone,
       store_self: true
     })
       .sort({ createdAt: -1 })
