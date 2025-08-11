@@ -2713,7 +2713,7 @@ app.get("/mobile/parcel/:id/success", async (req, res) => {
     const parcel = await Parcel2.findById(req.params.id);
     if (!parcel) return res.status(404).send("Parcel not found");
      await client.messages.create({
-    to: `whatsapp:+91${user.phone}`,
+    to: `whatsapp:+91${parcel.senderPhone}`,
     from: 'whatsapp:+15558076515',
     contentSid: 'HX38edc7859ecff729dae14e0ce41923bb', 
     contentVariables: JSON.stringify({
