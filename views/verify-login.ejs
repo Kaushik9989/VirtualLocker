@@ -394,7 +394,20 @@
         font-family: 'Poppins', sans-serif;
       }
     </style>
+  
+<style>
+  /* Hide arrows in Chrome, Safari, Edge, Opera */
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
 
+  /* Hide arrows in Firefox */
+  input[type=number] {
+    -moz-appearance: textfield;
+  }
+</style>
   </head>
 
 <body>
@@ -418,11 +431,15 @@
                   <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
               </div>
               <% } %>
-
+                <!-- Warning Alert -->
+                <div class="alert alert-warning text-center small mb-3" role="alert">
+                  ⚠️ Do not refresh, go back, or close this page until you complete verification.
+                  Your OTP will expire if you leave.
+                </div>
                 <!-- OTP Form -->
                 <form method="POST" action="/verify-login" class="mt-3">
                   <div class="mb-3">
-                    <input type="text" name="otp" id="otp" maxlength="6" placeholder="______"
+                    <input type="number" name="otp" id="otp" maxlength="6" placeholder="______"
                       class="form-control otp-input rounded" required />
                   </div>
                   <button type="submit" class="btn btn-success btn-lg w-100 btn-login">
@@ -439,12 +456,12 @@
                   </button>
                 </form>
                 </p>
-
           </div>
         </div>
       </div>
     </div>
   </div>
+
   <script>
     try {
       // Track OTP screen viewed

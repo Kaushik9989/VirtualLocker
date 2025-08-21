@@ -1693,7 +1693,9 @@ app.post("/verify-login", async (req, res) => {
   await trackFunnelStep(req, "otp_entered");
 
   const { otp } = req.body;
+  console.log(otp);
   const phone = req.session.phone;
+  console.log(phone);
 
   if (!otp) {
     return res.render("verify-login", {
@@ -1800,7 +1802,7 @@ app.post("/set-username", async (req, res) => {
     res.redirect("/mobileDashboard");
   } catch (err) {
     res.render("set-username", {
-      error: "❌ Failed to save user.",
+      error: err,
     });
   }
 });
@@ -1831,7 +1833,7 @@ app.post("/resend-login-otp", async (req, res) => {
   } catch (err) {
     console.error("❌ Error resending OTP:", err?.message || err);
     return res.render("verify-login", {
-      error: "❌ Failed to resend OTP. Please try again.",
+      error: err,
       phone,
     });
   }
@@ -1898,7 +1900,7 @@ app.post("/mobile/link-phone", async (req, res) => {
     res.redirect("/verify-link-phone");
   } catch (err) {
     console.error("Failed to send OTP:", err);
-    res.render("link-phone", { error: "❌ Could not send OTP. Try again." });
+    res.render("link-phone", { error: err});
   }
 });
 
@@ -1976,13 +1978,13 @@ app.post("/verify-link-phone", async (req, res) => {
     req.session.mergePhone = null;
     req.session.mergeTargetUserId = null;
     req.session.isMergeFlow = null;
-    const redirectTo = req.session.pendingRedirectAfterPhoneLink || "/mobileDashboard";
+    const redirectTo = req.session.pendingRedirectAfterPhoneLink || "/mobile/sendParcel";
     res.redirect(redirectTo);
   } catch (err) {
     console.error("OTP verification failed:", err);
     res.render("verify-link-phone", {
       phone: canonicalPhone,
-      error: "❌ OTP verification failed.",
+      error: err,
     });
   }
 });
@@ -2089,7 +2091,10 @@ app.delete('/mobile/parcel/del/:id', async (req, res) => {
 });
 app.get("/mobile/parcel/:id", isAuthenticated,async (req, res) => {
   const parcel = await Parcel2.findById(req.params.id);
-  res.render("mobile/parcel-tracking", { parcel });
+   const now = new Date();
+  const isExpired = now > parcel.expiresAt;
+
+  res.render("mobile/parcel-tracking", { parcel, isExpired });
 });
 
 
@@ -2404,7 +2409,8 @@ app.get("/mobile/send/step3", isAuthenticated, async (req, res) => {
     let razorpayPaymentLink = null;
     let status = "awaiting_drop";
     let paymentStatus = "completed";
-    let expiresAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+   let expiresAt = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000);
+
 
     // Handle both sender and receiver pay
     
@@ -2800,6 +2806,56 @@ app.get("/mobile/incoming/:id/qr", async (req, res) => {
     return res.status(400).send("No QR code saved for this parcel");
   res.render("mobile/qrPage", { parcel,qrImage });
 });
+
+
+app.post("/:parcelId/extend/create-order", async (req, res) => {
+  try {
+    const parcel = await Parcel.findById(req.params.parcelId);
+    if (!parcel) return res.status(404).json({ error: "Parcel not found" });
+
+    // Example pricing based on size
+    let amount = 0;
+    if (parcel.size === "small") amount = 30; // ₹20
+    if (parcel.size === "medium") amount = 4000; // ₹40
+    if (parcel.size === "large") amount = 6000; // ₹60
+
+    const order = await razorpay.orders.create({
+      amount: amount, // in paise
+      currency: "INR",
+      receipt: `extend_${parcel._id}_${Date.now()}`
+    });
+
+    res.json({
+      key: process.env.RAZORPAY_KEY_ID,
+      amount: order.amount,
+      currency: order.currency,
+      orderId: order.id
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to create order" });
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

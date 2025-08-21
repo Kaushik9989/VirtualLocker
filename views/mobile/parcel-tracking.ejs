@@ -172,6 +172,7 @@
           <% } %>
 
             <!-- Header -->
+            <!-- Header -->
             <div class="d-flex justify-content-between flex-wrap mb-3">
               <h5 class="mb-2">Parcel ID: <span class="text-primary">
                   <%= parcel.customId %>
@@ -183,42 +184,73 @@
                 <small><strong>Expires:</strong>
                   <%= new Date(parcel.expiresAt).toLocaleString() %>
                 </small>
+
+                <% if (isExpired) { %>
+
+                  <div class="mt-2">
+                    <p style="
+                      background-color: #ffebeb;
+                      color: #d8000c; 
+                      font-weight: bold;
+                      padding:  6px;
+                      border-radius: 6px;
+                      border: 1px solid #d8000c;
+                      display: inline-block;
+                      font-size: 0.95rem;
+                      margin-top: 8px;
+                      ">
+                      🚫PARCEL EXPIRED!!
+                    </p>
+                  </br>
+                    <button class="btn btn-success btn-sm me-2" onclick="extendExpiry('<%= parcel._id %>')">
+                      ⏳Extend Parcel
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="cancelParcel('<%= parcel._id %>')">
+                      ❌Cancel Parcel
+                    </button>
+                  </div>
+                  <% } %>
               </div>
             </div>
+
 
             <!-- Step Tracker -->
             <!-- Vertical Step Timeline -->
             <!-- Vertical Step Timeline -->
-           
+
             <!-- Vertical Step Timeline -->
-<div class="section-header mt-4">Parcel Status</div>
-<div class="timeline position-relative border-start ps-3">
+            <div class="section-header mt-4">Parcel Status</div>
+            <div class="timeline position-relative border-start ps-3">
 
-  <% const steps = [
-    { key: "awaiting_payment", label: "⏳ Awaiting Payment", msg: "Waiting for sender to pay" },
-    { key: "awaiting_drop", label: "💳✅ Payment Completed", msg: "Payment successful, waiting for drop" },
-    { key: "awaiting_pick", label: "📦🔒 Dropped", msg: "Parcel is in the locker, awaiting pickup" },
-    { key: "picked", label: "✅📬 Picked", msg: "Receiver has collected the parcel" }
-  ];
+              <% const steps=[ { key: "awaiting_payment" , label: "⏳ Awaiting Payment" ,
+                msg: "Waiting for sender to pay" }, { key: "awaiting_drop" , label: "💳✅ Payment Completed" ,
+                msg: "Payment successful, waiting for drop" }, { key: "awaiting_pick" , label: "📦🔒 Dropped" ,
+                msg: "Parcel is in the locker, awaiting pickup" }, { key: "picked" , label: "✅📬 Picked" ,
+                msg: "Receiver has collected the parcel" } ]; const currentIndex=steps.findIndex(step=> step.key ===
+                parcel.status);
+                %>
 
-  const currentIndex = steps.findIndex(step => step.key === parcel.status);
-  %>
-
-  <% steps.forEach((step, index) => { %>
-    <div class="mb-4 d-flex align-items-start">
-      <div class="circle-status me-3
+                <% steps.forEach((step, index)=> { %>
+                  <div class="mb-4 d-flex align-items-start">
+                    <div class="circle-status me-3
         <% if (index < currentIndex) { %> done
         <% } else if (index === currentIndex) { %> active
         <% } else { %> upcoming <% } %>">
-        <span><%= index + 1 %></span>
-      </div>
-      <div>
-        <div class="fw-semibold"><%= step.label %></div>
-        <small class="text-muted"><%= step.msg %></small>
-      </div>
-    </div>
-  <% }); %>
-</div>
+                      <span>
+                        <%= index + 1 %>
+                      </span>
+                    </div>
+                    <div>
+                      <div class="fw-semibold">
+                        <%= step.label %>
+                      </div>
+                      <small class="text-muted">
+                        <%= step.msg %>
+                      </small>
+                    </div>
+                  </div>
+                  <% }); %>
+            </div>
 
 
 
@@ -233,7 +265,7 @@
                 <p><strong>Receiver:</strong>
                   <%= parcel.receiverName || 'N/A' %>
                 </p>
-                 <p><strong>Receiver Phone Number:</strong>
+                <p><strong>Receiver Phone Number:</strong>
                   <%= parcel.receiverPhone || 'N/A' %>
                 </p>
                 <p><strong>Description:</strong>
@@ -258,6 +290,52 @@
             </div>
       </div>
     </div>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+function extendExpiry(parcelId) {
+  fetch(`/parcel/${parcelId}/extend/create-order`, { method: "POST" })
+    .then(res => res.json())
+    .then(data => {
+      var options = {
+        key: data.key,
+        amount: data.amount,
+        currency: data.currency,
+        name: "DropPoint",
+        description: "Extend Parcel Expiry",
+        order_id: data.orderId,
+        handler: function () {
+          fetch(`/parcel/${parcelId}/extend/confirm`, { method: "POST" })
+            .then(res => res.json())
+            .then(result => {
+              if (result.success) {
+                alert(`✅ Timeline extended. New expiry: ${new Date(result.newExpiry).toLocaleString()}`);
+                location.reload();
+              }
+            });
+        },
+        theme: { color: "#3399cc" }
+      };
+      var rzp = new Razorpay(options);
+      rzp.open();
+    })
+    .catch(() => alert("❌ Failed to start payment"));
+}
+
+function cancelParcel(parcelId) {
+  if (confirm("Are you sure you want to cancel this parcel?")) {
+    fetch(`/parcel/${parcelId}/cancel`, { method: "POST" })
+      .then(res => res.json())
+      .then(result => {
+        if (result.success) {
+          alert("🚫 Parcel cancelled successfully.");
+          window.location.href = "/mobileDashboard";
+        } else {
+          alert("❌ Failed to cancel parcel.");
+        }
+      });
+  }
+}
+</script>
 
 </body>
 

@@ -2,23 +2,30 @@
 <html>
 <head>
   <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-DPJJFZLL9L"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-DPJJFZLL9L');
-</script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-DPJJFZLL9L"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-DPJJFZLL9L');
+  </script>
   <title>Verify OTP</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
 </head>
 <body class="d-flex align-items-center justify-content-center min-vh-100 bg-light">
+
   <div class="card p-4 shadow" style="min-width: 350px;">
     <h3 class="mb-3">Verify OTP</h3>
+
+    <!-- Warning Alert -->
+    <div class="alert alert-warning py-2 mb-3" role="alert">
+      ⚠️ Do not reload or close this page until you finish verification.
+    </div>
+
     <% if (error) { %>
       <div class="alert alert-danger"><%= error %></div>
     <% } %>
+
     <form action="/verify-login-otp" method="POST">
       <input type="hidden" name="phone" value="<%= phone %>">
       <div class="mb-3">
@@ -30,6 +37,14 @@
       </div>
     </form>
   </div>
+
+  <script>
+    // Warn the user before reload/close
+    window.addEventListener("beforeunload", function (e) {
+      e.preventDefault();
+      e.returnValue = "If you reload or leave this page, your OTP session may expire.";
+    });
+  </script>
+
 </body>
 </html>
- 
