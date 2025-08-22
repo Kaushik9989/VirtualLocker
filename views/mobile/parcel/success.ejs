@@ -178,10 +178,7 @@
       }
     }
 
-    function copyLink() {
-      navigator.clipboard.writeText("<%= parcel.unlockUrl %>");
-      alert("✅ Link copied to clipboard");
-    }
+
 
     function trackUserAction(step, method = 'pageview') {
       fetch('/analytics/user-action', {
@@ -194,5 +191,31 @@
     trackUserAction('payment_completed');
     trackUserAction('parcel_booked');
   </script>
+  <script>
+  function copyLink() {
+    const url = "<%- parcel.unlockUrl %>"; // Use <%- ... %> to avoid HTML escaping
+    if (!navigator.clipboard) {
+      // fallback for older browsers
+      const tempInput = document.createElement('input');
+      tempInput.value = url;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempInput);
+      alert("✅ Link copied to clipboard");
+      return;
+    }
+
+    navigator.clipboard.writeText(url)
+      .then(() => {
+        alert("✅ Link copied to clipboard");
+      })
+      .catch(err => {
+        console.error(err);
+        alert("❌ Failed to copy link");
+      });
+  }
+</script>
+
 </body>
 </html>
