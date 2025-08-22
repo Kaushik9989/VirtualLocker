@@ -103,9 +103,9 @@
   .left-sidebar {
     width: 95%;
     left: 2.5%;
-    bottom: 70px;
+    bottom: 5px;
     top: auto;
-    max-height: 42vh; /* slightly more space on mobile */
+    max-height: 300px; /* slightly more space on mobile */
   }
 }
 
@@ -114,6 +114,16 @@
         right: 16px;
       }
     }
+    .left-sidebar-header {
+  position: sticky;
+  top: 0; /* stays at the top of the sidebar */
+  z-index: 10; /* above the cards */
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  padding: 1rem;
+  font-weight: bold;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
   </style>
 </head>
 <body class="bg-light">
@@ -122,7 +132,10 @@
   <div class="main-layout">
     <div id="locker-map"></div>
     <div class="left-sidebar">
-      <h5 class="fw-bold mb-3">📍 Nearby Lockers</h5>
+      
+      <div class="left-sidebar-header">
+    📍 Nearby Lockers
+  </div>
     </div>
   </div>
 <script>
@@ -213,7 +226,7 @@
         <div class="location-header">
           <span>${locker.lockerId}</span>
           <span class="text-success fw-semibold">
-            Available: ${available}/${locker.compartments.length}
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Available: ${available}/${locker.compartments.length}
           </span>
         </div>
         <div class="location-sub">
