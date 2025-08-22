@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>Parcel Status</title>
@@ -27,6 +28,7 @@
         opacity: 0;
         transform: translateY(-10px);
       }
+
       to {
         opacity: 1;
         transform: translateY(0);
@@ -40,7 +42,7 @@
 
     .card-custom {
       border-radius: 1rem;
-      box-shadow: 0 0 20px rgba(0,0,0,0.05);
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
       padding: 2rem;
     }
 
@@ -58,7 +60,7 @@
     .qr-img {
       max-width: 250px;
       border-radius: 1rem;
-      box-shadow: 0 0 12px rgba(0,0,0,0.1);
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
     }
 
     .action-buttons button {
@@ -69,93 +71,104 @@
 
 <body>
   <!-- Navbar -->
-<!-- Navbar -->
-<nav class="navbar navbar-light px-3 py-2 sticky-top shadow-sm">
-  <div class="d-flex align-items-center w-100 justify-content-between">
-    <!-- Back Button and Logo -->
-    <div class="d-flex align-items-center">
-      <a href="/mobileDashboard" class="btn btn-link p-0 me-3" style="font-size: 1.2rem; color: #333;">
-        <i class="fas fa-arrow-left"></i>
-      </a>
-      <a class="navbar-brand d-flex align-items-center mb-0" href="/mobileDashboard">
-        <img src="/uploads/mobile-logo.png" alt="Logo" height="40" class="me-2" />
-        <span>DropPoint</span>
-      </a>
-    </div>
+  <!-- Navbar -->
+  <nav class="navbar navbar-light px-3 py-2 sticky-top shadow-sm">
+    <div class="d-flex align-items-center w-100 justify-content-between">
+      <!-- Back Button and Logo -->
+      <div class="d-flex align-items-center">
+        <a href="/mobileDashboard" class="btn btn-link p-0 me-3" style="font-size: 1.2rem; color: #333;">
+          <i class="fas fa-arrow-left"></i>
+        </a>
+        <a class="navbar-brand d-flex align-items-center mb-0" href="/mobileDashboard">
+          <img src="/uploads/mobile-logo.png" alt="Logo" height="40" class="me-2" />
+          <span>DropPoint</span>
+        </a>
+      </div>
 
-    <!-- User Dropdown -->
-    <div class="dropdown">
-      <a href="#" class="d-flex align-items-center justify-content-center rounded-circle bg-light shadow-sm p-2"
-        id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="width: 42px; height: 42px;">
-        <i class="fa-solid fa-user fa-lg" style="color: #f6a534;"></i>
-      </a>
-      <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3" aria-labelledby="userDropdown">
-        <li>
-          <a class="dropdown-item d-flex align-items-center gap-2 mt-1 mb-1" href="/mobileDashboard">
-            <i class="fa-solid fa-house text-primary"></i> Home
-          </a>
-        </li>
-        <li>
-          <a class="dropdown-item d-flex align-items-center gap-2 mt-1 mb-1" href="/mobileAccount">
-            <i class="fa-solid fa-user-gear text-success"></i> Profile
-          </a>
-        </li>
-        <li><hr class="dropdown-divider"></li>
-        <li>
-          <a class="dropdown-item d-flex align-items-center gap-2 text-danger mt-1 mb-1" href="/logout">
-            <i class="fa-solid fa-right-from-bracket"></i> Logout
-          </a>
-        </li>
-      </ul>
+      <!-- User Dropdown -->
+      <div class="dropdown">
+        <a href="#" class="d-flex align-items-center justify-content-center rounded-circle bg-light shadow-sm p-2"
+          id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="width: 42px; height: 42px;">
+          <i class="fa-solid fa-user fa-lg" style="color: #f6a534;"></i>
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3" aria-labelledby="userDropdown">
+          <li>
+            <a class="dropdown-item d-flex align-items-center gap-2 mt-1 mb-1" href="/mobileDashboard">
+              <i class="fa-solid fa-house text-primary"></i> Home
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item d-flex align-items-center gap-2 mt-1 mb-1" href="/mobileAccount">
+              <i class="fa-solid fa-user-gear text-success"></i> Profile
+            </a>
+          </li>
+          <li>
+            <hr class="dropdown-divider">
+          </li>
+          <li>
+            <a class="dropdown-item d-flex align-items-center gap-2 text-danger mt-1 mb-1" href="/logout">
+              <i class="fa-solid fa-right-from-bracket"></i> Logout
+            </a>
+          </li>
+        </ul>
+      </div>
     </div>
-  </div>
-</nav>
+  </nav>
 
 
   <!-- Main Content -->
   <div class="container py-5">
     <div class="card-custom bg-white text-center">
 
-      <% if (parcel.paymentOption === "receiver_pays") { %>
+      <% if (parcel.paymentOption==="receiver_pays" ) { %>
         <div class="alert alert-warning alert-dismissible fade show mt-3" role="alert">
           🚧 Waiting for receiver's payment. You'll be notified to drop off the parcel once they pay.
           <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
-      <% } else { %>
-        <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
-          ✅ QR is active! Drop your parcel at any nearby locker by scanning it.
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-      <% } %>
+        <% } else { %>
+          <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
+            ✅ QR is active! Drop your parcel at any nearby locker by scanning it.
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+          <% } %>
 
-      <h2 class="fw-bold text-success my-4">✅ Parcel Booked Successfully!</h2>
+            <h2 class="fw-bold text-success my-4">✅ Parcel Booked Successfully!</h2>
 
-      <img src="<%= parcel.qrImage %>" alt="QR Code" class="qr-img mb-2" />
-      <p class="text-muted">Scan this QR at any DropPoint locker to drop your parcel.</p>
+            <img src="<%= parcel.qrImage %>" alt="QR Code" class="qr-img mb-2" />
+            <p class="text-muted">Scan this QR at any DropPoint locker to drop your parcel.</p>
 
-      <h5 class="mt-4 mb-2">🔐 OTP Access Code</h5>
-      <div class="otp-box mb-4"><%= parcel.accessCode %></div>
+            <h5 class="mt-4 mb-2">🔐 OTP Access Code</h5>
+            <div class="otp-box mb-4">
+              <%= parcel.accessCode %>
+            </div>
 
-      <div class="text-start mx-auto" style="max-width: 500px;">
-        <h6 class="fw-bold">📦 Parcel Details</h6>
-        <p><strong>Type:</strong> <%= parcel.type %></p>
-        <p><strong>Size:</strong> <%= parcel.size %></p>
-        <p><strong>Receiver:</strong> <%= parcel.receiverName %> (<%= parcel.receiverPhone %>)</p>
-        <p><strong>Expires At:</strong> 
-          <%= new Date(parcel.expiresAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) %>
-        </p>
-      </div>
+            <div class="text-start mx-auto" style="max-width: 500px;">
+              <h6 class="fw-bold">📦 Parcel Details</h6>
+              <p><strong>Type:</strong>
+                <%= parcel.type %>
+              </p>
+              <p><strong>Size:</strong>
+                <%= parcel.size %>
+              </p>
+              <p><strong>Receiver:</strong>
+                <%= parcel.receiverName %> (<%= parcel.receiverPhone %>)
+              </p>
+              <p><strong>Expires At:</strong>
+                <%= new Date(parcel.expiresAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) %>
+              </p>
+            </div>
 
-      <div class="mt-4 d-flex justify-content-center gap-3 flex-wrap action-buttons">
-        <button class="btn btn-success" onclick="shareQR()">
-          <i class="fas fa-share-alt me-1"></i> Share QR
-        </button>
-        <button class="btn btn-outline-secondary" onclick="copyLink()">
-          <i class="fas fa-copy me-1"></i> Copy Link
-        </button>
-      </div>
+            <div class="mt-4 d-flex justify-content-center gap-3 flex-wrap action-buttons">
+              <button class="btn btn-success" onclick="shareQR()">
+                <i class="fas fa-share-alt me-1"></i> Share QR
+              </button>
+<button class="btn btn-outline-secondary" 
+        onclick='copyLink(`https://demo.droppoint.in/mobile/view/parcel/<%- parcel._id %>/success`)'>
+  <i class="fas fa-copy me-1"></i> Copy Link
+</button>
+            </div>
 
-      <a href="/mobileDashboard" class="btn btn-primary mt-5 px-4">Back to Dashboard</a>
+            <a href="/mobileDashboard" class="btn btn-primary mt-5 px-4">Back to Dashboard</a>
     </div>
   </div>
 
@@ -171,15 +184,12 @@
         navigator.share({
           title: "📦 Your Parcel QR",
           text: "Scan this QR at any locker to drop your parcel.",
-          url: "<%= parcel.unlockUrl %>"
+          url: "https://demo.droppoint.in/mobile/view/parcel/<%- parcel._id %>/success"
         }).catch(console.error);
       } else {
         alert("Your browser doesn't support Web Share.");
       }
     }
-
-
-
     function trackUserAction(step, method = 'pageview') {
       fetch('/analytics/user-action', {
         method: 'POST',
@@ -191,31 +201,33 @@
     trackUserAction('payment_completed');
     trackUserAction('parcel_booked');
   </script>
-  <script>
-  function copyLink() {
-    const url = "<%- parcel.unlockUrl %>"; // Use <%- ... %> to avoid HTML escaping
-    if (!navigator.clipboard) {
-      // fallback for older browsers
-      const tempInput = document.createElement('input');
-      tempInput.value = url;
-      document.body.appendChild(tempInput);
-      tempInput.select();
-      document.execCommand('copy');
-      document.body.removeChild(tempInput);
-      alert("✅ Link copied to clipboard");
-      return;
-    }
+<script>
+function copyLink(url) {
+  if (!url) return alert("❌ URL not found");
 
+  if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(url)
-      .then(() => {
-        alert("✅ Link copied to clipboard");
-      })
-      .catch(err => {
-        console.error(err);
-        alert("❌ Failed to copy link");
-      });
+      .then(() => alert("✅ Link copied to clipboard"))
+      .catch(err => fallbackCopy(url));
+  } else {
+    fallbackCopy(url);
   }
+
+  function fallbackCopy(text) {
+    const tempInput = document.createElement('input');
+    tempInput.value = text;
+    document.body.appendChild(tempInput);
+    tempInput.select();
+    tempInput.setSelectionRange(0, 99999);
+    document.execCommand('copy');
+    document.body.removeChild(tempInput);
+    alert("✅ Link copied to clipboard");
+  }
+}
+
 </script>
 
+
 </body>
+
 </html>
