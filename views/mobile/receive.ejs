@@ -172,7 +172,7 @@
  
   <span>Expires At : <%= new Date(parcel.expiresAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) %></span>
   <% if (parcel.compartmentId) { %>
-    <span><i class="fas fa-door-open"></i> Compartment <%= parcel.compartmentId %></span>
+    <span><i class="fas fa-door-open"></i> Compartment <%= parcel.UsercompartmentId %></span>
   <% } %>
   <% if (parcel.lockerId) { %>
     <span><i class="fas fa-warehouse"></i> Locker <%= parcel.lockerId %></span>

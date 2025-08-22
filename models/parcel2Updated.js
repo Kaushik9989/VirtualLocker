@@ -15,6 +15,7 @@ const ParcelSchema = new mongoose.Schema({
   location_id: { type: mongoose.Schema.Types.ObjectId, ref: "DropLocation" }, // optional for tracking region
   lockerId: { type: String },                 // Actual drop locker
   compartmentId: { type: String },
+  UsercompartmentId: { type: String },
   destinationLockerId: { type: String },      // Selected destination locker (optional)
   lockerLat: { type: String },
   lockerLng: { type: String },
