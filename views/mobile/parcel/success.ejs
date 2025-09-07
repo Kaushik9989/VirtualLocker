@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -183,10 +184,10 @@
 
       <!-- TOP: QR and OTP -->
       <div class="top-area">
-        <img src="<%= parcel.qrImage %>" alt="QR Code" class="qr-img" />
+        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAHQAAAB0CAYAAABUmhYnAAAAAklEQVR4AewaftIAAAK7SURBVO3BQW7jUAwFwX6E7n/lHi+5+oAh2Uk4rIovrDGKNUqxRinWKMUapVijFGuUYo1SrFGKNUqxRinWKMUapVijFGuUYo1ycVMSvknlJAmdyh1J+CaVO4o1SrFGKdYoFw9TeVIS7khCp3KHypOS8KRijVKsUYo1ysWHJeEdKu9IwolKl4RO5Y4kvEPlk4o1SrFGKdYoF8MloVPpktCp/GXFGqVYoxRrlIthVLok/E+KNUqxRinWKBcfpvJNSehUuiR0Kneo/CbFGqVYoxRrlIuHJeEnqXRJ6FS6JHQqJ0n4zYo1SrFGKdYo8YU/LAknKv+TYo1SrFGKNcrFTUnoVLokPEmlU+mScJKETuUkCU9S+aRijVKsUYo1SnzhhiScqJwk4UTljiQ8SeUdSXiHyh3FGqVYoxRrlIuHqZwk4USlS8KTVLokdCpdErokdCpdEt6h8qRijVKsUYo1SnzhhiScqPykJDxJ5Tcr1ijFGqVYo1zcpNIloUtCp9IloVPpktCpdEnoVE5UuiR0KidJ6FS6JHQqXRJOVO4o1ijFGqVYo1w8TOUdKicqf4nKiconFWuUYo1SrFHiCzck4ZtU7khCp9IloVM5SUKn0iWhU+mS0KncUaxRijVKsUa5eJjKk5JwkoRO5UTlROUkCXckoVN5UrFGKdYoxRrl4sOS8A6VJyXhRKVLQqfSqXRJeIfKJxVrlGKNUqxRLoZJwjuScJKETqVT6ZLQqXxTsUYp1ijFGuViGJV3JKFT6ZLQJaFT6VR+UrFGKdYoxRrl4sNUPkmlS0Kn0iXhJAknKidJ6FS6JHQqTyrWKMUapVijXDwsCd+UhE7lRKVLQqdykoROpVPpktCpfFKxRinWKMUaJb6wxijWKMUapVijFGuUYo1SrFGKNUqxRinWKMUapVijFGuUYo1SrFGKNco/8icg25Ru96AAAAAASUVORK5CYII=" alt="QR Code" class="qr-img" />
         <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
           <h5 class="mb-0" style="font-weight:700;color:#0f5132;">✅ Parcel Booked</h5>
-          <div class="otp-box" id="otpBox"><%= parcel.accessCode %></div>
+          <div class="otp-box" id="otpBox">199110</div>
           <!-- make OTP copyable on tap for mobile -->
           <button id="copyOtpBtn" class="btn btn-sm btn-outline-secondary mt-1" style="display:none;">Copy OTP</button>
         </div>
@@ -194,11 +195,9 @@
 
       <!-- Middle: status -->
       <div class="middle-area">
-        <% if (parcel.paymentOption === "receiver_pays") { %>
-          <div class="alert alert-warning mb-0 w-100 text-center">🚧 Waiting for receiver's payment. You'll be notified once they pay.</div>
-        <% } else { %>
+        
           <div class="alert alert-success mb-0 w-100 text-center">✅ QR is active! Drop your parcel at any nearby locker by scanning it.</div>
-        <% } %>
+        
       </div>
 
       <!-- BOTTOM: details and actions -->
@@ -206,12 +205,12 @@
         <div class="details">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
             <h4 class="fw-bold mb-1">Parcel Details</h4>
-            <small class="text-muted">Expires: <%= new Date(parcel.expiresAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) %></small>
+            <small class="text-muted">Expires: 8/9/2025, 2:51:21 am</small>
           </div>
 
-          <p><strong>Type:</strong> <%= parcel.type %></p>
-          <p><strong>Size:</strong> <%= parcel.size %></p>
-          <p><strong>Receiver:</strong> <%= parcel.receiverName %> (<%= parcel.receiverPhone %>)</p>
+          <p><strong>Type:</strong> package</p>
+          <p><strong>Size:</strong> small</p>
+          <p><strong>Receiver:</strong> Vivek Kaushik (6281672715)</p>
 
           <div style="margin-top:8px;"><h6 class="mb-1">Instructions</h6>
             <p class="text-muted" style="font-size:0.95rem;">Scan the QR code at any DropPoint locker and enter the OTP if prompted. Keep this link or QR accessible to the receiver if they are paying or collecting.</p>
@@ -220,7 +219,7 @@
 
         <div class="action-buttons">
           <button class="btn btn-success" onclick="shareQR()"><i class="fas fa-share-alt me-1"></i> Share QR</button>
-          <button class="btn btn-outline-secondary" onclick='copyLink(`https://demo.droppoint.in/mobile/view/parcel/<%- parcel._id %>/success`)'><i class="fas fa-copy me-1"></i> Copy Link</button>
+          <button class="btn btn-outline-secondary" onclick='copyLink(`https://demo.droppoint.in/mobile/view/parcel/68bddb31044d9f4575504c79/success`)'><i class="fas fa-copy me-1"></i> Copy Link</button>
           <a href="/mobileDashboard" class="btn btn-primary">Back to Dashboard</a>
         </div>
 
@@ -239,7 +238,7 @@
         navigator.share({
           title: "📦 Your Parcel QR",
           text: "Scan this QR at any locker to drop your parcel.",
-          url: "https://demo.droppoint.in/mobile/view/parcel/<%- parcel._id %>/success"
+          url: "https://demo.droppoint.in/mobile/view/parcel/68bddb31044d9f4575504c79/success"
         }).catch(console.error);
       } else {
         alert("Your browser doesn't support Web Share.");
