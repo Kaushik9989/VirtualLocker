@@ -114,7 +114,7 @@
     
     <div class="info-block mt-3">
       <div><i class="fas fa-lock"></i> Locker: <strong><%= parcel.lockerId || 'N/A' %></strong></div>
-      <div><i class="fas fa-cube"></i> Compartment: <strong><%= parcel.compartmentId || 'N/A' %></strong></div>
+      <div><i class="fas fa-cube"></i> Compartment: <strong><%= parseInt(parcel.compartmentId)+1 || 'N/A' %></strong></div>
       <div><i class="fas fa-key"></i> Access Code: <strong><%= parcel.accessCode %></strong></div>
     </div>
 
