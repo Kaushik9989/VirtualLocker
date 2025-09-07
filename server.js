@@ -11,15 +11,6 @@ const Version = require("./models/Version.js");
 const methodOverride = require('method-override');
 
 const axios = require("axios");
-const locationsCache = new LRU.LRUCache({
-  max: 10,
-  ttl: 1000 * 60 * 5, // 5 min
-});
-
-const accountCache = new LRU.LRUCache({
-  max: 500,
-  ttl: 1000 * 60 * 2, // 2 min cache (you can adjust)
-});
 const uaParser = require("ua-parser-js");
 const session = require("express-session");
 const MongoStore = require("connect-mongo");
@@ -91,12 +82,13 @@ app.use(
       ttl: 60 * 60 * 24 * 7, // 7 days in seconds
     }),
     cookie: {
-       secure: false,         // Must be false if not using HTTPS locally
+    secure: false,     // Must be false if not using HTTPS locally
     httpOnly: true,
     sameSite: "lax",       // Prevents cross-site issues
-    maxAge: 1000 * 60 * 15 // 15 minutes/ must be false for local dev without HTTPS
+   maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
       
     },
+      rolling: true, 
   })
 );
 
@@ -1988,39 +1980,6 @@ app.post("/verify-link-phone", async (req, res) => {
     });
   }
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
