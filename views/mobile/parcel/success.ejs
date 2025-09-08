@@ -1,249 +1,183 @@
-
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
   <meta charset="UTF-8">
   <title>Parcel Status</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
 
   <style>
-    /* Base: full viewport, prevent body-level scrolling so layout fits one screen */
     html, body {
       height: 100%;
       margin: 0;
-      padding: 0;
-      overflow: hidden;
-      background-color: #f5f6fb;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      -webkit-tap-highlight-color: transparent;
+      background: linear-gradient(180deg, #f7fbff 0%, #ffffff 100%);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
     }
 
     .navbar {
-      background-color: #ffffff;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      background-color: rgba(255,255,255,0.95);
+      backdrop-filter: blur(6px);
+      box-shadow: 0 6px 18px rgba(22, 28, 37, 0.06);
       z-index: 1060;
-      height: 58px; /* slightly smaller on mobile */
-      padding: 6px 12px;
     }
 
-    .navbar-brand { font-weight: 700; font-size: 1.25rem; color: #1a1a1a; }
-
-    /* Root layout: column flex, split into top (QR+OTP), middle (status), bottom (details+actions) */
-    .page-root {
-      display: flex;
-      flex-direction: column;
-      height: calc(100vh - 58px);
-      gap: 8px;
-      align-items: center;
-      justify-content: flex-start;
-      padding: 10px;
-      box-sizing: border-box;
+    .main-container {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 1rem;
     }
 
-    .card-custom {
+    .qr-large {
       width: 100%;
-      max-width: 720px;
-      height: 100%;
-      border-radius: 14px;
-      box-shadow: 0 6px 30px rgba(10, 25, 47, 0.06);
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
-      box-sizing: border-box;
-    }
-
-    /* TOP area: for mobile we stack QR above OTP */
-    .top-area {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 14px;
-      padding: 6px;
-      flex: 0 0 auto;
-      width: 100%;
-    }
-
-    .qr-img {
-      width: clamp(170px, 36vw, 340px);
-      height: auto;
-      border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(13, 110, 253, 0.12);
-      padding: 8px;
+      max-width: 340px;
+      margin: 0 auto;
+      display: block;
+      border-radius: 1rem;
+      box-shadow: 0 10px 30px rgba(13,110,253,0.08);
       background: #fff;
-      flex-shrink: 0;
+      padding: 10px;
     }
 
     .otp-box {
-      font-size: clamp(20px, 5.5vw, 34px);
+      font-size: 2.2rem;
+      letter-spacing: 6px;
       font-weight: 800;
-      color: #0d6efd;
-      border: 3px dashed #0d6efd;
-      padding: 10px 18px;
+      color: #0b5ed7;
+      border: 3px dashed rgba(11,94,215,0.12);
+      padding: 1rem 1.5rem;
       border-radius: 0.75rem;
       display: inline-block;
-      background-color: #f8f9ff;
-      min-width: 170px;
+      background-color: #f1f7ff;
+      min-width: 240px;
       text-align: center;
-      box-shadow: 0 6px 18px rgba(13,110,253,0.06);
     }
 
-    .middle-area { flex: 0 0 auto; display:flex; width:100%; }
-    .middle-area .alert { width:100%; margin:0; border-radius:10px; font-size:0.95rem; }
-
-    .bottom-area {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      padding: 6px;
-      flex: 1 1 auto;
-      overflow: hidden;
+    .details-section {
+      margin-top: 2rem;
     }
 
-    /* Allow details to scroll internally if needed (so the whole page doesn't) */
-    .details {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      padding: 10px;
-      background: rgba(250,250,255,0.6);
-      border-radius: 10px;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
-      flex: 1 1 auto;
-      overflow: auto;
-      -webkit-overflow-scrolling: touch;
+    .details-section .item {
+      margin-bottom: 1rem;
     }
 
-    .details p { margin:0; font-size: 0.95rem; }
+    .action-buttons button { min-width: 160px; }
 
-    .action-buttons { display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap; }
-    .action-buttons button, .action-buttons a { min-width: 140px; }
-
-    .bottom-links { display:flex; justify-content:center; align-items:center; gap:12px; padding:4px 0; flex-shrink:0; }
-
-    /* MOBILE-FRIENDLY: for small widths, stack and enlarge tappable areas */
-    @media (max-width: 480px) {
-      .page-root { padding: 8px; }
-      .top-area { flex-direction: column; gap: 10px; }
-      .qr-img { width: min(68vw, 320px); }
-      .otp-box { font-size: clamp(22px, 7vw, 40px); padding: 12px 20px; }
-      .navbar-brand { font-size: 1.05rem; }
-      .action-buttons { flex-direction: column; padding-bottom: 6px; }
-      .action-buttons button, .action-buttons a { width: 100%; min-width: 0; }
-      .details { padding: 8px; font-size: 0.95rem; }
-      .card-custom { border-radius: 12px; padding: 8px; }
+    @media (max-width: 720px) {
+      .otp-box { font-size: 1.8rem; letter-spacing: 4px; }
+      .qr-large { max-width: 260px; }
+      .action-buttons button { min-width: 140px; width: 100%; margin-bottom: 0.5rem; }
     }
-
-    /* VERY SMALL HEIGHT devices (old phones) reduce some spacing */
-    @media (max-height: 640px) {
-      .navbar { height: 52px; }
-      .page-root { height: calc(100vh - 52px); }
-      .otp-box { padding: 8px 14px; }
-      .qr-img { width: clamp(140px, 40vw, 260px); }
-    }
-
   </style>
 </head>
 
 <body>
-  <nav class="navbar navbar-light px-2 py-1 sticky-top shadow-sm">
+  <!-- Navbar -->
+  <nav class="navbar navbar-light px-3 py-2">
     <div class="d-flex align-items-center w-100 justify-content-between">
       <div class="d-flex align-items-center">
-        <a href="/mobileDashboard" class="btn btn-link p-0 me-2" style="font-size: 1.1rem; color: #333;">
+        <a href="/mobileDashboard" class="btn btn-link p-0 me-3" style="font-size: 1.2rem; color: #333;">
           <i class="fas fa-arrow-left"></i>
         </a>
         <a class="navbar-brand d-flex align-items-center mb-0" href="/mobileDashboard">
-          <img src="/uploads/mobile-logo.png" alt="Logo" height="34" class="me-2 d-none d-sm-inline" />
+          <img src="/uploads/mobile-logo.png" alt="Logo" height="40" class="me-2" />
           <span>DropPoint</span>
         </a>
       </div>
 
       <div class="dropdown">
         <a href="#" class="d-flex align-items-center justify-content-center rounded-circle bg-light shadow-sm p-2"
-          id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="width: 40px; height: 40px;">
+          id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="width: 42px; height: 42px;">
           <i class="fa-solid fa-user fa-lg" style="color: #f6a534;"></i>
         </a>
         <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3" aria-labelledby="userDropdown">
-          <li><a class="dropdown-item d-flex align-items-center gap-2" href="/mobileDashboard"><i class="fa-solid fa-house text-primary"></i> Home</a></li>
-          <li><a class="dropdown-item d-flex align-items-center gap-2" href="/mobileAccount"><i class="fa-solid fa-user-gear text-success"></i> Profile</a></li>
+          <li>
+            <a class="dropdown-item d-flex align-items-center gap-2 mt-1 mb-1" href="/mobileDashboard">
+              <i class="fa-solid fa-house text-primary"></i> Home
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item d-flex align-items-center gap-2 mt-1 mb-1" href="/mobileAccount">
+              <i class="fa-solid fa-user-gear text-success"></i> Profile
+            </a>
+          </li>
           <li><hr class="dropdown-divider"></li>
-          <li><a class="dropdown-item d-flex align-items-center gap-2 text-danger" href="/logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a></li>
+          <li>
+            <a class="dropdown-item d-flex align-items-center gap-2 text-danger mt-1 mb-1" href="/logout">
+              <i class="fa-solid fa-right-from-bracket"></i> Logout
+            </a>
+          </li>
         </ul>
       </div>
     </div>
   </nav>
 
-  <div class="page-root">
-    <div class="card-custom">
+  <!-- Main Content -->
+  <div class="main-container">
 
-      <!-- TOP: QR and OTP -->
-      <div class="top-area">
-        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAHQAAAB0CAYAAABUmhYnAAAAAklEQVR4AewaftIAAAK7SURBVO3BQW7jUAwFwX6E7n/lHi+5+oAh2Uk4rIovrDGKNUqxRinWKMUapVijFGuUYo1SrFGKNUqxRinWKMUapVijFGuUYo1ycVMSvknlJAmdyh1J+CaVO4o1SrFGKdYoFw9TeVIS7khCp3KHypOS8KRijVKsUYo1ysWHJeEdKu9IwolKl4RO5Y4kvEPlk4o1SrFGKdYoF8MloVPpktCp/GXFGqVYoxRrlIthVLok/E+KNUqxRinWKBcfpvJNSehUuiR0Kneo/CbFGqVYoxRrlIuHJeEnqXRJ6FS6JHQqJ0n4zYo1SrFGKdYo8YU/LAknKv+TYo1SrFGKNcrFTUnoVLokPEmlU+mScJKETuUkCU9S+aRijVKsUYo1SnzhhiScqJwk4UTljiQ8SeUdSXiHyh3FGqVYoxRrlIuHqZwk4USlS8KTVLokdCpdErokdCpdEt6h8qRijVKsUYo1SnzhhiScqPykJDxJ5Tcr1ijFGqVYo1zcpNIloUtCp9IloVPpktCpdEnoVE5UuiR0KidJ6FS6JHQqXRJOVO4o1ijFGqVYo1w8TOUdKicqf4nKiconFWuUYo1SrFHiCzck4ZtU7khCp9IloVM5SUKn0iWhU+mS0KncUaxRijVKsUa5eJjKk5JwkoRO5UTlROUkCXckoVN5UrFGKdYoxRrl4sOS8A6VJyXhRKVLQqfSqXRJeIfKJxVrlGKNUqxRLoZJwjuScJKETqVT6ZLQqXxTsUYp1ijFGuViGJV3JKFT6ZLQJaFT6VR+UrFGKdYoxRrl4sNUPkmlS0Kn0iXhJAknKidJ6FS6JHQqTyrWKMUapVijXDwsCd+UhE7lRKVLQqdykoROpVPpktCpfFKxRinWKMUaJb6wxijWKMUapVijFGuUYo1SrFGKNUqxRinWKMUapVijFGuUYo1SrFGKNco/8icg25Ru96AAAAAASUVORK5CYII=" alt="QR Code" class="qr-img" />
-        <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
-          <h5 class="mb-0" style="font-weight:700;color:#0f5132;">✅ Parcel Booked</h5>
-          <div class="otp-box" id="otpBox">199110</div>
-          <!-- make OTP copyable on tap for mobile -->
-          <button id="copyOtpBtn" class="btn btn-sm btn-outline-secondary mt-1" style="display:none;">Copy OTP</button>
-        </div>
+    <% if (parcel.paymentOption==="receiver_pays" ) { %>
+      <div class="alert alert-warning alert-dismissible fade show mt-2" role="alert">
+        🚧 Waiting for receiver's payment. You'll be notified to drop off the parcel once they pay.
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
       </div>
-
-      <!-- Middle: status -->
-      <div class="middle-area">
-        
-          <div class="alert alert-success mb-0 w-100 text-center">✅ QR is active! Drop your parcel at any nearby locker by scanning it.</div>
-        
+    <% } else { %>
+      <div class="alert alert-success alert-dismissible fade show mt-2" role="alert">
+        ✅ QR is active! Drop your parcel at any nearby locker by scanning it.
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
       </div>
+    <% } %>
 
-      <!-- BOTTOM: details and actions -->
-      <div class="bottom-area">
-        <div class="details">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-            <h4 class="fw-bold mb-1">Parcel Details</h4>
-            <small class="text-muted">Expires: 8/9/2025, 2:51:21 am</small>
-          </div>
+    <div class="text-center mt-4">
+      <h2 class="fw-bold text-success mb-3">✅ Parcel Booked Successfully!</h2>
+      <img src="<%= parcel.qrImage %>" alt="QR Code" class="qr-large mb-3" />
+      <div class="otp-box mb-3"><%= parcel.accessCode %></div>
+    </div>
 
-          <p><strong>Type:</strong> package</p>
-          <p><strong>Size:</strong> small</p>
-          <p><strong>Receiver:</strong> Vivek Kaushik (6281672715)</p>
-
-          <div style="margin-top:8px;"><h6 class="mb-1">Instructions</h6>
-            <p class="text-muted" style="font-size:0.95rem;">Scan the QR code at any DropPoint locker and enter the OTP if prompted. Keep this link or QR accessible to the receiver if they are paying or collecting.</p>
-          </div>
-        </div>
-
-        <div class="action-buttons">
-          <button class="btn btn-success" onclick="shareQR()"><i class="fas fa-share-alt me-1"></i> Share QR</button>
-          <button class="btn btn-outline-secondary" onclick='copyLink(`https://demo.droppoint.in/mobile/view/parcel/68bddb31044d9f4575504c79/success`)'><i class="fas fa-copy me-1"></i> Copy Link</button>
-          <a href="/mobileDashboard" class="btn btn-primary">Back to Dashboard</a>
-        </div>
-
-        <div class="bottom-links"><small class="text-muted">Need help? Contact support or visit the dashboard.</small></div>
+    <div class="details-section">
+      <div class="item"><strong>Type:</strong> <%= parcel.type %></div>
+      <div class="item"><strong>Size:</strong> <%= parcel.size %></div>
+      <div class="item">
+        <strong>Receiver:</strong>
+        <div><%= parcel.receiverName %></div>
+        <div class="small text-muted"><%= parcel.receiverPhone %></div>
       </div>
+      <div class="item"><strong>Expires At:</strong> <%= new Date(parcel.expiresAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) %></div>
+    </div>
 
+    <div class="mt-4 d-flex gap-2 flex-wrap action-buttons justify-content-center">
+      <button class="btn btn-success" onclick="shareQR()">
+        <i class="fas fa-share-alt me-1"></i> Share QR
+      </button>
+      <button class="btn btn-outline-secondary"
+        onclick='copyLink(`https://demo.droppoint.in/mobile/view/parcel/<%- parcel._id %>/success`)'>
+        <i class="fas fa-copy me-1"></i> Copy Link
+      </button>
+      <a href="/mobileDashboard" class="btn btn-primary px-4">
+        Back to Dashboard
+      </a>
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+    crossorigin="anonymous"></script>
 
   <script>
-    /* Share and analytics retained */
     function shareQR() {
       if (navigator.share) {
         navigator.share({
           title: "📦 Your Parcel QR",
           text: "Scan this QR at any locker to drop your parcel.",
-          url: "https://demo.droppoint.in/mobile/view/parcel/68bddb31044d9f4575504c79/success"
+          url: "https://demo.droppoint.in/mobile/view/parcel/<%- parcel._id %>/success"
         }).catch(console.error);
       } else {
         alert("Your browser doesn't support Web Share.");
       }
     }
+
     function trackUserAction(step, method = 'pageview') {
       fetch('/analytics/user-action', {
         method: 'POST',
@@ -251,40 +185,33 @@
         body: JSON.stringify({ step, method, path: window.location.pathname })
       });
     }
+
     trackUserAction('payment_completed');
     trackUserAction('parcel_booked');
 
     function copyLink(url) {
       if (!url) return alert("❌ URL not found");
+
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(url).then(() => showToast('✅ Link copied to clipboard')).catch(() => fallbackCopy(url));
-      } else fallbackCopy(url);
+        navigator.clipboard.writeText(url)
+          .then(() => alert("✅ Link copied to clipboard"))
+          .catch(err => fallbackCopy(url));
+      } else {
+        fallbackCopy(url);
+      }
 
       function fallbackCopy(text) {
         const tempInput = document.createElement('input');
-        tempInput.value = text; document.body.appendChild(tempInput);
-        tempInput.select(); document.execCommand('copy'); document.body.removeChild(tempInput);
-        showToast('✅ Link copied to clipboard');
+        tempInput.value = text;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        tempInput.setSelectionRange(0, 99999);
+        document.execCommand('copy');
+        document.body.removeChild(tempInput);
+        alert("✅ Link copied to clipboard");
       }
     }
-
-    function showToast(msg) { alert(msg); }
-
-    /* Make OTP copyable on tap for mobile users */
-    const otpBox = document.getElementById('otpBox');
-    if (otpBox) {
-      otpBox.addEventListener('click', () => {
-        const text = otpBox.textContent.trim();
-        if (!text) return;
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(text).then(() => showToast('✅ OTP copied')).catch(() => showToast('Failed to copy'));
-        } else {
-          const t = document.createElement('input'); t.value = text; document.body.appendChild(t); t.select(); document.execCommand('copy'); document.body.removeChild(t); showToast('✅ OTP copied');
-        }
-      });
-    }
   </script>
-
 </body>
 
 </html>
