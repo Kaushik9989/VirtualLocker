@@ -1649,7 +1649,7 @@ app.post("/otpLogin", async (req, res) => {
 
   // Save phone to session
   req.session.phone = phone;
-
+  
   // Optional: Analytics/tracking
   await trackFunnelStep(req, "login_phone", { phone });
 
@@ -1664,7 +1664,13 @@ app.post("/otpLogin", async (req, res) => {
         channel: "sms",
       });
 
-    return res.redirect("/verify-login");
+    req.session.save((err) => {
+  if (err) {
+    console.error('Session save error before redirect:', err);
+    return res.render('login', { error: '⚠️ Session error. Please try again.' });
+  }
+  return res.redirect('/verify-login');
+});
   } catch (err) {
     console.error("OTP send error:", err?.message || err);
 
@@ -1754,7 +1760,7 @@ app.post("/verify-login", async (req, res) => {
 
 app.get("/set-username", (req, res) => {
   if (!req.session.user) {
-  return res.redirect("/mobileDashboard");
+  return res.redirect("/login");
 }
   res.render("set-username", { error: null });
 });
@@ -1794,7 +1800,7 @@ app.post("/set-username", async (req, res) => {
     res.redirect("/mobileDashboard");
   } catch (err) {
     res.render("set-username", {
-      error: err,
+      error: err.message,
     });
   }
 });
