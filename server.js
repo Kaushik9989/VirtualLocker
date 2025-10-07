@@ -1732,7 +1732,6 @@ app.post("/verify-login", async (req, res) => {
     let user = await User.findOne({ phone });
 
     if (!user) {
-      req.session.phone = phone;
       req.session.user = { phone };
 
       return req.session.save((err) => {
@@ -1773,7 +1772,8 @@ app.post("/verify-login", async (req, res) => {
 
 
 app.get("/set-username", (req, res) => {
-  if (!req.session.user) {
+  const phone = req.signedCookies?.[LOGIN_COOKIE];
+  if (!/^\d{10}$/.test(phone || "")) {
   return res.redirect("/login");
 }
   res.render("set-username", { error: null });
@@ -1783,7 +1783,8 @@ app.get("/set-username", (req, res) => {
 
 app.post("/set-username", async (req, res) => {
   const { username } = req.body;
-  const phone = req.session.phone;
+  const phone = req.signedCookies?.[LOGIN_COOKIE];
+  console.log(phone);
 
   try {
     const existingUsername = await User.findOne({ username });
