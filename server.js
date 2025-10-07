@@ -9,7 +9,7 @@ const LRU = require("lru-cache");
 const Razorpay = require("razorpay");
 const Version = require("./models/Version.js");
 const methodOverride = require('method-override');
-
+const cookieParser = require('cookie-parser');
 const axios = require("axios");
 const uaParser = require("ua-parser-js");
 const session = require("express-session");
@@ -54,8 +54,8 @@ require("dotenv").config();
 
 const server = http.createServer(app);
 const io = new Server(server);
-
-
+app.set('trust proxy', 1);
+app.use(cookieParser(process.env.COOKIE_SECRET)); // <- add a strong secret
 app.engine("ejs", ejsMate); // Set ejs-mate as the EJS engine
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
@@ -77,26 +77,44 @@ app.use(
     secret: process.env.SESSION_SECRET || "dev-secret", // Use env var in production
     resave: false,
     saveUninitialized: false,
-    rolling: false,  
     store: MongoStore.create({
       mongoUrl: MONGO_URI,
       ttl: 60 * 60 * 24 * 7, // 7 days in seconds
     }),
     cookie: {
-     secure: process.env.NODE_ENV === 'production',     // Must be false if not using HTTPS locally
+    secure: false,     // Must be false if not using HTTPS locally
     httpOnly: true,
-    sameSite: "lax",
-    path: '/',       // Prevents cross-site issues
+    sameSite: "lax",       // Prevents cross-site issues
    maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
       
     },
- 
+      rolling: true, 
   })
 );
 
 
 
+const LOGIN_COOKIE = 'login_phone';
 
+function setLoginPhoneCookie(res, phone) {
+  res.cookie(LOGIN_COOKIE, phone, {
+    signed: true,
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production', // only over HTTPS in prod
+    maxAge: 5 * 60 * 1000, // 5 minutes
+    path: '/',            // available across your app
+  });
+}
+
+function clearLoginPhoneCookie(res) {
+  res.clearCookie(LOGIN_COOKIE, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+  });
+}
 
 
 
@@ -1595,7 +1613,7 @@ app.get(
       let user = await User.findOne({ username: req.user.username });
 
       if (!user) {
-        // Be sure `googleId`, `email`, `username` are defined
+        // Be sure `google Id`, `email`, `username` are defined
         const { googleId, email, username } = req.user;
 
         user = await User.create({
@@ -1612,18 +1630,12 @@ app.get(
 
       // Optional analytics step
       await trackFunnelStep(req, "login_oauth", { phone: req.user.phone || null });
-      
-      // Redirect to saved URL or default
-        req.session.save((err2) => {
-          if (err2) {
-            console.error("Session save error:", err2);
-            return res.redirect("/login");
-          }
 
-          const redirectTo = req.session.redirectTo || "/mobileDashboard";
-          delete req.session.redirectTo;
-          res.redirect(redirectTo);
-        });
+      // Redirect to saved URL or default
+      const redirectTo = req.session.redirectTo || "/mobileDashboard";
+      delete req.session.redirectTo;
+
+      return res.redirect(redirectTo);
     } catch (err) {
       console.error("OAuth callback error:", err);
       return res.redirect("/login");
@@ -1641,43 +1653,46 @@ app.get('/logout', (req, res) => {
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-
-// Put this helper somewhere shared (top of file or a utils module)
-
-const toE164India = (phone) => `+91${String(phone).replace(/\D/g, '').slice(-10)}`;
+/// OTP LOGIN ROUTES 
 
 app.post("/otpLogin", async (req, res) => {
   const { phone } = req.body;
+  // Basic phone number validation
   if (!phone || !/^\d{10}$/.test(phone)) {
     return res.render("login", { error: "⚠️ Please enter a valid 10-digit phone number." });
   }
 
+  // Save phone to session
+    setLoginPhoneCookie(res, phone);
+  
+  // Optional: Analytics/tracking
+  await trackFunnelStep(req, "login_phone", { phone });
+
+  // Debug log (ensure .env has this variable)
+  console.log("Verify SID:", process.env.TWILIO_VERIFY_SERVICE_SID);
+
   try {
-    const to = toE164India(phone);
-    const serviceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
-
-    const start = await client.verify.v2
-      .services(serviceSid)
-      .verifications.create({ to, channel: "sms" });
-
-    // save BOTH raw phone (for your DB) and exact to/service used for Verify
-    req.session.phone = String(phone);
-    req.session.verify = { to, serviceSid, sid: start.sid, startedAt: Date.now() };
-    console.log('GET /verify-login SID', req.sessionID, req.session?.verify);
-
-    return req.session.save((err) => {
-      if (err) {
-        console.error("Session save error before redirect:", err);
-        return res.render("login", { error: "⚠️ Session error. Please try again." });
-      }
-      return res.redirect("/verify-login");
-    });
+    await client.verify.v2
+      .services(process.env.TWILIO_VERIFY_SERVICE_SID)
+      .verifications.create({
+        to: `+91${phone}`,
+        channel: "sms",
+      });
+    req.session.save((err) => {
+  if (err) {
+    console.error('Session save error before redirect:', err);
+    return res.render('login', { error: '⚠️ Session error. Please try again.' });
+  }
+  return res.redirect('/verify-login');
+});
   } catch (err) {
     console.error("OTP send error:", err?.message || err);
-    return res.render("login", { error: "❌ Failed to send OTP. Please try again later." });
+
+    return res.render("login", {
+      error: "❌ Failed to send OTP. Please try again later.",
+    });
   }
 });
-
 
 app.get("/verify-login", (req, res) => {
   const phone = req.session.phone; // saved from login step
@@ -1688,43 +1703,50 @@ app.get("/verify-login", (req, res) => {
 
 app.post("/verify-login", async (req, res) => {
   await trackFunnelStep(req, "otp_entered");
+
   const { otp } = req.body;
+  console.log(otp);
+   const phone = req.signedCookies?.login_phone || "";
+  console.log(phone);
 
   if (!otp) {
-    return res.render("verify-login", { error: "⚠️ Please enter a valid OTP." });
-  }
-console.log('POST /verify-login SID', req.sessionID, req.session?.verify);
-
-  // pull from session; bail if missing
-  const ctx = req.session.verify || {};
-  if (!ctx.to || !ctx.serviceSid) {
-    return res.render("verify-login", { error: "⏳ OTP session expired. Please request a new OTP." });
+    return res.render("verify-login", {
+      error: "⚠️ Please enter a valid OTP.",
+    });
   }
 
   try {
     const verificationCheck = await client.verify.v2
-      .services(ctx.serviceSid)
-      .verificationChecks.create({ to: ctx.to, code: otp });
+      .services(process.env.TWILIO_VERIFY_SERVICE_SID)
+      .verificationChecks.create({
+        to: `+91${phone}`,
+        code: otp,
+      });
 
     if (verificationCheck.status !== "approved") {
-      return res.render("verify-login", { error: "❌ Invalid OTP. Try again." });
+      return res.render("verify-login", {
+        error: "❌ Invalid OTP. Try again.",
+      });
     }
 
-    // use raw phone for your DB (10 digits)
-    const phone = req.session.phone;
     let user = await User.findOne({ phone });
 
     if (!user) {
+      req.session.phone = phone;
       req.session.user = { phone };
+
       return req.session.save((err) => {
         if (err) {
           console.error("Session save error:", err);
-          return res.render("verify-login", { error: "⚠️ Session error. Please try again." });
+          return res.render("verify-login", {
+            error: "⚠️ Session error. Please try again.",
+          });
         }
         return res.redirect("/set-username");
       });
     }
 
+    // Safe to proceed now
     user.lastLogin = new Date();
     await user.save();
 
@@ -1736,10 +1758,14 @@ console.log('POST /verify-login SID', req.sessionID, req.session?.verify);
       email: user.email || null,
       wallet: user.wallet || { credits: 0 },
     };
+
     return res.redirect("/mobileDashboard");
+
   } catch (err) {
-    console.error("CHECK_ERR", { code: err?.code, message: err?.message, moreInfo: err?.moreInfo });
-    return res.render("verify-login", { error: "❌ OTP verification failed. Please try again." });
+    console.error("OTP Verify Error:", err?.message || err);
+    return res.render("verify-login", {
+      error: "❌ OTP verification failed. Please try again.",
+    });
   }
 });
 
