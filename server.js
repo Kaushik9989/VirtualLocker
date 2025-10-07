@@ -1717,7 +1717,7 @@ app.post("/verify-login", async (req, res) => {
 
   const { otp } = req.body;
   console.log(otp);
-  const phone = req.session.phone;
+   let phone = (req.body.phone || req.session.phone || "").trim();
   console.log(phone);
 
   if (!otp) {
@@ -1775,7 +1775,7 @@ app.post("/verify-login", async (req, res) => {
   } catch (err) {
     console.error("OTP Verify Error:", err?.message || err);
     return res.render("verify-login", {
-      error: "❌ OTP verification failed. Please try again.",
+      error: err,
     });
   }
 });
