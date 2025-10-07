@@ -77,7 +77,7 @@ app.use(
     secret: process.env.SESSION_SECRET || "dev-secret", // Use env var in production
     resave: false,
     saveUninitialized: false,
-    rolling: true,  
+    rolling: false,  
     store: MongoStore.create({
       mongoUrl: MONGO_URI,
       ttl: 60 * 60 * 24 * 7, // 7 days in seconds
@@ -1643,66 +1643,40 @@ app.get('/logout', (req, res) => {
 
 
 // Put this helper somewhere shared (top of file or a utils module)
-const toE164India = (phone) => {
-  const raw = String(phone || '').trim();
-  const digits = raw.replace(/\D/g, '');
 
-  if (raw.startsWith('+') && /^\+\d{10,15}$/.test(raw)) return raw;        // already E.164
-  if (digits.length === 10) return `+91${digits}`;                          // 10-digit mobile
-  if (digits.length === 11 && digits.startsWith('0')) return `+91${digits.slice(1)}`; // 0 + 10 digits
-  if (digits.length === 12 && digits.startsWith('91')) return `+${digits}`; // 91 + 10 digits
-
-  throw new Error('Invalid Indian phone format');
-};
+const toE164India = (phone) => `+91${String(phone).replace(/\D/g, '').slice(-10)}`;
 
 app.post("/otpLogin", async (req, res) => {
   const { phone } = req.body;
-
-  // Basic phone number validation
   if (!phone || !/^\d{10}$/.test(phone)) {
     return res.render("login", { error: "⚠️ Please enter a valid 10-digit phone number." });
   }
 
-  // Save phone to session
-  req.session.phone = phone;
-  
-  // Optional: Analytics/tracking
-  await trackFunnelStep(req, "login_phone", { phone });
-
-  // Debug log (ensure .env has this variable)
-  console.log("Verify SID:", process.env.TWILIO_VERIFY_SERVICE_SID);
-
   try {
-    await client.verify.v2
-      .services(process.env.TWILIO_VERIFY_SERVICE_SID)
-      .verifications.create({
-        to: `+91${phone}`,
-        channel: "sms",
-      });
+    const to = toE164India(phone);
+    const serviceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
 
-    req.session.save((err) => {
-  if (err) {
-    console.error('Session save error before redirect:', err);
-    return res.render('login', { error: '⚠️ Session error. Please try again.' });
-  }
-  return res.redirect('/verify-login');
-});
+    const start = await client.verify.v2
+      .services(serviceSid)
+      .verifications.create({ to, channel: "sms" });
+
+    // save BOTH raw phone (for your DB) and exact to/service used for Verify
+    req.session.phone = String(phone);
+    req.session.verify = { to, serviceSid, sid: start.sid, startedAt: Date.now() };
+    console.log('GET /verify-login SID', req.sessionID, req.session?.verify);
+
+    return req.session.save((err) => {
+      if (err) {
+        console.error("Session save error before redirect:", err);
+        return res.render("login", { error: "⚠️ Session error. Please try again." });
+      }
+      return res.redirect("/verify-login");
+    });
   } catch (err) {
     console.error("OTP send error:", err?.message || err);
-
-    return res.render("login", {
-      error: "❌ Failed to send OTP. Please try again later.",
-    });
+    return res.render("login", { error: "❌ Failed to send OTP. Please try again later." });
   }
-}); 
-
-
-
-
-
-
-
-
+});
 
 
 app.get("/verify-login", (req, res) => {
@@ -1714,50 +1688,43 @@ app.get("/verify-login", (req, res) => {
 
 app.post("/verify-login", async (req, res) => {
   await trackFunnelStep(req, "otp_entered");
-
   const { otp } = req.body;
-  console.log(otp);
-   let phone = (req.body.phone || req.session.phone || "").trim();
-  console.log(phone);
 
   if (!otp) {
-    return res.render("verify-login", {
-      error: "⚠️ Please enter a valid OTP.",
-    });
+    return res.render("verify-login", { error: "⚠️ Please enter a valid OTP." });
+  }
+console.log('POST /verify-login SID', req.sessionID, req.session?.verify);
+
+  // pull from session; bail if missing
+  const ctx = req.session.verify || {};
+  if (!ctx.to || !ctx.serviceSid) {
+    return res.render("verify-login", { error: "⏳ OTP session expired. Please request a new OTP." });
   }
 
   try {
     const verificationCheck = await client.verify.v2
-      .services(process.env.TWILIO_VERIFY_SERVICE_SID)
-      .verificationChecks.create({
-        to: `+91${phone}`,
-        code: otp,
-      });
+      .services(ctx.serviceSid)
+      .verificationChecks.create({ to: ctx.to, code: otp });
 
     if (verificationCheck.status !== "approved") {
-      return res.render("verify-login", {
-        error: "❌ Invalid OTP. Try again.",
-      });
+      return res.render("verify-login", { error: "❌ Invalid OTP. Try again." });
     }
 
+    // use raw phone for your DB (10 digits)
+    const phone = req.session.phone;
     let user = await User.findOne({ phone });
 
     if (!user) {
-      req.session.phone = phone;
       req.session.user = { phone };
-
       return req.session.save((err) => {
         if (err) {
           console.error("Session save error:", err);
-          return res.render("verify-login", {
-            error: "⚠️ Session error. Please try again.",
-          });
+          return res.render("verify-login", { error: "⚠️ Session error. Please try again." });
         }
         return res.redirect("/set-username");
       });
     }
 
-    // Safe to proceed now
     user.lastLogin = new Date();
     await user.save();
 
@@ -1769,14 +1736,10 @@ app.post("/verify-login", async (req, res) => {
       email: user.email || null,
       wallet: user.wallet || { credits: 0 },
     };
-
     return res.redirect("/mobileDashboard");
-
   } catch (err) {
-    console.error("OTP Verify Error:", err?.message || err);
-    return res.render("verify-login", {
-      error: err,
-    });
+    console.error("CHECK_ERR", { code: err?.code, message: err?.message, moreInfo: err?.moreInfo });
+    return res.render("verify-login", { error: "❌ OTP verification failed. Please try again." });
   }
 });
 
