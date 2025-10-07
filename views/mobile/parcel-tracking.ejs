@@ -11,7 +11,8 @@
 
   <style>
     /* Base (portrait defaults) */
-    html, body {
+    html,
+    body {
       height: 100%;
       background-color: #f8f9fa;
     }
@@ -43,17 +44,29 @@
       line-height: 30px;
       flex-shrink: 0;
     }
-    .circle-status.done { background-color: #198754; }
-    .circle-status.active { background-color: #0d6efd; }
-    .circle-status.upcoming { background-color: #ccc; }
+
+    .circle-status.done {
+      background-color: #198754;
+    }
+
+    .circle-status.active {
+      background-color: #0d6efd;
+    }
+
+    .circle-status.upcoming {
+      background-color: #ccc;
+    }
 
     /* Portrait QR section defaults */
     .qr-wrapper {
-      min-height: 100vh;            /* take full screen height */
+      min-height: 100vh;
+      /* take full screen height */
       display: flex;
       flex-direction: column;
-      justify-content: center;      /* vertical centering */
-      align-items: center;          /* horizontal centering */
+      justify-content: center;
+      /* vertical centering */
+      align-items: center;
+      /* horizontal centering */
       text-align: center;
     }
 
@@ -62,17 +75,28 @@
       border-radius: 12px;
       display: block;
       margin: 0 auto;
-      width: 400px;                 /* portrait size */
-      max-width: 90vw;
+      width: 400px;
+      /* portrait size */
+      max-width: 80vw;
       height: auto;
+    }
+
+    @media(orientation : portrait) {
+      .qr-only-stage {
+        display: none !important;
+      }
     }
 
     /* Landscape mode: show ONLY the QR, make page unscrollable */
     @media (orientation: landscape) {
-      html, body {
+
+      html,
+      body {
         height: 100vh;
-        overflow: hidden;          /* prevent scrolling */
-        background-color: #000;    /* optional: dark background for focus */
+        overflow: hidden;
+        /* prevent scrolling */
+        background-color: #000;
+        /* optional: dark background for focus */
       }
 
       /* Hide everything except QR section */
@@ -96,11 +120,13 @@
       /* Use a full-viewport QR-only stage */
       .qr-only-stage {
         position: fixed;
-        inset: 0;                   /* top:0; right:0; bottom:0; left:0 */
+        inset: 0;
+        /* top:0; right:0; bottom:0; left:0 */
         display: flex;
         align-items: center;
         justify-content: center;
-        background: #000;           /* high contrast background */
+        background: #000;
+        /* high contrast background */
         z-index: 9999;
       }
 
@@ -108,164 +134,281 @@
       .qr-only-stage .qr-img-landscape {
         width: 80vmin;
         height: 80vmin;
-        max-width: 92vh;           /* extra safety caps */
+        max-width: 92vh;
+        /* extra safety caps */
         max-height: 92vh;
         border: 8px solid #222;
         border-radius: 16px;
         background: #fff;
         padding: 14px;
         object-fit: contain;
-        box-shadow: 0 12px 36px rgba(0,0,0,0.35);
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
       }
     }
 
     /* Usual responsive text size tweaks */
     @media (max-width: 576px) {
-      h5, .label, .circle, p, small { font-size: 14px; }
-      .card { padding: 1rem !important; }
+
+      h5,
+      .label,
+      .circle,
+      p,
+      small {
+        font-size: 14px;
+      }
+
+      .card {
+        padding: 1rem !important;
+      }
     }
   </style>
+<style>
+  .timeline { margin-top: .25rem; }
+  .timeline::before {
+    content: "";
+    position: absolute; left: 10px; top: 0; bottom: 0;
+    width: 2px; background: var(--bs-border-color);
+  }
+  .circle-status {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 2px solid var(--bs-border-color); background: #fff; font-weight: 600;
+  }
+  .circle-status.done {
+    color: black;
+    background: greenyellow;
+    border-color: var(--bs-success);
+  }
+  .circle-status.not-done {
+     color: black;
+    background: rgb(205, 75, 75);
+    border-color: var(--bs-border-color);
+    opacity: .6;
+  }
+</style>
+<style>
+  .parcel-status-text {
+    font-weight: 600;
+    text-transform: capitalize;
+    color: #0d6efd; /* Bootstrap primary blue */
+  }
+</style>
+<style>
+  /* Only show the timeline line when the accordion is open */
+  #collapseStatus:not(.show) .timeline {
+    border-left: 0 !important;      /* hides the line */
+    padding-left: 0 !important;      /* removes the leftover gap from ps-3 */
+  }
+
+  /* Optional: when open, ensure the line is visible */
+  #collapseStatus.show .timeline {
+    border-left: 1px solid var(--bs-border-color);
+    padding-left: 1rem; /* same as .ps-3 if you want the spacing */
+  }
+  .timeline::before {
+  display: none !important; /* remove any vertical rule */
+}
+
+.timeline {
+  border-left: none !important; /* remove left border */
+}
+</style>
+
 </head>
 
 <body>
 
   <%- include('../partials/navbar') %>
 
-  <!-- Portrait / normal layout -->
-  <div class="container py-4">
-    <div class="card shadow p-4 rounded-4">
+    <!-- Portrait / normal layout -->
+    <div class="container py-4">
+      <div class="card shadow p-4 rounded-4">
 
-      <!-- QR Code Section -->
-      <% if (parcel.qrImage && parcel.status !== 'picked') { %>
-        <div class="text-center qr-section mb-4">
-          <!-- Removed inline max-width; CSS controls size -->
-          <img src="<%= parcel.qrImage %>" alt="Parcel QR Code" class="img-fluid" />
-          <div class="mt-2 text-muted">
-            <% if (parcel.status === 'awaiting_drop') { %>
-              Scan this QR code at the locker to <strong>drop</strong> your parcel.
-            <% } else if (parcel.status === 'awaiting_pick') { %>
-              Scan this QR code at locker <strong><%= parcel.lockerId %></strong>,
-              compartment <strong><%= parseInt(parcel.compartmentId)+1 %></strong>
-              to <strong>collect</strong> your parcel.
-            <% } %>
-          </div>
-        </div>
-      <% } %>
-
-      <!-- Header -->
-      <div class="d-flex justify-content-between flex-wrap mb-3 parcel-header">
-        <h5 class="mb-2">Parcel ID: <span class="text-primary"><%= parcel.customId %></span></h5>
-        <div>
-          <small><strong>Access Code:</strong> <%= parcel.accessCode %></small><br>
-          <small><strong>Expires:</strong> <%= new Date(parcel.expiresAt).toLocaleString() %></small>
-          <% if (isExpired) { %><% } %>
-        </div>
-      </div>
-
-      <!-- Parcel Status Timeline -->
-      <div class="section-header mt-4">Parcel Status</div>
-      <div class="timeline position-relative border-start ps-3">
-        <% const steps = [
-          { key: "awaiting_payment", label: "⏳ Awaiting Payment", msg: "Waiting for sender to pay" },
-          { key: "awaiting_drop",   label: "💳✅ Payment Completed", msg: "Payment successful, waiting for drop" },
-          { key: "awaiting_pick",   label: "📦🔒 Dropped",          msg: "Parcel is in the locker, awaiting pickup" },
-          { key: "picked",          label: "✅📬 Picked",           msg: "Receiver has collected the parcel" }
-        ];
-        const currentIndex = steps.findIndex(step => step.key === parcel.status);
-        %>
-
-        <% steps.forEach((step, index) => { %>
-          <div class="mb-4 d-flex align-items-start">
-            <div class="circle-status me-3
-              <% if (index < currentIndex) { %> done
-              <% } else if (index === currentIndex) { %> active
-              <% } else { %> upcoming <% } %>">
-              <span><%= index + 1 %></span>
-            </div>
-            <div>
-              <div class="fw-semibold"><%= step.label %></div>
-              <small class="text-muted"><%= step.msg %></small>
+        <!-- QR Code Section -->
+        <% if (parcel.qrImage && parcel.status !=='picked' ) { %>
+          <div class=" qr-section mb-4">
+            <!-- Removed inline max-width; CSS controls size -->
+            <img src="<%= parcel.qrImage %>" alt="Parcel QR Code" class="img-fluid" />
+            <div class="mt-2 text-muted">
+              <% if (parcel.status==='awaiting_drop' ) { %>
+                Scan this QR code at the locker to <strong>drop</strong> your parcel or use access code.
+                <% } else if (parcel.status==='awaiting_pick' ) { %>
+                  Scan this QR code at locker <strong>
+                    <%= parcel.lockerId %>
+                  </strong>,
+                  compartment <strong>
+                    <%= parseInt(parcel.compartmentId)+1 %>
+                  </strong>
+                  to <strong>collect</strong> your parcel.
+                  <% } %>
             </div>
           </div>
-        <% }); %>
-      </div>
+          <% } %>
 
-      <!-- Details -->
-      <div class="section-header mt-4 details-section">Parcel Details</div>
-      <div class="row details-section">
-        <div class="col-md-6 mb-3">
-          <p><strong>Sender:</strong> <%= parcel.senderName || 'N/A' %></p>
-          <p><strong>Receiver:</strong> <%= parcel.receiverName || 'N/A' %></p>
-          <p><strong>Receiver Phone Number:</strong> <%= parcel.receiverPhone || 'N/A' %></p>
-          <p><strong>Description:</strong> <%= parcel.description || 'No description' %></p>
-        </div>
-        <div class="col-md-6 mb-1">
-          <p><strong>Locker:</strong> <%= parcel.lockerId || 'N/A' %></p>
-          <p><strong>Compartment:</strong> <%= (parseInt(parcel.compartmentId)+1) || 'N/A' %></p>
-          <p><strong>Cost:</strong> ₹<%= parseFloat(parcel.cost).toFixed(0) %></p>
-        </div>
-      </div>
+            <!-- Header -->
+            <div class="parcel-header text-center w-100 ">
+              <h5>Access Code:</h5>
+              <h1 class="fw-bold display-1" style="">
+                <%= parcel.accessCode %>
+              </h1>
+            </div>
 
-      <!-- Back Button -->
-      <div class="text-end mt-4">
-        <a href="/mobileDashboard" class="btn btn-outline-secondary back-btn">Back to Dashboard</a>
+            <small class="mb-2">Parcel ID: <span class="text-primary">
+                <%= parcel.customId %>
+              </span></small>
+            <small><strong>Expires:</strong>
+              <%= new Date(parcel.expiresAt).toLocaleString() %>
+            </small>
+            <% if (isExpired) { %>
+              <% } %>
+      </div>
+    </div>
+    <div style="margin-left: 10px;">
+    <!-- Parcel Status Timeline -->
+    <div class="section-header mt-4">Parcel Status</div>
+    <!-- Accordion -->
+<!-- Accordion -->
+<div class="accordion" id="parcelStatusAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="headingStatus">
+      <button class="accordion-button collapsed" type="button"
+              data-bs-toggle="collapse" data-bs-target="#collapseStatus"
+              aria-expanded="false" aria-controls="collapseStatus">
+        Parcel Status: 
+        <span class="ms-2 parcel-status-text">
+          <%= (parcel && parcel.status) ? parcel.status.replace('_',' ') : 'unknown' %>
+        </span>
+      </button>
+    </h2>
+
+    <div id="collapseStatus" class="accordion-collapse collapse"
+         aria-labelledby="headingStatus" data-bs-parent="#parcelStatusAccordion">
+      <div class="accordion-body">
+
+        <!-- Removed border-start -->
+        <div class="timeline position-relative ps-3">
+          <% 
+            const steps = [
+              { key: "awaiting_payment", label: "Awaiting Payment", msg: "Waiting for sender to pay" },
+              { key: "awaiting_drop",   label: "Payment Completed", msg: "Payment successful, waiting for drop" },
+              { key: "awaiting_pick",   label: "Dropped",           msg: "Parcel is in the locker, awaiting pickup" },
+              { key: "picked",          label: "Picked",            msg: "Receiver has collected the parcel" }
+            ];
+            const currentIndex = steps.findIndex(step => step.key === parcel.status);
+          %>
+
+          <% steps.forEach((step, index) => { %>
+            <div class="mb-4 d-flex align-items-start">
+              <div class="circle-status me-3
+                  <% if (index <= currentIndex) { %> done
+                  <% } else { %> not-done <% } %>">
+                <span><%= index + 1 %></span>
+              </div>
+              <div>
+                <div class="fw-semibold"><%= step.label %></div>
+                <small class="text-muted"><%= step.msg %></small>
+              </div>
+            </div>
+          <% }); %>
+        </div>
+
       </div>
     </div>
   </div>
+</div>
 
-  <!-- LANDSCAPE-ONLY QR STAGE (hidden in portrait by media query rules above) -->
-  <% if (parcel.qrImage && parcel.status !== 'picked') { %>
-    <div class="qr-only-stage" aria-hidden="true">
-      <img src="<%= parcel.qrImage %>" alt="Parcel QR Code" class="qr-img-landscape" />
+
+
+    <!-- Details -->
+    <div class="section-header mt-4 details-section">Parcel Details</div>
+    <div class="row details-section">
+      <div class="col-md-6 mb-3">
+        <p><strong>Sender:</strong>
+          <%= parcel.senderName || 'N/A' %>
+        </p>
+        <p><strong>Receiver:</strong>
+          <%= parcel.receiverName || 'N/A' %>
+        </p>
+        <p><strong>Receiver Phone Number:</strong>
+          <%= parcel.receiverPhone || 'N/A' %>
+        </p>
+        <p><strong>Description:</strong>
+          <%= parcel.description || 'No description' %>
+        </p>
+      </div>
+      <div class="col-md-6 mb-1">
+        <p><strong>Locker:</strong>
+          <%= parcel.lockerId || 'N/A' %>
+        </p>
+        <p><strong>Compartment:</strong>
+          <%= (parseInt(parcel.compartmentId)+1) || 'N/A' %>
+        </p>
+        <p><strong>Cost:</strong> ₹<%= parseFloat(parcel.cost).toFixed(0) %>
+        </p>
+      </div>
     </div>
-  <% } %>
 
-  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-  <script>
-    function extendExpiry(parcelId) {
-      fetch(`/parcel/${parcelId}/extend/create-order`, { method: "POST" })
-        .then(res => res.json())
-        .then(data => {
-          var options = {
-            key: data.key,
-            amount: data.amount,
-            currency: data.currency,
-            name: "DropPoint",
-            description: "Extend Parcel Expiry",
-            order_id: data.orderId,
-            handler: function () {
-              fetch(`/parcel/${parcelId}/extend/confirm`, { method: "POST" })
+    <!-- Back Button -->
+    <div class="text-end mt-4">
+      <a href="/mobileDashboard" class="btn btn-outline-secondary back-btn">Back to Dashboard</a>
+    </div>
+    </div>
+    </div>
+</div>
+    <!-- LANDSCAPE-ONLY QR STAGE (hidden in portrait by media query rules above) -->
+    <% if (parcel.qrImage && parcel.status !=='picked' ) { %>
+      <div class="qr-only-stage" aria-hidden="true">
+        <img src="<%= parcel.qrImage %>" alt="Parcel QR Code" class="qr-img-landscape" />
+      </div>
+      <% } %>
+
+        <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+        <script>
+          function extendExpiry(parcelId) {
+            fetch(`/parcel/${parcelId}/extend/create-order`, { method: "POST" })
+              .then(res => res.json())
+              .then(data => {
+                var options = {
+                  key: data.key,
+                  amount: data.amount,
+                  currency: data.currency,
+                  name: "DropPoint",
+                  description: "Extend Parcel Expiry",
+                  order_id: data.orderId,
+                  handler: function () {
+                    fetch(`/parcel/${parcelId}/extend/confirm`, { method: "POST" })
+                      .then(res => res.json())
+                      .then(result => {
+                        if (result.success) {
+                          alert("✅ Timeline extended");
+                          location.reload();
+                        }
+                      });
+                  },
+                  theme: { color: "#3399cc" }
+                };
+                var rzp = new Razorpay(options);
+                rzp.open();
+              })
+              .catch(() => alert("❌ Failed to start payment"));
+          }
+
+          function cancelParcel(parcelId) {
+            if (confirm("Are you sure you want to cancel this parcel?")) {
+              fetch(`/parcel/${parcelId}/cancel`, { method: "POST" })
                 .then(res => res.json())
                 .then(result => {
                   if (result.success) {
-                    alert("✅ Timeline extended");
-                    location.reload();
+                    alert("🚫 Parcel cancelled successfully.");
+                    window.location.href = "/mobileDashboard";
+                  } else {
+                    alert("❌ Failed to cancel parcel.");
                   }
                 });
-            },
-            theme: { color: "#3399cc" }
-          };
-          var rzp = new Razorpay(options);
-          rzp.open();
-        })
-        .catch(() => alert("❌ Failed to start payment"));
-    }
-
-    function cancelParcel(parcelId) {
-      if (confirm("Are you sure you want to cancel this parcel?")) {
-        fetch(`/parcel/${parcelId}/cancel`, { method: "POST" })
-          .then(res => res.json())
-          .then(result => {
-            if (result.success) {
-              alert("🚫 Parcel cancelled successfully.");
-              window.location.href = "/mobileDashboard";
-            } else {
-              alert("❌ Failed to cancel parcel.");
             }
-          });
-      }
-    }
-  </script>
+          }
+        </script>
 
 </body>
+
 </html>
