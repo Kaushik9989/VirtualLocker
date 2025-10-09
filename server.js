@@ -1654,7 +1654,7 @@ app.get('/logout', (req, res) => {
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
 /// OTP LOGIN ROUTES 
-
+ const VERIFY_SID = process.env.TWILIO_VERIFY_SERVICE_SID;
 app.post("/otpLogin", async (req, res) => {
   const { phone } = req.body;
   // Basic phone number validation
@@ -1669,11 +1669,11 @@ app.post("/otpLogin", async (req, res) => {
   await trackFunnelStep(req, "login_phone", { phone });
 
   // Debug log (ensure .env has this variable)
-  console.log("Verify SID:", process.env.TWILIO_VERIFY_SERVICE_SID);
+  console.log("Verify SID:", VERIFY_SID);
 
   try {
     await client.verify.v2
-      .services(process.env.TWILIO_VERIFY_SERVICE_SID)
+      .services(VERIFY_SID)
       .verifications.create({
         to: `+91${phone}`,
         channel: "sms",
@@ -1703,7 +1703,7 @@ app.get("/verify-login", (req, res) => {
 
 app.post("/verify-login", async (req, res) => {
   await trackFunnelStep(req, "otp_entered");
-
+ 
   const { otp } = req.body;
   console.log(otp);
    const phone = req.signedCookies?.login_phone || "";
@@ -1717,7 +1717,7 @@ app.post("/verify-login", async (req, res) => {
 
   try {
     const verificationCheck = await client.verify.v2
-      .services(process.env.TWILIO_VERIFY_SERVICE_SID)
+      .services(VERIFY_SID)
       .verificationChecks.create({
         to: `+91${phone}`,
         code: otp,
