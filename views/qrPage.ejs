@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0f172a">
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-DPJJFZLL9L"></script>
   <script>
@@ -148,5 +150,13 @@
       </a>
     </div>
   </div>
+  <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js')
+      .then(() => console.log('SW registered'))
+      .catch(err => console.error('SW registration failed', err));
+  }
+</script>
+
 </body>
 </html>

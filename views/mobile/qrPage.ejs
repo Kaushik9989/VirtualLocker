@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0f172a">
   <meta charset="UTF-8" />
   <title>Parcel Status</title>
 
@@ -154,5 +156,13 @@
       </div>
     </div>
   </main>
+  <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js')
+      .then(() => console.log('SW registered'))
+      .catch(err => console.error('SW registration failed', err));
+  }
+</script>
+
 </body>
 </html>
