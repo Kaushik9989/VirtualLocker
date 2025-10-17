@@ -2781,9 +2781,7 @@ app.get("/mobile/incoming/:id/qr", async (req, res) => {
     
 
 
-  if (!parcel) return res.status(404).send("Parcel not found");
-  if (!parcel.qrImage)
-    return res.status(400).send("No QR code saved for this parcel");
+ 
   res.render("mobile/qrPage", { parcel,qrImage });
 });
 
