@@ -17,11 +17,10 @@ const MongoStore = require("connect-mongo");
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
 const bodyParser = require("body-parser");
-const cron = require("node-cron");
+
  
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
-const Extension = require("./models/extension.js");
 const Locker = require("./models/locker.js");
 const Locker1 = require("./models/Locker/LockerUpdated.js");
 const DropLocation = require("./models/Locker/DropLocation.js");
@@ -55,9 +54,6 @@ require("dotenv").config();
 
 const server = http.createServer(app);
 const io = new Server(server);
-app.get("/", (req, res) => {
-  res.redirect(302,"/mobileDashboard");
-});
 app.set('trust proxy', 1);
 app.use(cookieParser(process.env.COOKIE_SECRET)); // <- add a strong secret
 app.engine("ejs", ejsMate); // Set ejs-mate as the EJS engine
@@ -277,7 +273,11 @@ function isTechnincian(req, res, next) {
   res.redirect("/technician/login");
 }
 
-
+const isCourierAuthenticated = (req, res, next) => {
+  if (req.session.courierId) return next();
+  req.flash("error", "Please log in as a courier.");
+  res.redirect("/courier/login");
+};
 
 passport.use(
   new LocalStrategy(async (username, password, done) => {
@@ -296,7 +296,9 @@ passport.use(
 );
 
 
-
+app.get("/", (req, res) => {
+  res.redirect("/mobileDashboard");
+});
 // /api/sent-parcels
 app.get("/api/sent-parcels", isAuthenticated, async (req, res) => {
   try {
@@ -473,6 +475,55 @@ app.get("/analytics/step-durations", async (req, res) => {
   res.render("step-durations", { durations: finalData });
 });
 
+
+app.get("/sendParcel", isAuthenticated, async (req, res) => {
+
+
+  // Check cache firs
+  try {
+    const user = await User.findById(req.session.user._id);
+    
+    const bookedParcels = await Parcel2.find({
+      senderId: req.session.user._id,
+    }).sort({ createdAt: -1 });
+
+    res.render(
+      "sendParcel",
+      {
+        user: req.session.user,
+        bookedParcels,
+        activePage: "send",
+      },
+      (err, html) => {
+        if (err) {
+          console.error("Error rendering sendParcel:", err);
+          return res.status(500).send("Internal Server Error");
+        }
+
+        // Store in cache
+       
+
+        res.send(html);
+      }
+    );
+  } catch (err) {
+    console.error("Error loading sendParcel:", err);
+    res.status(500).send("Internal Server Error");
+  }
+  
+}); // routes/api.js
+
+// GET /api/lockers - Fetch all lockers and compartments
+app.get("/lockers", async (req, res) => {
+  try {
+    const lockers = await Locker.find({});
+    res.render("lockersNew", { lockers });
+  } catch (err) {
+    console.error("Error fetching lockers:", err);
+    res.status(500).send("Error fetching lockers");
+  }
+});
+
 // /api/locations
 app.get("/api/locations", isAuthenticated, async (req, res) => {
   try {
@@ -498,9 +549,107 @@ app.get("/api/locations", isAuthenticated, async (req, res) => {
   }
 });
 
+app.get("/locations", isAuthenticated, async (req, res) => {
+  
+  // const cachedHtml = locationsCache.get(cacheKey);
+  // if (cachedHtml) {
+  //   console.log("✅ Served /locations from cache");
+  //   return res.send(cachedHtml);
+  // }
+
+  try {
+    const lockersRaw = await Locker.find({}).lean();
+    const locationsRaw = await DropLocation.find({ status: "active" }).lean();
+
+    // Precompute enriched data only once
+    const enrichedLocations = locationsRaw.map((loc) => ({
+      ...loc,
+      distance: Math.floor(Math.random() * 20) + 1,
+      rating: (Math.random() * 2 + 3).toFixed(1),
+    }));
+
+    const lockers = lockersRaw.map((locker) => ({
+      lockerId: locker.lockerId,
+      compartments: locker.compartments,
+      location: locker.location || { lat: null, lng: null, address: "" },
+    }));
+
+    res.render(
+      "locations",
+      {
+        lockers,
+        activePage: "locations",
+        locations: enrichedLocations,
+      },
+      (err, html) => {
+        if (err) {
+          console.error("Error rendering locations:", err);
+          return res.status(500).send("Internal Server Error");
+        }
+
+        // Cache HTML
+        // locationsCache.set(cacheKey, html);
+        // console.log("✅ Cached /locations HTML");
+
+        res.send(html);
+      }
+    );
+  } catch (err) {
+    console.error("Error loading locations:", err);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+app.get("/receive", isAuthenticated, async (req, res) => {
+  try {
+    const userPhone = req.session.user.phone;
+
+    const incomingParcels = await Parcel2.find({
+      receiverPhone: userPhone
+    }).sort({ createdAt: -1 });
+
+    const filteredParcels = incomingParcels.filter(
+      p => p.status === "awaiting_pick"
+    );
+
+    res.render("recieve", {
+      parcels: filteredParcels,
+      activePage: "receive",
+      parcelCount: filteredParcels.length
+    });
+  } catch (error) {
+    console.error("Error fetching parcels:", error);
+    res.status(500).send("Server Error");
+  }
+});
 
 
+/// accountCache.delete("account:" + req.session.user._id);
+app.get("/account", isAuthenticated, async (req, res) => {
+  const cacheKey = "account:" + req.session.user._id;
 
+  // Check cache
+  
+ 
+
+  try {
+    const user = await User.findById(req.session.user._id).lean();
+
+    res.render("account", { user, activePage: "account" }, (err, html) => {
+      if (err) {
+        console.error("Error rendering /account:", err);
+        return res.status(500).send("Internal Server Error");
+      }
+
+      
+
+      res.send(html);
+    });
+  } catch (err) {
+    console.error("Error loading /account:", err);
+    res.status(500).send("Internal Server Error");
+  }
+});
 
 async function notifyUserOnLockerBooking(
   receiverName,
@@ -535,6 +684,61 @@ app.get("/incoming/:id/qr", async (req, res) => {
     return res.status(400).send("No QR code saved for this parcel");
   res.render("qrPage", { parcel,qrImage });
 });
+
+//-------------------------------------USER DASHBOARD ------------------------------------------
+app.get("/home", isAuthenticated, (req, res) => {
+  if (req.isAuthenticated()) return res.render("LandingPage");
+  res.redirect("/login");
+});
+app.get("/dashboard", isAuthenticated, async (req, res) => {
+  if (!req.session.user) {
+    return res.redirect("/login");
+  }
+
+  try {
+     if (req.session.inProgressParcelId) {
+    await Parcel2.findByIdAndDelete(req.session.inProgressParcelId);
+    delete req.session.inProgressParcelId;
+  }
+    const user = await User.findById(req.session.user._id).lean();
+    if (!user) return res.redirect("/login");
+
+    if (!user.phone) {
+      req.flash(
+        "error",
+        "⚠️ Please link your phone number to receive parcel updates."
+      );
+    }
+
+    // const lockersRaw = await Locker.find({});
+    const userPhone = user.phone;
+    const userName = user.username;
+    const incomingParcels = await Parcel2.find({
+      receiverPhone: userPhone
+    }).sort({ createdAt: -1 });
+
+    const filteredParcels = incomingParcels.filter(
+      p => p.status === "awaiting_pick"
+    );
+     await trackFunnelStep(req, "dashboard_loaded");
+    res.render(
+      "newDashboard",
+      {
+        user,
+        activePage: "home",
+        userName,
+        parcelCount : filteredParcels.length
+      },
+     
+    );
+  } catch (err) {
+    console.error("Error loading dashboard:", err);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+
+
 
 app.post("/log-version", async (req, res) => {
   const { version, pushedBy = "auto" } = req.body;
@@ -2577,350 +2781,39 @@ app.get("/mobile/incoming/:id/qr", async (req, res) => {
     
 
 
-  if (!parcel) return res.status(404).send("Parcel not found");
-  if (!parcel.qrImage)
-    return res.status(400).send("No QR code saved for this parcel");
+ 
   res.render("mobile/qrPage", { parcel,qrImage });
 });
 
 
-
-
-//// EXTENSION
-
-function ratePerHour(size) {
-  switch (size) {
-    case "small":  return 10;
-    case "medium": return 20;
-    case "large":  return 30;
-    default:       return 20;
-  }
-}
-function calcAmountINR(size, hours) {
-  return ratePerHour(size) * hours;
-}
-
-async function sendWhatsAppMessage(toE164) {
-  return await client.messages.create({
-    to: `whatsapp:+91${toE164}`,
-    from: 'whatsapp:+15558076515',
-    contentSid: 'HXe73f967b34f11b7e3c9a7bbba9b746f6', 
-    contentVariables: JSON.stringify({
-      2: `${id}/qr`, 
-})
-}).then(message => console.log('✅ WhatsApp Message Sent:', message.sid))
-.catch(error => console.error('❌ WhatsApp Message Error:', error));
-}
-
-
-async function createPaymentLinkINR(amountINR, description, customerPhone, referenceId) {
-  const payload = {
-    amount: Math.round(amountINR * 100), // Razorpay uses paise
-    currency: "INR",
-    description,
-    reference_id: referenceId,
-    customer: {
-      contact: customerPhone
-    },
-    notify: {
-      sms: true,
-      email: false
-    },
-    reminder_enable: true,
-    callback_url: `${BASE_URL}/api/extensions/confirm?ref=${encodeURIComponent(referenceId)}`,
-    callback_method: "get", // not using webhooks; this gives user an optional redirect
-  };
-  const link = await rzp.paymentLink.create(payload);
-  return link; // { id, short_url, status, ... }
-}
-
-
-// ---------- Build the WhatsApp text with quick links ----------
-
-
-app.get("/api/parcels/:parcelId/extend", async (req, res) => {
+app.post("/:parcelId/extend/create-order", async (req, res) => {
   try {
-    const { parcelId } = req.params;
-    const hours = Math.max(1, parseInt(req.query.hours || "1", 10));
-    const parcel = await Parcel2.findById(parcelId);
-    if (!parcel) return res.status(404).send("Parcel not found.");
+    const parcel = await Parcel.findById(req.params.parcelId);
+    if (!parcel) return res.status(404).json({ error: "Parcel not found" });
 
+    // Example pricing based on size
+    let amount = 0;
+    if (parcel.size === "small") amount = 30; // ₹20
+    if (parcel.size === "medium") amount = 4000; // ₹40
+    if (parcel.size === "large") amount = 6000; // ₹60
 
-    // choose who pays: default to receiver if present else sender
-    const payTo = (parcel.paymentOption === "receiver_pays" && parcel.receiverPhone)
-      ? parcel.receiverPhone
-      : (parcel.senderPhone || parcel.receiverPhone);
-
-    if (!payTo) return res.status(400).send("No phone number on parcel.");
-
-    const amountINR = calcAmountINR(parcel.size, hours);
-    const referenceId = `EXT-${parcel._id}-${Date.now()}`;
-
-    // record extension request
-    const ext = await Extension.create({
-      parcelId: parcel._id,
-      hours,
-      ratePerHour: ratePerHour(parcel.size),
-      amount: amountINR,
-      whatsAppTo: payTo
+    const order = await razorpay.orders.create({
+      amount: amount, // in paise
+      currency: "INR",
+      receipt: `extend_${parcel._id}_${Date.now()}`
     });
 
-    // create payment link
-    const link = await createPaymentLinkINR(
-      amountINR,
-      `Locker time extension: ${hours}h for ${parcel.customId || parcel.accessCode}`,
-      payTo,
-      referenceId
-    );
-
-    ext.paymentLinkId = link.id;
-    ext.paymentLinkShortUrl = link.short_url;
-    ext.status = "issued";
-    await ext.save();
-
-    // Send the link back via WhatsApp (nice UX)
-   await client.messages.create({
-    to: `whatsapp:+91${payTo}`,
-    from: 'whatsapp:+15558076515',
-    contentSid: 'HX7044cd35733cf55d58269aad267c1609', 
-    contentVariables: JSON.stringify({
-      1: `${amountINR}`,
-      2: `${hours}` ,
-      3: `${link.short_url}`
-})
-}).then(message => console.log('✅ WhatsApp Message Sent:', message.sid))
-.catch(error => console.error('❌ WhatsApp Message Error:', error));
-
-    res.send("Payment link created. Please check your WhatsApp.");
+    res.json({
+      key: process.env.RAZORPAY_KEY_ID,
+      amount: order.amount,
+      currency: order.currency,
+      orderId: order.id
+    });
   } catch (err) {
     console.error(err);
-    res.status(500).send("Failed to create extension link.");
+    res.status(500).json({ error: "Failed to create order" });
   }
 });
-
-app.get("/api/extensions/confirm", async (req, res) => {
-  try {
-    const { ref } = req.query;
-    if (!ref) return res.status(400).send("Missing ref.");
-    // Quick poll all 'issued' requests created recently; narrow search if you store referenceId
-    const pending = await Extension.find({ status: "issued" }).sort({ createdAt: -1 }).limit(10);
-    await Promise.all(pending.map(checkAndApplyPaymentForExtension));
-    res.send("Checked payment status. If paid, extension is applied.");
-  } catch (e) {
-    console.error(e);
-    res.status(500).send("Error confirming payment.");
-  }
-});
-
-
-async function checkAndApplyPaymentForExtension(ext) {
-  if (!ext || ext.status !== "issued" || !ext.paymentLinkId) return null;
-  try {
-    const link = await rzp.paymentLink.fetch(ext.paymentLinkId);
-    // statuses: created/issued/paid/cancelled/expired
-    if (link.status === "paid") {
-      // update parcel
-      const parcel = await Parcel2.findById(ext.parcelId);
-      if (!parcel) {
-        ext.status = "expired";
-        return ext.save();
-      }
-      const oldExpiry = parcel.expiresAt;
-      const newExpiry = new Date(oldExpiry.getTime() + (ext.hours * 60 * 60 * 1000));
-      parcel.expiresAt = newExpiry;
-      parcel.paymentStatus = "completed";
-      parcel.razorpayPaymentLinkId = link.id;
-      parcel.razorpayPaymentLinkStatus = link.status;
-      parcel.razorpayPaymentLinkShortUrl = link.short_url;
-
-      await parcel.save();
-
-      ext.status = "paid";
-      ext.paidAt = new Date();
-      await ext.save();
-
-      // Notify on WhatsApp
-      const prettyOld = oldExpiry.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
-      const prettyNew = newExpiry.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
-     await client.messages.create({
-    to: `whatsapp:+91${payTo}`,
-    from: 'whatsapp:+15558076515',
-    contentSid: 'HX65b3ce58a6ac5490574009526472bed8', 
-    contentVariables: JSON.stringify({
-      1: `${prettyOld}`,
-      2: `${prettyNew}` ,
-      
-})
-}).then(message => console.log('✅ WhatsApp Message Sent:', message.sid))
-.catch(error => console.error('❌ WhatsApp Message Error:', error));
-    } else if (link.status === "cancelled" || link.status === "expired") {
-      ext.status = link.status;
-      await ext.save();
-    }
-  } catch (err) {
-    console.error("poll error", err?.message || err);
-  }
-}
-
-
-async function sendWhatsAppMessage(to, parcel) {
-  try {
-    // compute expiry and rates
-    const expTime = parcel.expiresAt.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
-
-    const url1 = `${process.env.PUBLIC_BASE_URL}/api/parcels/${parcel._id}/extend?hours=1`;
-    const url3 = `${process.env.PUBLIC_BASE_URL}/api/parcels/${parcel._id}/extend?hours=3`;
-    const url6 = `${process.env.PUBLIC_BASE_URL}/api/parcels/${parcel._id}/extend?hours=6`;
-
-    // calculate rates (₹10/hr small, ₹20/hr medium, ₹30/hr large)
-    function ratePerHour(size) {
-      switch (size) {
-        case "small": return 10;
-        case "medium": return 20;
-        case "large": return 30;
-        default: return 20;
-      }
-    }
-    function calcAmountINR(size, hours) {
-      return ratePerHour(size) * hours;
-    }
-
-    const cost1 = calcAmountINR(parcel.size, 1);
-    const cost3 = calcAmountINR(parcel.size, 3);
-    const cost6 = calcAmountINR(parcel.size, 6);
-
-    // send template message
-    const message = await client.messages.create({
-      from: 'whatsapp:+15558076515',             // e.g., 'whatsapp:+14155238886'
-      to: `whatsapp:${to}`,                               // e.g., 'whatsapp:+91XXXXXXXXXX'
-      contentSid: HX7e34c782288b4ff998be471e19f8f920, // Twilio Content SID (HSxxxxxxxxxx)
-      contentVariables: JSON.stringify({
-        "1": parcel.accessCode,
-        "2": parcel.lockerId || "N/A",
-        "3": expTime,
-
-        "4": cost1,
-        "5": url1,
-
-        "6": cost3,
-        "7": url3,
-
-        "8": cost6,
-        "9": url6
-      })
-    });
-
-    console.log(`✅ WhatsApp expiry reminder sent to ${to}: SID ${message.sid}`);
-    return message;
-  } catch (err) {
-    console.error("❌ Error sending WhatsApp message:", err.message);
-  }
-}
-
-
-
-
-// ---------- CRON: 1) Reminder ping for soon-to-expire ----------
-/**
- * Every 5 minutes:
- * - Find parcels expiring within the next 60 minutes (and not picked/expired)
- * - Send WhatsApp with extend options (only once per hour).
- */
-const sentPingCache = new Map(); // simple anti-spam; you can persist in DB if needed
-
-cron.schedule("*/5 * * * *", async () => {
-  const now = new Date();
-  const in60 = new Date(now.getTime() + 60 * 60 * 1000);
-
-  const candidates = await Parcel2.find({
-    status: { $in: ["awaiting_pick", "awaiting_drop"] },
-    expiresAt: { $gt: now, $lte: in60 }
-  }).limit(200);
-
-  for (const p of candidates) {
-    const key = `${p._id}:${Math.floor(now.getTime() / (60*60*1000))}`; // once per hour
-    if (sentPingCache.has(key)) continue;
-
-    const to = (p.paymentOption === "receiver_pays" && p.receiverPhone)
-      ? p.receiverPhone : (p.senderPhone || p.receiverPhone);
-
-    if (!to) continue;
-
-    try {
-      await sendWhatsAppMessage(to,p);
-      sentPingCache.set(key, true);
-    } catch (e) {
-      console.error("WA send err", e?.message || e);
-    }
-  }
-});
-
-// ---------- CRON: 2) Poll Razorpay for issued extensions ----------
-/**
- * Every 2 minutes:
- * - Poll all 'issued' ExtensionRequests from last 48h
- * - If paid, apply extension and notify
- */
-cron.schedule("*/2 * * * *", async () => {
-  const since = new Date(Date.now() - 48*60*60*1000);
-  const pending = await Extension.find({
-    status: "issued",
-    createdAt: { $gte: since }
-  }).limit(500);
-  for (const ext of pending) {
-    await checkAndApplyPaymentForExtension(ext);
-  }
-});
-
-// ---------- CRON: 3) Mark truly expired ----------
-/**
- * Every 10 minutes:
- * - Any parcel past expiresAt and not picked -> set status "expired" (one-time)
- * - Send final info
- */
-cron.schedule("*/10 * * * *", async () => {
-  const now = new Date();
-  const expiring = await Parcel2.find({
-    status: { $in: ["awaiting_pick", "awaiting_drop"] },
-    expiresAt: { $lt: now }
-  }).limit(200);
-
-  for (const p of expiring) {
-    p.status = "expired";
-    await p.save().catch(()=>{});
-    const to = p.receiverPhone || p.senderPhone;
-    if (to) {
-      try {
- await client.messages.create({
-    to: `whatsapp:+91${to}`,
-    from: 'whatsapp:+15558076515',
-    contentSid: 'HX668ef9da5023e2729ef64e5388e8abb4', 
-    contentVariables: JSON.stringify({
-      1: `${p.accessCode}`,
-      2: `6281672715` ,
-      
-})
-}).then(message => console.log('✅ WhatsApp Message Sent:', message.sid))
-.catch(error => console.error('❌ WhatsApp Message Error:', error));
-      } catch(e){
-        console.error("Expiry err", e?.message || e);
-      }
-    }
-  }
-});
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -3881,7 +3774,6 @@ app.post("/send/select-locker/:lockerId", isAuthenticated, async (req, res) => {
 //   res.redirect("/send/step3");
 // });
 const UserAction = require('./models/userAction.js');
-const extension = require("./models/extension.js");
 
 app.post("/analytics/user-action", async (req, res) => {
   const { step, method, path } = req.body;
@@ -4802,7 +4694,55 @@ app.post("/courier/deliver", isAuthenticated, async (req, res) => {
   res.redirect("/courier/dashboard");
 });
 
+app.post("/courier/dropoff", isCourierAuthenticated, async (req, res) => {
+  const { lockerId, compartmentId } = req.body;
 
+  try {
+    const locker = await Locker.findOne({ lockerId });
+
+    if (!locker) {
+      req.flash("error", "Locker not found.");
+      return res.redirect("/courier/dashboard");
+    }
+
+    const compartment = locker.compartments.find(
+      (c) => c.compartmentId === compartmentId
+    );
+
+    if (!compartment) {
+      req.flash("error", "Invalid compartment.");
+      return res.redirect("/courier/dashboard");
+    }
+
+    if (compartment.isBooked) {
+      req.flash("error", "This compartment is already booked.");
+      return res.redirect("/courier/dashboard");
+    }
+
+    // Simulate OTP generation (recipient will use this to unlock later)
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    compartment.isBooked = true;
+    compartment.isLocked = true;
+    compartment.bookingInfo = {
+      courierId: req.session.courierId,
+      bookingTime: new Date(),
+      otp,
+    };
+
+    await locker.save();
+
+    req.flash(
+      "success",
+      `Package dropped successfully. OTP for pickup: ${otp}`
+    );
+    res.redirect("/courier/dashboard");
+  } catch (err) {
+    console.error(err);
+    req.flash("error", "Failed to drop package.");
+    res.redirect("/courier/dashboard");
+  }
+});
 
 // ----------------------------------------------- LOCKER EMULATOR ---------------------------------------------------------
 
