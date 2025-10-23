@@ -2816,6 +2816,93 @@ app.post("/:parcelId/extend/create-order", async (req, res) => {
 });
 
 
+// ---------- CRON: 1) Reminder ping for soon-to-expire ----------
+/**
+ * Every 5 minutes:
+ * - Find parcels expiring within the next 60 minutes (and not picked/expired)
+ * - Send WhatsApp with extend options (only once per hour).
+ */
+const sentPingCache = new Map(); // simple anti-spam; you can persist in DB if needed
+
+cron.schedule("*/5 * * * *", async () => {
+  const now = new Date();
+  const in60 = new Date(now.getTime() + 60 * 60 * 1000);
+  const candidates = await Parcel2.find({
+    status: { $in: ["awaiting_pick", "awaiting_drop"] },
+    expiresAt: { $gt: now, $lte: in60 }
+  }).limit(200);
+
+  for (const p of candidates) {
+    const key = `${p._id}:${Math.floor(now.getTime() / (60*60*1000))}`; // once per hour
+    if (sentPingCache.has(key)) continue;
+
+    const to = (p.paymentOption === "receiver_pays" && p.receiverPhone)
+      ? p.receiverPhone : (p.senderPhone || p.receiverPhone);
+
+    if (!to) continue;
+
+    try {
+      await sendWhatsAppMessage(to,p);
+      sentPingCache.set(key, true);
+    } catch (e) {
+      console.error("WA send err", e?.message || e);
+    }
+  }
+});
+
+// ---------- CRON: 2) Poll Razorpay for issued extensions ----------
+/**
+ * Every 2 minutes:
+ * - Poll all 'issued' ExtensionRequests from last 48h
+ * - If paid, apply extension and notify
+ */
+cron.schedule("*/2 * * * *", async () => {
+  const since = new Date(Date.now() - 48*60*60*1000);
+  const pending = await Extension.find({
+    status: "issued",
+    createdAt: { $gte: since }
+  }).limit(500);
+  for (const ext of pending) {
+    await checkAndApplyPaymentForExtension(ext);
+  }
+});
+
+// ---------- CRON: 3) Mark truly expired ----------
+/**
+ * Every 10 minutes:
+ * - Any parcel past expiresAt and not picked -> set status "expired" (one-time)
+ * - Send final info
+ */
+cron.schedule("*/10 * * * *", async () => {
+  const now = new Date();
+  const expiring = await Parcel2.find({
+    status: { $in: ["awaiting_pick", "awaiting_drop"] },
+    expiresAt: { $lt: now }
+  }).limit(200);
+
+  for (const p of expiring) {
+    p.status = "expired";
+    await p.save().catch(()=>{});
+    const to = p.receiverPhone || p.senderPhone;
+    if (to) {
+      try {
+ await client.messages.create({
+    to: `whatsapp:+91${to}`,
+    from: 'whatsapp:+15558076515',
+    contentSid: 'HX668ef9da5023e2729ef64e5388e8abb4', 
+    contentVariables: JSON.stringify({
+      1: `${p.accessCode}`,
+      2: `6281672715` ,
+      
+})
+}).then(message => console.log('✅ WhatsApp Message Sent:', message.sid))
+.catch(error => console.error('❌ WhatsApp Message Error:', error));
+      } catch(e){
+        console.error("Expiry err", e?.message || e);
+      }
+    }
+  }
+});
 
 
 
